@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# So this was the first script I used to toy with the data.
+# Useless and deprecated.
+
 # Docs
 # ====
 # http://datacrystal.romhacking.net/wiki/Pok%C3%A9mon_3rd_Generation#Maps
