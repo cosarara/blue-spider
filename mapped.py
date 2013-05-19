@@ -177,7 +177,7 @@ def get_tileset_img(rom_contents, tileset_img_ptr):
     w = tiles_per_line*8
     #h = pixels//w
     h = rows*8
-    print("lalalal", (w, h), len(data))
+    #print("lalalal", (w, h), len(data))
     im = Image.new("RGB", (w, h))
     #imlist = []
     for pos in range(len(data)):
@@ -245,8 +245,8 @@ def build_block_imgs(blocks_mem, img):
     img.save("tileset.png", "PNG")
     block_imgs = []
     tiles_per_line = 16
-    print('--------')
-    print(len(blocks_mem))
+    #print('--------')
+    #print(len(blocks_mem))
     for block in range(len(blocks_mem)//16):
         block_mem = blocks_mem[block*16:block*16+16]
         block_img = Image.new("RGB", (16, 16))

@@ -87,13 +87,13 @@ class Window(QtGui.QMainWindow):
         #print(self.treemodel.item(0).child(9).text())
 
     def load_tileset(self, tileset_header, previous_img=None):
-        print(tileset_header)
+        #print(tileset_header)
         t_img_ptr = tileset_header['tileset_image_ptr']
         tileset_img = mapped.get_tileset_img(self.rom_contents, t_img_ptr)
         if previous_img:
             w = previous_img.size[0]
             h = previous_img.size[1] + tileset_img.size[1]
-            print("big_img_size", w, h)
+            #print("big_img_size", w, h)
             big_img = Image.new("RGB", (w, h))
             pos = (0, 0, previous_img.size[0], previous_img.size[1])
             big_img.paste(previous_img, pos)
@@ -114,12 +114,12 @@ class Window(QtGui.QMainWindow):
     def draw_palette(self):
         # The tile palette, not the color one
         blocks_imgs = self.blocks_imgs
-        print("len", len(blocks_imgs))
+        #print("len", len(blocks_imgs))
         #blocks_img_w = (len(blocks_imgs) // 8) * 16
         blocks_img_w = 16 * 8 # 8 tiles per row
-        print("w", blocks_img_w)
+        #print("w", blocks_img_w)
         blocks_img_h = (len(blocks_imgs) * 16) // 8
-        print("h", blocks_img_h)
+        #print("h", blocks_img_h)
         blocks_img = Image.new("RGB", (blocks_img_w, blocks_img_h))
         i = 0
         for row in range(blocks_img_h // 16):
