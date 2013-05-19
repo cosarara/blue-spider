@@ -3,6 +3,7 @@
 import sys
 from PyQt4 import Qt, QtCore, QtGui
 from window import Ui_MainWindow
+import qmapview
 
 import mapped
 
@@ -27,6 +28,7 @@ class Window(QtGui.QMainWindow):
         QtGui.QWidget.__init__(self, parent)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+        #self.ui.map = qmapview.QMapView()
 
         self.treemodel = QtGui.QStandardItemModel()
         self.ui.treeView.setModel(self.treemodel)
@@ -213,6 +215,9 @@ if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
     win = Window()
     win.show()
-    sys.exit(app.exec_())
+    r = app.exec_()
+    app.deleteLater() # Avoid errors on exit
+    sys.exit(r)
+    #sys.exit(app.exec_())
 
 
