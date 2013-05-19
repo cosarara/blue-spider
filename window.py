@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'mapped.ui'
 #
-# Created: Sun May 19 22:48:29 2013
+# Created: Mon May 20 00:48:26 2013
 #      by: PyQt4 UI code generator 4.10.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -107,7 +107,10 @@ class Ui_MainWindow(object):
         MainWindow.addDockWidget(QtCore.Qt.DockWidgetArea(2), self.dockWidget_2)
         self.actionLoad_ROM = QtGui.QAction(MainWindow)
         self.actionLoad_ROM.setObjectName(_fromUtf8("actionLoad_ROM"))
+        self.actionSave = QtGui.QAction(MainWindow)
+        self.actionSave.setObjectName(_fromUtf8("actionSave"))
         self.menuFile.addAction(self.actionLoad_ROM)
+        self.menuFile.addAction(self.actionSave)
         self.menubar.addAction(self.menuFile.menuAction())
 
         self.retranslateUi(MainWindow)
@@ -117,4 +120,5 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow", None))
         self.menuFile.setTitle(_translate("MainWindow", "File", None))
         self.actionLoad_ROM.setText(_translate("MainWindow", "Load ROM", None))
+        self.actionSave.setText(_translate("MainWindow", "Save", None))
 

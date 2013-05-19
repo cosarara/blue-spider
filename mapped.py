@@ -297,7 +297,39 @@ def build_block_imgs(blocks_mem, img):
 
 
 
+def parse_map_mem(mem, h, w):
+    map = [[0 for i in range(w)] for j in range(h)]
+    i = 0
+    for row in range(h):
+        for tile in range(w):
+            # Each tile is 16 bit, 9 bits for tile num. and 7 for attributes
+            tbytes = mem[i*2:i*2+2]
+            #char = tbytes[0] + tbytes[1]
+            tile_num = tbytes[0] | (tbytes[1] & 0b11) << 8
+            behavior = (tbytes[1] & 0b11111100) >> 2
+            #print(row, tile, h, w)
+            map[row][tile] = [tile_num, behavior]
+            i += 1
 
+    return map
+
+
+def map_to_mem(map):
+    mem = bytearray(len(map)*len(map[0]))
+    i = 0
+    for row in map:
+        for tile in row:
+            [tile_num, behavior] = tile
+            byte_1 = 0
+            byte_2 = 0
+            byte_1 = tile_num & 0xFF
+            byte_2 = (tile_num & 0b1100000000) >> 8
+            byte_2 |= behavior << 2
+            # Each tile is 16 bit, 9 bits for tile num. and 7 for attributes
+            mem[i*2:i*2+2] = (byte_1, byte_2)
+            i += 1
+
+    return mem
 
 
 

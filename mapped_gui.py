@@ -45,16 +45,17 @@ class Window(QtGui.QMainWindow):
         #self.treemodel.setItem(1, QtGui.QStandardItem("seccond"))
         #self.treemodel.item(1).appendRow(QtGui.QStandardItem("seccond child"))
 
-        QtCore.QObject.connect(self.ui.actionLoad_ROM,
-                               QtCore.SIGNAL("triggered()"),
-                               self.load_rom)
+        #QtCore.QObject.connect(self.ui.actionLoad_ROM,
+        #                       QtCore.SIGNAL("triggered()"),
+        #                       self.load_rom)
+        self.ui.actionLoad_ROM.triggered.connect(self.load_rom)
+        self.ui.actionSave.triggered.connect(self.save_map)
         self.ui.treeView.clicked.connect(self.load_map)
-        # self.ui.pushButton_NeuesMoebel.clicked.connect(self.add_item)
 
-    #def get_rom_addr_at(self, x):
-    #    return get_rom_addr(self.rom_contents[x:x+4])
+        self.selected_tile = 0
+        self.rom_file_name = None
 
-    
+
     def load_rom(self):
         fn = QtGui.QFileDialog.getOpenFileName(self, 'Open ROM file', 
                                                QtCore.QDir.homePath(),
@@ -68,6 +69,18 @@ class Window(QtGui.QMainWindow):
         self.load_banks()
 
         self.rom_file_name = fn
+
+    def write_rom(self):
+        #fn = QtGui.QFileDialog.getOpenFileName(self, 'Open ROM file', 
+        #                                       QtCore.QDir.homePath(),
+        #                                       "GBA ROM (*.gba);;"
+        #                                       "All files (*)")
+
+        if not self.rom_file_name:
+            # TODO: ERROR, no ROM selected
+            return
+        with open(self.rom_file_name, "wb") as rom_file:
+            rom_file.write(self.rom_contents)
 
     def load_banks(self):
         self.banks = mapped.get_banks(self.rom_contents)
@@ -140,20 +153,22 @@ class Window(QtGui.QMainWindow):
 
         self.tilesetPixMap = QtGui.QPixmap.fromImage(self.t1_img_qt)
         self.palette_scene.clear()
-        self.palette_scene.addPixmap(self.tilesetPixMap)
+        self.palette_pixmap_qobject = qmapview.QMapPixmap(self.tilesetPixMap)
+        self.palette_scene.addItem(self.palette_pixmap_qobject)
+        #self.palette_scene.addPixmap(self.tilesetPixMap)
         self.palette_scene.update()
+        self.palette_pixmap_qobject.clicked.connect(self.palette_clicked)
         #self.ui.palette.fitInView(self.palette_scene.sceneRect(), mode=QtCore.Qt.KeepAspectRatio)
 
-    def draw_map(self, map_mem, w, h):
-        i = 0
+    def draw_map(self, map):
+        #print(map)
+        w = len(map[0])
+        h = len(map)
         map_img = Image.new("RGB", (w*16, h*16))
         for row in range(h):
             for tile in range(w):
-                # Each tile is 16 bit, 9 bits for tile num. and 7 for attributes
-                tbytes = map_mem[i*2:i*2+2]
-                #char = tbytes[0] + tbytes[1]
-                tile_num = tbytes[0] | (tbytes[1] & 0b11) << 8
-                behavior = (tbytes[1] & 0b11111100) >> 2
+                tile_num, behavior = map[row][tile]
+                #print("a", tile_num, behavior)
 
                 x = tile*16
                 y = row*16
@@ -163,7 +178,6 @@ class Window(QtGui.QMainWindow):
 
                 #print(tile_num, len(self.blocks_imgs))
                 map_img.paste(self.blocks_imgs[tile_num], pos)
-                i += 1
 
         self.map_img_qt = ImageQt.ImageQt(map_img)
         self.mapPixMap = QtGui.QPixmap.fromImage(self.map_img_qt)
@@ -179,9 +193,11 @@ class Window(QtGui.QMainWindow):
 
     def load_map(self, qindex):
         bank_n = qindex.parent().row()
+        self.bank_n = bank_n
         if bank_n == -1:
             return
         map_n = qindex.row()
+        self.map_n = map_n
         print(bank_n, map_n)
         maps = mapped.get_map_headers(self.rom_contents, bank_n, self.banks)
         map_h_ptr = maps[map_n]
@@ -205,13 +221,46 @@ class Window(QtGui.QMainWindow):
 
         map_size = map_data_header['w'] * map_data_header['h'] * 2 # Every tile is 2 bytes
         tilemap_ptr = map_data_header['tilemap_ptr']
+        self.tilemap_ptr = tilemap_ptr
         map_mem = self.rom_contents[tilemap_ptr:tilemap_ptr+map_size]
-        self.draw_map(map_mem, map_data_header['w'], map_data_header['h'])
+        self.map = mapped.parse_map_mem(map_mem, map_data_header['w'], map_data_header['h'])
+
+        self.draw_map(self.map)
         self.draw_palette()
 
+    def get_tile_num_from_mouseclick(self, event, pixmap):
+        pos = event.pos()
+        x = int(pos.x())
+        y = int(pos.y())
+        w = pixmap.width()
+        h = pixmap.height()
+        tile_size = 16
+        tiles_per_row = w // tile_size
+        tile_x = x // tile_size
+        tile_y = y // tile_size
+        tile_num = tile_x + tile_y * tiles_per_row
+        return tile_num, tile_x, tile_y
 
     def map_clicked(self, event):
-        print(event)
+        #print(event)
+        tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event, self.mapPixMap)
+        print("clicked tile:", hex(tile_num))
+        self.map[tile_y][tile_x][0] = self.selected_tile
+        self.draw_map(self.map)
+
+    def palette_clicked(self, event):
+        tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event, self.tilesetPixMap)
+        print("selected tile:", hex(tile_num))
+        self.selected_tile = tile_num
+
+    def save_map(self):
+        new_map_mem = mapped.map_to_mem(self.map)
+        print(self.map)
+        pos = self.tilemap_ptr
+        size = len(new_map_mem)
+        self.rom_contents = bytearray(self.rom_contents)
+        self.rom_contents[pos:pos+size] = new_map_mem
+        self.write_rom()
 
 
 
