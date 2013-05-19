@@ -28,7 +28,6 @@ class Window(QtGui.QMainWindow):
         QtGui.QWidget.__init__(self, parent)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        #self.ui.map = qmapview.QMapView()
 
         self.treemodel = QtGui.QStandardItemModel()
         self.ui.treeView.setModel(self.treemodel)
@@ -169,9 +168,13 @@ class Window(QtGui.QMainWindow):
         self.map_img_qt = ImageQt.ImageQt(map_img)
         self.mapPixMap = QtGui.QPixmap.fromImage(self.map_img_qt)
         self.map_scene.clear()
-        self.map_scene.addPixmap(self.mapPixMap)
+        self.map_pixmap_qobject = qmapview.QMapPixmap(self.mapPixMap)
+        self.map_scene.addItem(self.map_pixmap_qobject)
+        #self.mapPixMapItem = self.map_scene.addPixmap(self.mapPixMap)
+        #self.mapPixMapItem.mousePressEvent = lambda event : print("asdf!", event.x(), event.y())
         self.map_scene.update()
 
+        self.map_pixmap_qobject.clicked.connect(self.map_clicked)
 
 
     def load_map(self, qindex):
@@ -207,6 +210,8 @@ class Window(QtGui.QMainWindow):
         self.draw_palette()
 
 
+    def map_clicked(self, event):
+        print(event)
 
 
 

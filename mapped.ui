@@ -28,7 +28,7 @@
    </property>
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
-     <widget class="QMapView" name="map">
+     <widget class="QGraphicsView" name="map">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
         <horstretch>0</horstretch>
@@ -149,13 +149,6 @@
    </property>
   </action>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>QMapView</class>
-   <extends>QGraphicsView</extends>
-   <header>qmapview</header>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections/>
 </ui>
