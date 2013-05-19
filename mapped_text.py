@@ -44,9 +44,9 @@ def main():
         w = map_data['w']
         h = map_data['h']
         if mode == 'r':
-            tileset1_data = parse_tileset_header(rom_contents, map_data['global_tileset_ptr'])
-            block_data_ptr = tileset1_data['block_data_ptr']
-            print('tileset1 block data ptr is ', hex(block_data_ptr))
+            #tileset1_data = parse_tileset_header(rom_contents, map_data['global_tileset_ptr'])
+            #block_data_ptr = tileset1_data['block_data_ptr']
+            #print('tileset1 block data ptr is ', hex(block_data_ptr))
             mapmem = rom_contents[tilemap_address:]
             #print(mapmem[:100])
             text_map = map_to_text(mapmem, w, h)
