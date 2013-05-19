@@ -32,7 +32,6 @@ def text_to_mem(text):
 
             #char = tbytes[0] | (tbytes[1] & 0b11) << 8
             #char2 = (tbytes[1] & 0b11111100) >> 2
-            # Això no està be
             byte1 = (num & 0xFF)
             byte2 = ((num & 0b1100000000) >> 8) | (num2 << 2)
             print(bin(byte2))

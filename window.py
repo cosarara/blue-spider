@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'mapped.ui'
 #
-# Created: Sat Jan  5 23:41:41 2013
-#      by: PyQt4 UI code generator 4.9.6
+# Created: Sun May 19 15:57:33 2013
+#      by: PyQt4 UI code generator 4.10.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -41,7 +41,7 @@ class Ui_MainWindow(object):
         self.gridLayout.addWidget(self.map, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 660, 25))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 660, 21))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName(_fromUtf8("menuFile"))
@@ -77,7 +77,8 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.dockWidget_2.sizePolicy().hasHeightForWidth())
         self.dockWidget_2.setSizePolicy(sizePolicy)
-        self.dockWidget_2.setMaximumSize(QtCore.QSize(104, 524287))
+        self.dockWidget_2.setMinimumSize(QtCore.QSize(128, 125))
+        self.dockWidget_2.setMaximumSize(QtCore.QSize(500, 524287))
         self.dockWidget_2.setFeatures(QtGui.QDockWidget.DockWidgetFloatable|QtGui.QDockWidget.DockWidgetMovable)
         self.dockWidget_2.setObjectName(_fromUtf8("dockWidget_2"))
         self.dockWidgetContents_2 = QtGui.QWidget()

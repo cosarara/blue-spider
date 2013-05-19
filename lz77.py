@@ -48,43 +48,43 @@ def decompress(compressed_data):
     return decompressed_data
 
 
+if __name__ == "__main__":
+    with open("axve.gba", "rb") as file:
+        rom = file.read()
+    comp_tileset = rom[0xe92118:]
+    comp_tileset = rom[0x218684:]
+    a = decompress(comp_tileset)
+    with open("out.gba", "wb") as file:
+        file.write(a)
 
-with open("axve.gba", "rb") as file:
-    rom = file.read()
-comp_tileset = rom[0xe92118:]
-a = decompress(comp_tileset)
-with open("out.gba", "wb") as file:
-    file.write(a)
+    #cols = 8*16//2
+    #rows = 8*32
+    from PIL import Image
+    im = Image.new("RGB", (16*8, 400))
+    print(len(a))
+    tiles_per_line = 16
+    for pos in range(len(a)):
+        tile = pos // (8*4)
+        x = ((pos-(tile*8*4))%4)*2+((tile % tiles_per_line)*8)
+        y = (pos-(tile*8*4))//4 + (tile//tiles_per_line*8)
 
-#cols = 8*16//2
-#rows = 8*32
-from PIL import Image
-im = Image.new("RGB", (16*8, 400))
-print(len(a))
-written = []
-tiles_per_line = 16
-for pos in range(len(a)):
-    tile = pos // (8*4)
-    x = ((pos-(tile*8*4))%4)*2+((tile % tiles_per_line)*8)
-    y = (pos-(tile*8*4))//4 + (tile//tiles_per_line*8)
-
-    if pos < len(a):
-        color2 = ((a[pos] >> 4) & 0xF)
-        color1 = a[pos] & 0xF
-    else:
-        color1 = 0
-        color2 = 0
-    #print('-')
-    #print("pos", pos)
-    #print("x, y", x, y)
-    #print("color", color1, color2)
-    color1 *= 255//16
-    color2 *= 255//16
-    color1 = (color1, color1, color1)
-    color2 = (color2, color2, color2)
-    im.putpixel((x, y), color1)
-    im.putpixel((x+1, y), color2)
-im.save("out.png", "PNG")
+        if pos < len(a):
+            color2 = ((a[pos] >> 4) & 0xF)
+            color1 = a[pos] & 0xF
+        else:
+            color1 = 0
+            color2 = 0
+        #print('-')
+        #print("pos", pos)
+        #print("x, y", x, y)
+        #print("color", color1, color2)
+        color1 *= 255//16
+        color2 *= 255//16
+        color1 = (color1, color1, color1)
+        color2 = (color2, color2, color2)
+        im.putpixel((x, y), color1)
+        im.putpixel((x+1, y), color2)
+    im.save("out.png", "PNG")
 
 
 
