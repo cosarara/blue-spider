@@ -74,21 +74,16 @@ for pos in range(len(a)):
     else:
         color1 = 0
         color2 = 0
-    print('-')
-    print("pos", pos)
-    print("x, y", x, y)
-    print("color", color1, color2)
+    #print('-')
+    #print("pos", pos)
+    #print("x, y", x, y)
+    #print("color", color1, color2)
     color1 *= 255//16
     color2 *= 255//16
     color1 = (color1, color1, color1)
     color2 = (color2, color2, color2)
     im.putpixel((x, y), color1)
     im.putpixel((x+1, y), color2)
-    if (x, y) in written:
-        print("hhvbfsdlfvbljgv")
-        quit()
-    written.append((x, y))
-    written.append((x+1, y))
 im.save("out.png", "PNG")
 
 
