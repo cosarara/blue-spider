@@ -127,3 +127,38 @@ def parse_map_data(rom_contents, map_data_ptr):
             "border_h": border_h,
         }
     return map_data
+
+def parse_tileset_header(rom_contents, tileset_header_ptr, game='RS'):
+    is_compressed = bool(to_int(read_byte_at(rom_contents, tileset_header_ptr)))
+    # "SubColorChoose"?
+    tileset_type = to_int(read_byte_at(rom_contents, tileset_header_ptr+1))
+    # 0000
+    tileset_image_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, tileset_header_ptr+4)))
+    palettes_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, tileset_header_ptr+8)))
+    block_data_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, tileset_header_ptr+12)))
+    if game == 'RS':
+        behavior_data_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, tileset_header_ptr+16)))
+        animation_data_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, tileset_header_ptr+20)))
+    elif game == 'FR':
+        animation_data_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, tileset_header_ptr+16)))
+        behavior_data_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, tileset_header_ptr+20)))
+    tileset_header = {
+            "is_compressed": is_compressed,
+            "tileset_type": tileset_type,
+            "tileset_image_ptr": tileset_image_ptr,
+            "palettes_ptr": palettes_ptr,
+            "block_data_ptr": block_data_ptr,
+            "behavior_data_ptr": behavior_data_ptr,
+            "animation_data_ptr": animation_data_ptr
+        }
+    return tileset_header
+
+
+
+
+
+
+
+
+
+
