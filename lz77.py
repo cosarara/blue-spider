@@ -7,6 +7,7 @@ def decompress(compressed_data):
        Ported from NLZ-Advance (copyright Nintenlord)
        compressed data must be either a bytes() or a bytearray()'''
     size = to_int(compressed_data[1:4])
+    #compressed_data = bytes(compressed_data)
     decompressed_data = bytearray(size)
     if compressed_data[0] != 0x10:
         # NLZ-Advance said so! lol
@@ -36,7 +37,11 @@ def decompress(compressed_data):
                     decomp_pos += 1
 
             else:
-                decompressed_data[decomp_pos] = compressed_data[comp_pos]
+                # Warning: This is an ungly hack!
+                # I don't always find this last byte, but when I find it,
+                # I don't know how to handle it.
+                if decomp_pos < size:
+                    decompressed_data[decomp_pos] = compressed_data[comp_pos]
                 decomp_pos += 1
                 comp_pos += 1
             if decomp_pos > size:

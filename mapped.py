@@ -169,7 +169,7 @@ def get_tileset_img(rom_contents, tileset_img_ptr):
         ])
     data = decompressed_data
 
-    if len(data)*2//(8*4) % tiles_per_line != 0:
+    if len(data)*2//(8*8) % tiles_per_line != 0:
         rows = len(data)*2//(8*8)//tiles_per_line + 1
     else:
         rows = len(data)*2//(8*8)//tiles_per_line
@@ -195,10 +195,16 @@ def get_tileset_img(rom_contents, tileset_img_ptr):
         color2 *= 255//16
         color1 = (color1, color1, color1)
         color2 = (color2, color2, color2)
-        #print(pos, tile, x, y, color1)
-        im.putpixel((x, y), color1)
-        #print(pos, tile, x+1, y, color2)
-        im.putpixel((x+1, y), color2)
+        try:
+            #print(pos, tile, x, y, color1)
+            im.putpixel((x, y), color1)
+            #print(pos, tile, x+1, y, color2)
+            im.putpixel((x+1, y), color2)
+        except Exception as e:
+            print(x, y, w, h, pos, len(data), tile)
+            print(e)
+            raise Exception()
+
 
     #    imlist.append((x, y, color1))
     #    imlist.append((x+1, y, color2))
