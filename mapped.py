@@ -60,10 +60,15 @@ def get_banks(rom_contents, echo=False):
     return banks
 
 def get_map_headers(rom_contents, n, banks, echo=False):
+    # TODO: I think we stop loading maps too late,
+    #       on the last bank
     if echo:
         print("Maps in bank {0}:".format(n))
     maps_addr = banks[n]
-    maps_of_next_bank = banks[n+1]
+    if len(banks) > n+1:
+        maps_of_next_bank = banks[n+1]
+    else:
+        maps_of_next_bank = 0
     maps = []
     i = 0
     while True:

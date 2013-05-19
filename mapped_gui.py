@@ -4,18 +4,20 @@ import sys
 from PyQt4 import Qt, QtCore, QtGui
 from window import Ui_MainWindow
 
-MapHeaders      = 0x53324
-Maps            = 0x5326C
-MapLabels       = 0xFBFE0
+import mapped
 
-get_addr = lambda x : int.from_bytes(x, "little")
+#MapHeaders      = 0x53324
+#Maps            = 0x5326C
+#MapLabels       = 0xFBFE0
 
-def get_rom_addr(x): # Safer and more useful version
-    a = int.from_bytes(x, "little")
-    if a & 0x8000000 == 0x8000000:
-        return a & 0xFFFFFF
-    else:
-        return -1
+#get_addr = lambda x : int.from_bytes(x, "little")
+#
+#def get_rom_addr(x): # Safer and more useful version
+#    a = int.from_bytes(x, "little")
+#    if a & 0x8000000 == 0x8000000:
+#        return a & 0xFFFFFF
+#    else:
+#        return -1
 
 
 class Window(QtGui.QMainWindow):
@@ -34,9 +36,11 @@ class Window(QtGui.QMainWindow):
         QtCore.QObject.connect(self.ui.actionLoad_ROM,
                                QtCore.SIGNAL("triggered()"),
                                self.load_rom)
+        self.ui.treeView.clicked.connect(self.load_map)
+        # self.ui.pushButton_NeuesMoebel.clicked.connect(self.add_item)
 
-    def get_rom_addr_at(self, x):
-        return get_rom_addr(self.rom_contents[x:x+4])
+    #def get_rom_addr_at(self, x):
+    #    return get_rom_addr(self.rom_contents[x:x+4])
 
     
     def load_rom(self):
@@ -54,14 +58,7 @@ class Window(QtGui.QMainWindow):
         self.rom_file_name = fn
 
     def load_banks(self):
-        i = 0 
-        self.banks = []
-        while True:
-            a = self.get_rom_addr_at(self.get_rom_addr_at(MapHeaders) + i * 4)
-            if a == -1:
-                break
-            self.banks.append(a)
-            i += 1
+        self.banks = mapped.get_banks(self.rom_contents)
         for i, bank in enumerate(self.banks):
             self.treemodel.appendRow(QtGui.QStandardItem(hex(i) + " - " + hex(bank)))
             self.load_maps(i)
@@ -69,25 +66,28 @@ class Window(QtGui.QMainWindow):
             #self.treemodel.item(1).appendRow(QtGui.QStandardItem("seccond child"))
 
     def load_maps(self, bank_num):
-        n = bank_num
-        maps_addr = self.banks[n]
-        if n+1 == len(self.banks):
-            maps_of_next_bank = self.get_rom_addr_at(MapHeaders)
-        else:
-            maps_of_next_bank = self.banks[n+1]
-        maps = []
-        i = 0
-        while True:
-            a = self.get_rom_addr_at(maps_addr + i * 4)
-            if a == -1 or maps_addr + i * 4 == maps_of_next_bank:
-                break
-            #print(hex(i) + "\t" + hex(a))
-            maps.append(a)
-            i += 1
+        maps = mapped.get_map_headers(self.rom_contents, bank_num, self.banks)
 
         for i, map, in enumerate(maps):
-            self.treemodel.item(n).appendRow(QtGui.QStandardItem(hex(i) + " - "
-                                                                 + hex(map)))
+            self.treemodel.item(bank_num).appendRow(
+                    QtGui.QStandardItem(hex(i) + " - " + hex(map))
+                    )
+        print(self.treemodel.item(0).child(9).text())
+
+    def load_map(self, qindex):
+        bank_n = qindex.parent().row()
+        if bank_n == -1:
+            return
+        map_n = qindex.row()
+        print(bank_n, map_n)
+        maps = mapped.get_map_headers(self.rom_contents, bank_n, self.banks)
+        map_h_ptr = maps[map_n]
+        map_header = mapped.parse_map_header(self.rom_contents, map_h_ptr)
+        #print(map_header)
+        map_data_header = mapped.parse_map_data(
+                self.rom_contents, map_header['map_data_ptr']
+                )
+        print(map_data_header)
 
 
 
