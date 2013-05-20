@@ -5,9 +5,17 @@ import sys
 import lz77
 from PIL import Image
 
-MapHeaders      = 0x53324
-Maps            = 0x5326C
-MapLabels       = 0xFBFE0
+axve = {
+    'MapHeaders'      : 0x53324
+    #Maps            : 0x5326C
+    #MapLabels       : 0xFBFE0
+}
+
+bpre = {
+    'MapHeaders'      : 0x5524C
+    #Maps            : 0x55194
+    #MapLabels       : 0x3F1CAC
+}
 
 
 def hexbytes(s):
@@ -45,13 +53,13 @@ read_ptr_at = read_long_at
 read_short_at = lambda rom, addr : read_n_bytes(rom, addr, 2)
 read_byte_at = lambda rom, addr : read_n_bytes(rom, addr, 1)
 
-def get_banks(rom_contents, echo=False):
+def get_banks(rom_contents, rom_data=axve, echo=False):
     if echo:
         print("Banks:")
     i = 0
     banks = []
     while True:
-        a = get_rom_addr_at(get_rom_addr_at(MapHeaders, rom_contents) + i * 4,
+        a = get_rom_addr_at(get_rom_addr_at(rom_data['MapHeaders'], rom_contents) + i * 4,
                             rom_contents)
         if a == -1:
             break
@@ -113,9 +121,10 @@ def parse_map_header(rom_contents, map_h):
             }
     return map_header
 
-def parse_map_data(rom_contents, map_data_ptr):
-    w = to_int(read_long_at(rom_contents, map_data_ptr))
-    h = to_int(read_long_at(rom_contents, map_data_ptr+4))
+def parse_map_data(rom_contents, map_data_ptr, game):
+    #print(game)
+    w = to_int(read_long_at(rom_contents, map_data_ptr+4))
+    h = to_int(read_long_at(rom_contents, map_data_ptr))
     border_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, map_data_ptr+8)))
     tilemap_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, map_data_ptr+12)))
     global_tileset_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, map_data_ptr+16)))
@@ -161,13 +170,18 @@ def parse_tileset_header(rom_contents, tileset_header_ptr, game='RS'):
     return tileset_header
 
 
-def get_tileset_img(rom_contents, tileset_img_ptr):
+def get_tileset_img(rom_contents, tileset_header):
     # TODO: Palettes
+    tileset_img_ptr = tileset_header["tileset_image_ptr"]
     tiles_per_line = 16
-    decompressed_data = lz77.decompress(rom_contents[
-            tileset_img_ptr:tileset_img_ptr+0x8000
-        ])
-    data = decompressed_data
+    if tileset_header["is_compressed"]:
+        decompressed_data = lz77.decompress(rom_contents[
+                tileset_img_ptr:tileset_img_ptr+0x8000
+            ])
+        data = decompressed_data
+    else:
+        # FIXME: Where do I cut this?
+        data = rom_contents[tileset_img_ptr:tileset_img_ptr+0x8000]
 
     if len(data)*2//(8*8) % tiles_per_line != 0:
         rows = len(data)*2//(8*8)//tiles_per_line + 1

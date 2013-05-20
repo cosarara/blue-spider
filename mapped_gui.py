@@ -54,9 +54,15 @@ class Window(QtGui.QMainWindow):
 
         self.selected_tile = 0
         self.rom_file_name = None
+        # RS or FR
+        self.game = None
+        self.rom_code = None
+        self.rom_data = None
 
 
     def load_rom(self):
+        self.treemodel.clear()
+        self.banks = []
         fn = QtGui.QFileDialog.getOpenFileName(self, 'Open ROM file', 
                                                QtCore.QDir.homePath(),
                                                "GBA ROM (*.gba);;"
@@ -66,16 +72,21 @@ class Window(QtGui.QMainWindow):
             return
         with open(fn, "rb") as rom_file:
             self.rom_contents = rom_file.read()
-        self.load_banks()
 
         self.rom_file_name = fn
+        self.rom_code = self.rom_contents[0xAC:0xAC+4]
+        if self.rom_code == b'AXVE':
+            self.rom_data = mapped.axve
+            self.game = 'RS'
+        elif self.rom_code == b'BPRE':
+            self.rom_data = mapped.bpre
+            self.game = 'FR'
+        else:
+            raise Exception("ROM code not found")
+
+        self.load_banks()
 
     def write_rom(self):
-        #fn = QtGui.QFileDialog.getOpenFileName(self, 'Open ROM file', 
-        #                                       QtCore.QDir.homePath(),
-        #                                       "GBA ROM (*.gba);;"
-        #                                       "All files (*)")
-
         if not self.rom_file_name:
             # TODO: ERROR, no ROM selected
             return
@@ -83,7 +94,7 @@ class Window(QtGui.QMainWindow):
             rom_file.write(self.rom_contents)
 
     def load_banks(self):
-        self.banks = mapped.get_banks(self.rom_contents)
+        self.banks = mapped.get_banks(self.rom_contents, self.rom_data)
         for i, bank in enumerate(self.banks):
             self.treemodel.appendRow(QtGui.QStandardItem(hex(i) + " - " + hex(bank)))
             self.load_maps(i)
@@ -101,8 +112,7 @@ class Window(QtGui.QMainWindow):
 
     def load_tileset(self, tileset_header, previous_img=None):
         #print(tileset_header)
-        t_img_ptr = tileset_header['tileset_image_ptr']
-        tileset_img = mapped.get_tileset_img(self.rom_contents, t_img_ptr)
+        tileset_img = mapped.get_tileset_img(self.rom_contents, tileset_header)
         if previous_img:
             w = previous_img.size[0]
             h = previous_img.size[1] + tileset_img.size[1]
@@ -117,7 +127,7 @@ class Window(QtGui.QMainWindow):
             pos = (x, y, x2, y2)
             big_img.paste(tileset_img, pos)
             tileset_img = big_img
-        block_data_mem = mapped.parse_block_data(self.rom_contents, tileset_header)
+        block_data_mem = mapped.parse_block_data(self.rom_contents, tileset_header, self.game)
         blocks_imgs = mapped.build_block_imgs(block_data_mem, tileset_img)
         #dummy_img = Image.new("RGB", (16, 16))
         #blocks_imgs += [dummy_img] * 512
@@ -203,18 +213,21 @@ class Window(QtGui.QMainWindow):
         map_h_ptr = maps[map_n]
         map_header = mapped.parse_map_header(self.rom_contents, map_h_ptr)
         map_data_header = mapped.parse_map_data(
-                self.rom_contents, map_header['map_data_ptr']
+                self.rom_contents, map_header['map_data_ptr'],
+                self.game
                 )
 
         self.blocks_imgs = []
 
         tileset_header = mapped.parse_tileset_header(
                 self.rom_contents,
-                map_data_header['global_tileset_ptr']
+                map_data_header['global_tileset_ptr'],
+                self.game
                 )
         tileset2_header = mapped.parse_tileset_header(
                 self.rom_contents,
-                map_data_header['local_tileset_ptr']
+                map_data_header['local_tileset_ptr'],
+                self.game
                 )
         t1_img = self.load_tileset(tileset_header)
         self.load_tileset(tileset2_header, t1_img)
