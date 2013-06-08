@@ -256,7 +256,7 @@ def build_block_imgs(blocks_mem, img):
     # 2nd byte's first 4 bits is the color palette index
     # 2nd byte's final 4 bits is the flip information TODO: More info needed on that
     #     0b0100 = x flip
-    img.save("tileset.png", "PNG")
+    #img.save("tileset.png", "PNG")
     block_imgs = []
     tiles_per_line = 16
     #print('--------')
