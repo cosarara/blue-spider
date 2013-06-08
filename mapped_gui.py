@@ -20,7 +20,9 @@ import mapped
 #    else:
 #        return -1
 
-from PIL import Image, ImageQt
+#from PIL import Image, ImageQt
+import Image
+import ImageQt
 
 
 class Window(QtGui.QMainWindow):

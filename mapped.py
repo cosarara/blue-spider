@@ -3,7 +3,7 @@ import binascii
 from map_printer import *
 import sys
 import lz77
-from PIL import Image
+import Image
 
 axve = {
     'MapHeaders'      : 0x53324
