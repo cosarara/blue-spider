@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'mapped.ui'
 #
-# Created: Mon May 20 14:25:20 2013
+# Created: Sat Jun  8 18:41:15 2013
 #      by: PyQt4 UI code generator 4.10.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -82,7 +82,7 @@ class Ui_MainWindow(object):
         self.movPermissionsMap.setObjectName(_fromUtf8("movPermissionsMap"))
         self.gridLayout_3.addWidget(self.movPermissionsMap, 0, 0, 1, 1)
         self.MovPermissionsPalette = QtGui.QGraphicsView(self.movPermissionsTab)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Expanding)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.MovPermissionsPalette.sizePolicy().hasHeightForWidth())

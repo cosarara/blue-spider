@@ -36,30 +36,25 @@ class Window(QtGui.QMainWindow):
 
         self.map_scene = QtGui.QGraphicsScene()
         self.ui.map.setScene(self.map_scene)
-        #self.map_pixmap = QtGui.QPixmap()
-        #self.
+        self.mov_scene = QtGui.QGraphicsScene()
+        self.ui.movPermissionsMap.setScene(self.mov_scene)
         self.palette_scene = QtGui.QGraphicsScene()
         self.ui.palette.setScene(self.palette_scene)
-        self.map_scene = QtGui.QGraphicsScene()
-        self.ui.map.setScene(self.map_scene)
+        self.perms_palette_scene = QtGui.QGraphicsScene()
+        self.ui.MovPermissionsPalette.setScene(self.perms_palette_scene)
 
-        #self.treemodel.setItem(0, QtGui.QStandardItem("first"))
-        #self.treemodel.setItem(1, QtGui.QStandardItem("seccond"))
-        #self.treemodel.item(1).appendRow(QtGui.QStandardItem("seccond child"))
-
-        #QtCore.QObject.connect(self.ui.actionLoad_ROM,
-        #                       QtCore.SIGNAL("triggered()"),
-        #                       self.load_rom)
         self.ui.actionLoad_ROM.triggered.connect(self.load_rom)
         self.ui.actionSave.triggered.connect(self.save_map)
         self.ui.treeView.clicked.connect(self.load_map)
 
         self.selected_tile = 0
+        self.selected_mov_tile = 0
         self.rom_file_name = None
         # RS or FR
         self.game = None
         self.rom_code = None
         self.rom_data = None
+        self.mov_perms_imgs = None
 
 
     def load_rom(self):
@@ -129,7 +124,7 @@ class Window(QtGui.QMainWindow):
             pos = (x, y, x2, y2)
             big_img.paste(tileset_img, pos)
             tileset_img = big_img
-        block_data_mem = mapped.parse_block_data(self.rom_contents, tileset_header, self.game)
+        block_data_mem = mapped.get_block_data(self.rom_contents, tileset_header, self.game)
         blocks_imgs = mapped.build_block_imgs(block_data_mem, tileset_img)
         #dummy_img = Image.new("RGB", (16, 16))
         #blocks_imgs += [dummy_img] * 512
@@ -139,13 +134,17 @@ class Window(QtGui.QMainWindow):
     def draw_palette(self):
         # The tile palette, not the color one
         blocks_imgs = self.blocks_imgs
+        perms_imgs = self.mov_perms_imgs
         #print("len", len(blocks_imgs))
         #blocks_img_w = (len(blocks_imgs) // 8) * 16
         blocks_img_w = 16 * 8 # 8 tiles per row
+        perms_img_w = blocks_img_w
         #print("w", blocks_img_w)
         blocks_img_h = (len(blocks_imgs) * 16) // 8
+        perms_img_h = (len(perms_imgs) * 16) // 8
         #print("h", blocks_img_h)
         blocks_img = Image.new("RGB", (blocks_img_w, blocks_img_h))
+        perms_img = Image.new("RGB", (perms_img_w, perms_img_h))
         i = 0
         for row in range(blocks_img_h // 16):
             for col in range(blocks_img_w // 16):
@@ -154,22 +153,35 @@ class Window(QtGui.QMainWindow):
                 x2 = x+16
                 y2 = y+16
                 pos = (x, y, x2, y2)
-                block_img = blocks_imgs[i]
-                blocks_img.paste(block_img, pos)
+                blocks_img.paste(blocks_imgs[i], pos)
                 i += 1
 
-        #self.t1_img_qt = ImageQt.ImageQt(tileset1_img)
-        #self.t1_img_qt = ImageQt.ImageQt(blocks_imgs[map_n])
-        blocks_img.save("tpalette.png", "PNG")
+        i = 0
+        for row in range(perms_img_h // 16):
+            for col in range(perms_img_w // 16):
+                x = col*16
+                y = row*16
+                x2 = x+16
+                y2 = y+16
+                pos = (x, y, x2, y2)
+                perms_img.paste(perms_imgs[i], pos)
+                i += 1
+
         self.t1_img_qt = ImageQt.ImageQt(blocks_img)
+        self.perms_pal_img_qt = ImageQt.ImageQt(perms_img)
 
         self.tilesetPixMap = QtGui.QPixmap.fromImage(self.t1_img_qt)
+        self.permsPalPixMap = QtGui.QPixmap.fromImage(self.perms_pal_img_qt)
         self.palette_scene.clear()
+        self.perms_palette_scene.clear()
         self.palette_pixmap_qobject = qmapview.QMapPixmap(self.tilesetPixMap)
+        self.perms_palette_pixmap_qobject = qmapview.QMapPixmap(self.permsPalPixMap)
         self.palette_scene.addItem(self.palette_pixmap_qobject)
-        #self.palette_scene.addPixmap(self.tilesetPixMap)
+        self.perms_palette_scene.addItem(self.perms_palette_pixmap_qobject)
         self.palette_scene.update()
+        self.perms_palette_scene.update()
         self.palette_pixmap_qobject.clicked.connect(self.palette_clicked)
+        self.perms_palette_pixmap_qobject.clicked.connect(self.perms_palette_clicked)
         #self.ui.palette.fitInView(self.palette_scene.sceneRect(), mode=QtCore.Qt.KeepAspectRatio)
 
     def draw_map(self, map):
@@ -177,6 +189,7 @@ class Window(QtGui.QMainWindow):
         w = len(map[0])
         h = len(map)
         map_img = Image.new("RGB", (w*16, h*16))
+        mov_img = Image.new("RGB", (w*16, h*16))
         for row in range(h):
             for tile in range(w):
                 tile_num, behavior = map[row][tile]
@@ -190,17 +203,26 @@ class Window(QtGui.QMainWindow):
 
                 #print(tile_num, len(self.blocks_imgs))
                 map_img.paste(self.blocks_imgs[tile_num], pos)
+                mov_img.paste(self.blocks_imgs[tile_num], pos)
+                mov_img.paste(self.mov_perms_imgs[behavior], pos, self.mov_perms_imgs[behavior])
+
+        #mov_img.show()
 
         self.map_img_qt = ImageQt.ImageQt(map_img)
+        self.mov_img_qt = ImageQt.ImageQt(mov_img)
         self.mapPixMap = QtGui.QPixmap.fromImage(self.map_img_qt)
+        self.movPixMap = QtGui.QPixmap.fromImage(self.mov_img_qt)
         self.map_scene.clear()
+        self.mov_scene.clear()
         self.map_pixmap_qobject = qmapview.QMapPixmap(self.mapPixMap)
+        self.mov_pixmap_qobject = qmapview.QMapPixmap(self.movPixMap)
         self.map_scene.addItem(self.map_pixmap_qobject)
-        #self.mapPixMapItem = self.map_scene.addPixmap(self.mapPixMap)
-        #self.mapPixMapItem.mousePressEvent = lambda event : print("asdf!", event.x(), event.y())
+        self.mov_scene.addItem(self.mov_pixmap_qobject)
         self.map_scene.update()
+        self.mov_scene.update()
 
         self.map_pixmap_qobject.clicked.connect(self.map_clicked)
+        self.mov_pixmap_qobject.clicked.connect(self.mov_clicked)
 
 
     def load_map(self, qindex):
@@ -218,6 +240,9 @@ class Window(QtGui.QMainWindow):
                 self.rom_contents, map_header['map_data_ptr'],
                 self.game
                 )
+        ###
+        mapped.print32bytes(map_header['event_data_ptr'], self.rom_contents)
+        ###
 
         self.blocks_imgs = []
 
@@ -234,8 +259,13 @@ class Window(QtGui.QMainWindow):
         t1_img = self.load_tileset(tileset_header)
         self.load_tileset(tileset2_header, t1_img)
 
+        self.mov_perms_imgs = mapped.get_movement_permissions_imgs()
+
         map_size = map_data_header['w'] * map_data_header['h'] * 2 # Every tile is 2 bytes
         tilemap_ptr = map_data_header['tilemap_ptr']
+        ###
+        mapped.print32bytes(map_data_header['tilemap_ptr'], self.rom_contents)
+        ###
         self.tilemap_ptr = tilemap_ptr
         map_mem = self.rom_contents[tilemap_ptr:tilemap_ptr+map_size]
         self.map = mapped.parse_map_mem(map_mem, map_data_header['w'], map_data_header['h'])
@@ -263,14 +293,25 @@ class Window(QtGui.QMainWindow):
         self.map[tile_y][tile_x][0] = self.selected_tile
         self.draw_map(self.map)
 
+    def mov_clicked(self, event):
+        tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event, self.movPixMap)
+        print("clicked tile:", hex(tile_num))
+        self.map[tile_y][tile_x][1] = self.selected_mov_tile
+        self.draw_map(self.map)
+
     def palette_clicked(self, event):
         tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event, self.tilesetPixMap)
         print("selected tile:", hex(tile_num))
         self.selected_tile = tile_num
 
+    def perms_palette_clicked(self, event):
+        tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event, self.permsPalPixMap)
+        print("selected tile:", hex(tile_num))
+        self.selected_mov_tile = tile_num
+
     def save_map(self):
         new_map_mem = mapped.map_to_mem(self.map)
-        print(self.map)
+        #print(self.map)
         pos = self.tilemap_ptr
         size = len(new_map_mem)
         self.rom_contents = bytearray(self.rom_contents)

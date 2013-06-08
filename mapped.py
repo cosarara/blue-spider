@@ -1,7 +1,7 @@
 
 import binascii
 from map_printer import *
-import sys
+import os, sys
 import lz77
 import Image
 
@@ -26,7 +26,7 @@ def hexbytes(s):
     b = b.rstrip(" ")
     return b
 
-#print32bytes = lambda x : print(hexbytes(rom_contents[x:x+32]))
+print32bytes = lambda x, rom_contents : print(hexbytes(rom_contents[x:x+32]))
 
 to_int = lambda x : int.from_bytes(x, "little")
 get_addr = lambda x : int.from_bytes(x, "little") & 0xFFFFFF
@@ -169,6 +169,11 @@ def parse_tileset_header(rom_contents, tileset_header_ptr, game='RS'):
         }
     return tileset_header
 
+def parse_events_header(rom_contents, events_header_ptr):
+    pass
+
+def parse_movs_header(rom_contents, events_header_ptr):
+    pass
 
 def get_tileset_img(rom_contents, tileset_header):
     # TODO: Palettes
@@ -228,7 +233,7 @@ def get_tileset_img(rom_contents, tileset_header):
     return im
 
 
-def parse_block_data(rom_contents, tileset_header, game='RS'):
+def get_block_data(rom_contents, tileset_header, game='RS'):
     block_data_ptr = tileset_header['block_data_ptr']
     t_type = tileset_header['tileset_type']
     if t_type == 0:
@@ -254,7 +259,7 @@ def build_block_imgs(blocks_mem, img):
     # every subtile is 2 bytes
     # 1st byte and 2nd bytes last (two?) bit(s) is the index in the tile img
     # 2nd byte's first 4 bits is the color palette index
-    # 2nd byte's final 4 bits is the flip information TODO: More info needed on that
+    # 2nd byte's final 4 bits is the flip information... and something else, I guess
     #     0b0100 = x flip
     #img.save("tileset.png", "PNG")
     block_imgs = []
@@ -309,6 +314,26 @@ def build_block_imgs(blocks_mem, img):
         block_imgs.append(block_img)
     return block_imgs
 
+def get_movement_permissions_imgs(path=["data", "mov_perms"]):
+    base_path = os.path.join(*path)
+    alpha = Image.new("L", (16, 16), 150)
+    imgs = []
+    img_paths = [hex(n)[2:].zfill(2).upper() + '.png' for n in range(0x40)]
+    path = os.path.join(base_path, "N.png")
+    if not os.path.exists(path):
+        raise IOError("file " + path + " not found")
+    else:
+        null_image = Image.open(path)
+        null_image.putalpha(alpha)
+    for img in img_paths:
+        path = os.path.join(base_path, img)
+        if os.path.exists(path):
+            imgs.append(Image.open(path))
+            imgs[-1].putalpha(alpha)
+            #imgs[-1].save(path + ".alpha.png", "PNG")
+        else:
+            imgs.append(null_image)
+    return imgs
 
 
 def parse_map_mem(mem, h, w):
