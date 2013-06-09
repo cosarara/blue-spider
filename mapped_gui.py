@@ -60,6 +60,56 @@ class Window(QtGui.QMainWindow):
         self.rom_data = None
         self.mov_perms_imgs = None
 
+        hex_update = lambda x : (lambda n : x(hex(n)[2:]))
+        hex_read = lambda x : (lambda : int(x(), 16))
+        bool_update = lambda x : (lambda n : x(bool(n)))
+        bool_read = lambda x : (lambda : int(x()))
+
+        self.ui_event_connections = {
+                'person': (
+                        (
+                            hex_read(self.ui.p_script_offset.text),
+                            hex_update(self.ui.p_script_offset.setText),
+                            "script_ptr"
+                        ),
+                        (
+                            hex_read(self.ui.person_num.text),
+                            hex_update(self.ui.person_num.setText),
+                            "person_num"
+                        ),
+                        (
+                            hex_read(self.ui.sprite_num.text),
+                            hex_update(self.ui.sprite_num.setText),
+                            "sprite_num"
+                        ),
+                        (
+                            hex_read(self.ui.p_x.text),
+                            hex_update(self.ui.p_x.setText),
+                            "x"
+                        ),
+                        (
+                            hex_read(self.ui.p_y.text),
+                            hex_update(self.ui.p_y.setText),
+                            "y"
+                        ),
+                        (
+                            bool_read(self.ui.is_a_trainer.isChecked),
+                            bool_update(self.ui.is_a_trainer.setChecked),
+                            "is_a_trainer"
+                        ),
+                        (
+                            hex_read(self.ui.p_flag.text),
+                            hex_update(self.ui.p_flag.setText),
+                            "flag"
+                        ),
+                    ),
+                'warp': (),
+                "trigger": (),
+                "signpost": ()
+            }
+
+
+
 
     def load_rom(self):
         self.treemodel.clear()
@@ -284,6 +334,10 @@ class Window(QtGui.QMainWindow):
         self.mov_perms_imgs = mapped.get_imgs()
         events_header = mapped.parse_events_header(self.rom_contents,
                 map_header['event_data_ptr'])
+        self.ui.num_of_warps.setText(str(events_header['n_of_warps']))
+        self.ui.num_of_people.setText(str(events_header['n_of_people']))
+        self.ui.num_of_triggers.setText(str(events_header['n_of_triggers']))
+        self.ui.num_of_signposts.setText(str(events_header['n_of_signposts']))
         self.events = mapped.parse_events(self.rom_contents, events_header)
 
         map_size = map_data_header['w'] * map_data_header['h'] * 2 # Every tile is 2 bytes
@@ -348,21 +402,21 @@ class Window(QtGui.QMainWindow):
         return event, tile_x, tile_y
 
     def update_event_editor(self, event, type):
-                #("person", person_events),
-                #("warp", warp_events),
-                #("trigger", trigger_events),
-                #("signpost", signpost_events)
         if not type or not event:
             return
         if type == "person":
             self.ui.eventsStackedWidget.setCurrentIndex(2)
-            self.ui.p_script_offset.setText(hex(event["script_ptr"])[2:])
         elif type == "warp":
             self.ui.eventsStackedWidget.setCurrentIndex(1)
         elif type == "trigger":
             self.ui.eventsStackedWidget.setCurrentIndex(3)
         elif type == "signpost":
             self.ui.eventsStackedWidget.setCurrentIndex(4)
+
+        for connection in self.ui_event_connections[type]:
+            read_function, update_function, data_element = connection
+            update_function(event[data_element])
+            #self.ui.p_script_offset.setText(hex(event["script_ptr"])[2:])
         self.selected_event = event
         self.selected_event_type = type
         #print(dir(self.ui.eventsStackedWidget))
@@ -372,18 +426,11 @@ class Window(QtGui.QMainWindow):
         '''take event info from UI and save it in the events object'''
         #self.selected_event[''] = None
         type = self.selected_event_type
-        if type == "person":
-            try:
-                self.selected_event['script_ptr'] = int(self.ui.p_script_offset.text(), 16)
-                print("ok")
-            except Exception as e:
-                QtGui.QMessageBox.critical(self, "error", e)
-        elif type == "warp":
-            pass
-        elif type == "trigger":
-            pass
-        elif type == "signpost":
-            pass
+        if not type or not self.selected_event:
+            return
+        for connection in self.ui_event_connections[type]:
+            read_function, update_function, data_element = connection
+            self.selected_event[data_element] = read_function()
 
     def map_clicked(self, event):
         #print(event)
