@@ -38,7 +38,6 @@ def get_rom_addr(a): # Safer and more useful version
         return a & 0xFFFFFF
     else:
         return -1
-        #raise Exception("that wasn't a pointer")
 
 def get_rom_addr_at(x, rom_contents):
     return get_rom_addr(to_int(rom_contents[x:x+4]))
@@ -102,36 +101,6 @@ def get_map_headers(rom_contents, n, banks, echo=False):
         i += 1
     return maps
 
-def parse_map_header(rom_contents, map_h):
-    map_data_ptr = read_ptr_at(rom_contents, map_h)
-    event_data_ptr = read_ptr_at(rom_contents, map_h+4)
-    level_script_ptr = read_ptr_at(rom_contents, map_h+8)
-    connections_ptr = read_ptr_at(rom_contents, map_h+12)
-    song_index = read_short_at(rom_contents, map_h+16)
-    map_ptr_index = read_short_at(rom_contents, map_h+18)
-    label_index = read_byte_at(rom_contents, map_h+20)
-    is_a_cave = read_byte_at(rom_contents, map_h+21)
-    weather = read_byte_at(rom_contents, map_h+22)
-    map_type = read_byte_at(rom_contents, map_h+23)
-    # Unknown at 24-25
-    show_label = read_byte_at(rom_contents, map_h+26)
-    battle_type = read_byte_at(rom_contents, map_h+27)
-    map_header = {
-            "map_data_ptr": map_data_ptr,
-            "event_data_ptr": event_data_ptr,
-            "level_script_ptr": level_script_ptr,
-            "connections_ptr": connections_ptr,
-            "song_index": song_index,
-            "map_ptr_index": map_ptr_index,
-            "label_index": label_index,
-            "is_a_cave": is_a_cave,
-            "weather": weather,
-            "map_type": map_type,
-            "show_label": show_label,
-            "battle_type": battle_type
-            }
-    return map_header
-
 # That's the kind of thing lisp's macros are useful for, right?
 # Dunno, I don't know lisp =P
 read_function = lambda size : {
@@ -153,7 +122,27 @@ def parse_data_structure(rom_contents, struct, offset):
     for item in struct:
         name, size, pos = item
         data[name] = read_function(size)(rom_contents, offset+pos)
+        if data[name] == -1:
+            data[name] = 0
     return data
+
+def parse_map_header(rom_contents, map_h):
+    struct = (
+            ("map_data_ptr", "ptr", 0),
+            ("event_data_ptr", "ptr", 4),
+            ("level_script_ptr", "ptr", 8),
+            ("connections_ptr", "ptr", 12),
+            ("song_index", "short", 16),
+            ("map_ptr_index", "short", 18),
+            ("label_index", "byte", 20),
+            ("is_a_cave", "byte", 21),
+            ("weather", "byte", 22),
+            ("map_type", "byte", 23),
+            # Unknown at 24-25
+            ("show_label", "byte", 26),
+            ("battle_type", "byte", 27),
+            )
+    return parse_data_structure(rom_contents, struct, map_h)
 
 def parse_map_data(rom_contents, map_data_ptr, game):
     struct = (
@@ -169,67 +158,43 @@ def parse_map_data(rom_contents, map_data_ptr, game):
             )
     return parse_data_structure(rom_contents, struct, map_data_ptr)
 
-
-def parse_map_data_old(rom_contents, map_data_ptr, game):
-    #print(game)
-    w = read_long_at(rom_contents, map_data_ptr+4)
-    h = read_long_at(rom_contents, map_data_ptr)
-    border_ptr = read_ptr_at(rom_contents, map_data_ptr+8)
-    tilemap_ptr = read_ptr_at(rom_contents, map_data_ptr+12)
-    global_tileset_ptr = read_ptr_at(rom_contents, map_data_ptr+16)
-    local_tileset_ptr = read_ptr_at(rom_contents, map_data_ptr+20)
-    # applies only to FR:
-    border_w = read_byte_at(rom_contents, map_data_ptr+24)
-    border_h = read_byte_at(rom_contents, map_data_ptr+25)
-    map_data = {
-            "w" : w,
-            "h" : h,
-            "border_ptr" : border_ptr,
-            "tilemap_ptr" : tilemap_ptr, # The real map data
-            "global_tileset_ptr": global_tileset_ptr,
-            "local_tileset_ptr": local_tileset_ptr,
-            "border_w": border_w,
-            "border_h": border_h,
-        }
-    return map_data
-
 def parse_tileset_header(rom_contents, tileset_header_ptr, game='RS'):
-    is_compressed = bool(read_byte_at(rom_contents, tileset_header_ptr))
-    # "SubColorChoose"?
-    tileset_type = read_byte_at(rom_contents, tileset_header_ptr+1)
-    # 0000
-    tileset_image_ptr = read_ptr_at(rom_contents, tileset_header_ptr+4)
-    palettes_ptr = read_ptr_at(rom_contents, tileset_header_ptr+8)
-    block_data_ptr = read_ptr_at(rom_contents, tileset_header_ptr+12)
+    struct_base = (
+            ("is_compressed", "byte", 0),
+            ("tileset_type", "byte", 1),
+            # 0000
+            ("tileset_image_ptr", "ptr", 4),
+            ("palettes_ptr", "ptr", 8),
+            ("block_data_ptr", "ptr", 12),
+            )
+    struct_rs = struct_base + (
+            ("behavior_data_ptr", "ptr", 16),
+            ("animation_data_ptr", "ptr", 20),
+            )
+    struct_fr = struct_base + (
+            ("animation_data_ptr", "ptr", 16),
+            ("behavior_data_ptr", "ptr", 20),
+            )
     if game == 'RS':
-        behavior_data_ptr = read_ptr_at(rom_contents, tileset_header_ptr+16)
-        animation_data_ptr = read_ptr_at(rom_contents, tileset_header_ptr+20)
+        struct = struct_rs
     elif game == 'FR':
-        animation_data_ptr = read_ptr_at(rom_contents, tileset_header_ptr+16)
-        behavior_data_ptr = read_ptr_at(rom_contents, tileset_header_ptr+20)
-    tileset_header = {
-            "is_compressed": is_compressed,
-            "tileset_type": tileset_type,
-            "tileset_image_ptr": tileset_image_ptr,
-            "palettes_ptr": palettes_ptr,
-            "block_data_ptr": block_data_ptr,
-            "behavior_data_ptr": behavior_data_ptr,
-            "animation_data_ptr": animation_data_ptr
-        }
-    return tileset_header
+        struct = struct_fr
+    else:
+        raise Exception("game not supported")
+    return parse_data_structure(rom_contents, struct, tileset_header_ptr)
 
 def parse_events_header(rom_contents, events_header_ptr):
-    events_header = {
-            "n_of_people": read_byte_at(rom_contents, events_header_ptr),
-            "n_of_warps": read_byte_at(rom_contents, events_header_ptr+1),
-            "n_of_triggers": read_byte_at(rom_contents, events_header_ptr+2),
-            "n_of_signposts": read_byte_at(rom_contents, events_header_ptr+3),
-            "people_events_ptr": read_ptr_at(rom_contents, events_header_ptr+4),
-            "warp_events_ptr": read_ptr_at(rom_contents, events_header_ptr+8),
-            "trigger_events_ptr": read_ptr_at(rom_contents, events_header_ptr+12),
-            "singpost_events_ptr": read_ptr_at(rom_contents, events_header_ptr+16)
-        }
-    return events_header
+    struct = (
+            ("n_of_people", "byte", 0),
+            ("n_of_warps", "byte", 1),
+            ("n_of_triggers", "byte", 2),
+            ("n_of_signposts", "byte", 3),
+            ("people_events_ptr", "ptr", 4),
+            ("warp_events_ptr", "ptr", 8),
+            ("trigger_events_ptr", "ptr", 12),
+            ("singpost_events_ptr", "ptr", 16)
+            )
+    return parse_data_structure(rom_contents, struct, events_header_ptr)
 
 def parse_events(rom_contents, events_header):
     person_events = []
@@ -252,68 +217,91 @@ def parse_events(rom_contents, events_header):
     print(warp_events)
     return person_events, warp_events, trigger_events, signpost_events
 
-
 def parse_person_event(rom_contents, ptr):
-    event_header = {
-            "person_num" : read_byte_at(rom_contents, ptr),
-            "sprite_num" : read_byte_at(rom_contents, ptr+1),
-            "unknown1" : read_byte_at(rom_contents, ptr+2),
-            "unknown2" : read_byte_at(rom_contents, ptr+3),
-            "x" : read_short_at(rom_contents, ptr+4),
-            "y" : read_short_at(rom_contents, ptr+6),
-            "unknown3" : read_byte_at(rom_contents, ptr+8),
-            "mov_type" : read_byte_at(rom_contents, ptr+9),
-            "mov" : read_byte_at(rom_contents, ptr+10),
-            "unknown4" : read_byte_at(rom_contents, ptr+11),
-            "is_a_trainer" : read_byte_at(rom_contents, ptr+12),
-            "unknown5" : read_byte_at(rom_contents, ptr+13),
-            "radius" : read_short_at(rom_contents, ptr+14),
-            "script_ptr": read_ptr_at(rom_contents, ptr+16),
-            "flag" : read_short_at(rom_contents, ptr+20),
-            "unknown6" : read_byte_at(rom_contents, ptr+22),
-            "unknown7" : read_byte_at(rom_contents, ptr+23),
-        }
-    return event_header
+    struct = (
+            ("person_num", "byte", 0),
+            ("sprite_num", "byte", 1),
+            ("unknown1", "byte", 2),
+            ("unknown2", "byte", 3),
+            ("x", "short", 4),
+            ("y", "short", 6),
+            ("unknown3", "byte", 8),
+            ("mov_type", "byte", 9),
+            ("mov", "byte", 10),
+            ("unknown4", "byte", 11),
+            ("is_a_trainer", "byte", 12),
+            ("unknown5", "byte", 13),
+            ("radius", "short", 14),
+            ("script_ptr", "ptr", 16),
+            ("flag", "short", 20),
+            ("unknown6", "byte", 22),
+            ("unknown7", "byte", 23),
+            )
+    return parse_data_structure(rom_contents, struct, ptr)
 
+# s/"\(.\{-}\)" : read_\(.\{-}\)_at(rom_contents, ptr[+]\?/("\1", "\2", /
 def parse_warp_event(rom_contents, ptr):
-    event_header = {
-            "x" : read_short_at(rom_contents, ptr),
-            "y" : read_short_at(rom_contents, ptr+2),
-            "unknown" : read_byte_at(rom_contents, ptr+4),
-            "warp_num" : read_byte_at(rom_contents, ptr+5),
-            "map_num" : read_byte_at(rom_contents, ptr+6),
-            "bank_num" : read_byte_at(rom_contents, ptr+7),
-        }
-    return event_header
+    struct = (
+            ("x", "short", 0),
+            ("y", "short", 2),
+            ("unknown", "byte", 4),
+            ("warp_num", "byte", 5),
+            ("map_num", "byte", 6),
+            ("bank_num", "byte", 7),
+        )
+    return parse_data_structure(rom_contents, struct, ptr)
+
+def parse_warp_event_old(rom_contents, ptr):
+    struct = (
+            ("x", "short", 0),
+            ("y", "short", 2),
+            ("unknown", "byte", 4),
+            ("warp_num", "byte", 5),
+            ("map_num", "byte", 6),
+            ("bank_num", "byte", 7),
+        )
+    return parse_data_structure(rom_contents, struct, ptr)
 
 def parse_trigger_event(rom_contents, ptr):
-    event_header = {
-            "x" : read_short_at(rom_contents, ptr),
-            "y" : read_short_at(rom_contents, ptr+2),
-            "unknown" : read_short_at(rom_contents, ptr+4),
-            "var_num" : read_short_at(rom_contents, ptr+6),
-            "var_value" : read_short_at(rom_contents, ptr+8),
-            "unknown2" : read_byte_at(rom_contents, ptr+10),
-            "unknown3" : read_byte_at(rom_contents, ptr+11),
-            "script_offset" : read_ptr_at(rom_contents, ptr+12),
-        }
-    return event_header
+    struct = (
+            ("x", "short", 0),
+            ("y", "short", 2),
+            ("unknown", "short", 4),
+            ("var_num", "short", 6),
+            ("var_value", "short", 8),
+            ("unknown2", "byte", 10),
+            ("unknown3", "byte", 11),
+            ("script_offset", "ptr", 12),
+        )
+    return parse_data_structure(rom_contents, struct, ptr)
 
 def parse_signpost_event(rom_contents, ptr):
-    event_header = {
-            "x" : read_short_at(rom_contents, ptr),
-            "y" : read_short_at(rom_contents, ptr+2),
-            "talking_level" : read_byte_at(rom_contents, ptr+4),
-            "type" : read_byte_at(rom_contents, ptr+5),
-            "unknown" : read_byte_at(rom_contents, ptr+6),
-            "unknown" : read_byte_at(rom_contents, ptr+7),
-        }
+    struct = (
+            ("x", "short", 0),
+            ("y", "short", 2),
+            ("talking_level", "byte", 4),
+            ("type", "byte", 5),
+            ("unknown", "byte", 6),
+            ("unknown", "byte", 7),
+        )
+    event_header = parse_data_structure(rom_contents, struct, ptr)
     if event_header['type'] < 5:
-        event_header["script_offset"] = read_ptr_at(rom_contents, ptr+8)
+        #event_header["script_offset"] = read_ptr_at(rom_contents, ptr+8)
+        struct = (("script_offset", "ptr", 8),)
+        event_header = dict(
+                list(event_header.items()) +
+                list(parse_data_structure(rom_contents, struct, ptr).items())
+                )
     else:
-        event_header["item_number"] = read_short_at(rom_contents, ptr+8)
-        event_header["hidden_item_id"] = read_byte_at(rom_contents, ptr+10)
-        event_header["ammount"] = read_byte_at(rom_contents, ptr+11)
+        struct = (
+            ("item_number", "short", 8),
+            ("hidden_item_id", "byte", 10),
+            ("ammount", "byte", 11),
+        )
+        event_header = dict(
+                list(event_header.items()) +
+                list(parse_data_structure(rom_contents, struct, ptr).items())
+                )
     return event_header
 
 def get_tileset_img(rom_contents, tileset_header):
