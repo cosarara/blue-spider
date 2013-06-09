@@ -38,6 +38,8 @@ class Window(QtGui.QMainWindow):
         self.ui.map.setScene(self.map_scene)
         self.mov_scene = QtGui.QGraphicsScene()
         self.ui.movPermissionsMap.setScene(self.mov_scene)
+        self.event_scene = QtGui.QGraphicsScene()
+        self.ui.eventMap.setScene(self.event_scene)
         self.palette_scene = QtGui.QGraphicsScene()
         self.ui.palette.setScene(self.palette_scene)
         self.perms_palette_scene = QtGui.QGraphicsScene()
@@ -49,6 +51,8 @@ class Window(QtGui.QMainWindow):
 
         self.selected_tile = 0
         self.selected_mov_tile = 0
+        self.selected_event = None
+        self.selected_event_type = None
         self.rom_file_name = None
         # RS or FR
         self.game = None
@@ -95,8 +99,6 @@ class Window(QtGui.QMainWindow):
         for i, bank in enumerate(self.banks):
             self.treemodel.appendRow(QtGui.QStandardItem(hex(i) + " - " + hex(bank)))
             self.load_maps(i)
-            #self.treemodel.setItem(1, QtGui.QStandardItem("seccond"))
-            #self.treemodel.item(1).appendRow(QtGui.QStandardItem("seccond child"))
 
     def load_maps(self, bank_num):
         maps = mapped.get_map_headers(self.rom_contents, bank_num, self.banks)
@@ -105,15 +107,12 @@ class Window(QtGui.QMainWindow):
             self.treemodel.item(bank_num).appendRow(
                     QtGui.QStandardItem(hex(i) + " - " + hex(map))
                     )
-        #print(self.treemodel.item(0).child(9).text())
 
     def load_tileset(self, tileset_header, previous_img=None):
-        #print(tileset_header)
         tileset_img = mapped.get_tileset_img(self.rom_contents, tileset_header)
         if previous_img:
             w = previous_img.size[0]
             h = previous_img.size[1] + tileset_img.size[1]
-            #print("big_img_size", w, h)
             big_img = Image.new("RGB", (w, h))
             pos = (0, 0, previous_img.size[0], previous_img.size[1])
             big_img.paste(previous_img, pos)
@@ -135,14 +134,10 @@ class Window(QtGui.QMainWindow):
         # The tile palette, not the color one
         blocks_imgs = self.blocks_imgs
         perms_imgs = self.mov_perms_imgs
-        #print("len", len(blocks_imgs))
-        #blocks_img_w = (len(blocks_imgs) // 8) * 16
         blocks_img_w = 16 * 8 # 8 tiles per row
         perms_img_w = blocks_img_w
-        #print("w", blocks_img_w)
         blocks_img_h = (len(blocks_imgs) * 16) // 8
         perms_img_h = (len(perms_imgs) * 16) // 8
-        #print("h", blocks_img_h)
         blocks_img = Image.new("RGB", (blocks_img_w, blocks_img_h))
         perms_img = Image.new("RGB", (perms_img_w, perms_img_h))
         i = 0
@@ -206,8 +201,7 @@ class Window(QtGui.QMainWindow):
                 mov_img.paste(self.blocks_imgs[tile_num], pos)
                 mov_img.paste(self.mov_perms_imgs[behavior], pos, self.mov_perms_imgs[behavior])
 
-        #mov_img.show()
-
+        self.map_img = map_img
         self.map_img_qt = ImageQt.ImageQt(map_img)
         self.mov_img_qt = ImageQt.ImageQt(mov_img)
         self.mapPixMap = QtGui.QPixmap.fromImage(self.map_img_qt)
@@ -224,6 +218,37 @@ class Window(QtGui.QMainWindow):
         self.map_pixmap_qobject.clicked.connect(self.map_clicked)
         self.mov_pixmap_qobject.clicked.connect(self.mov_clicked)
 
+    def draw_events(self, events):
+        event_img = self.map_img.copy()
+        person_events, warp_events, trigger_events, signpost_events = events
+        event_imgs = mapped.get_imgs(["data", "events"], 4)
+        person_img, warp_img, trigger_img, signpost_img = event_imgs
+        event_types = (
+                (person_events, person_img),
+                (warp_events, warp_img),
+                (trigger_events, trigger_img),
+                (signpost_events, signpost_img)
+            )
+        for event_type in event_types:
+            data, img = event_type
+            for event in data:
+                if not event: # Some events aren't parsed yet
+                    continue
+                x = event['x']
+                y = event['y']
+                x = x*16
+                y = y*16
+                x2 = x+16
+                y2 = y+16
+                pos = (x, y, x2, y2)
+                event_img.paste(img, pos, img)
+        self.event_img_qt = ImageQt.ImageQt(event_img)
+        self.eventPixMap = QtGui.QPixmap.fromImage(self.event_img_qt)
+        self.event_scene.clear()
+        self.event_pixmap_qobject = qmapview.QMapPixmap(self.eventPixMap)
+        self.event_scene.addItem(self.event_pixmap_qobject)
+        self.event_scene.update()
+        self.event_pixmap_qobject.clicked.connect(self.event_clicked)
 
     def load_map(self, qindex):
         bank_n = qindex.parent().row()
@@ -240,9 +265,6 @@ class Window(QtGui.QMainWindow):
                 self.rom_contents, map_header['map_data_ptr'],
                 self.game
                 )
-        ###
-        mapped.print32bytes(map_header['event_data_ptr'], self.rom_contents)
-        ###
 
         self.blocks_imgs = []
 
@@ -259,19 +281,20 @@ class Window(QtGui.QMainWindow):
         t1_img = self.load_tileset(tileset_header)
         self.load_tileset(tileset2_header, t1_img)
 
-        self.mov_perms_imgs = mapped.get_movement_permissions_imgs()
+        self.mov_perms_imgs = mapped.get_imgs()
+        events_header = mapped.parse_events_header(self.rom_contents,
+                map_header['event_data_ptr'])
+        self.events = mapped.parse_events(self.rom_contents, events_header)
 
         map_size = map_data_header['w'] * map_data_header['h'] * 2 # Every tile is 2 bytes
         tilemap_ptr = map_data_header['tilemap_ptr']
-        ###
-        mapped.print32bytes(map_data_header['tilemap_ptr'], self.rom_contents)
-        ###
         self.tilemap_ptr = tilemap_ptr
         map_mem = self.rom_contents[tilemap_ptr:tilemap_ptr+map_size]
         self.map = mapped.parse_map_mem(map_mem, map_data_header['w'], map_data_header['h'])
 
         self.draw_map(self.map)
         self.draw_palette()
+        self.draw_events(self.events)
 
     def get_tile_num_from_mouseclick(self, event, pixmap):
         pos = event.pos()
@@ -286,6 +309,82 @@ class Window(QtGui.QMainWindow):
         tile_num = tile_x + tile_y * tiles_per_row
         return tile_num, tile_x, tile_y
 
+    def get_event_at_pos_from_list(self, pos, events):
+        x, y = pos
+        for event in events:
+            if event['x'] == x and event['y'] == y:
+                return event
+        return None
+
+    def get_event_at_pos(self, pos):
+        person_events, warp_events, trigger_events, signpost_events = self.events
+        #events = person_events + warp_events + trigger_events + signpost_events
+        types = (
+                ("person", person_events),
+                ("warp", warp_events),
+                ("trigger", trigger_events),
+                ("signpost", signpost_events)
+            )
+        # haha, reserved names
+        for type, list in types:
+            event = self.get_event_at_pos_from_list(pos, list)
+            if event:
+                return type, event
+        x, y = pos
+        print(x, y)
+        return None, None
+
+    def get_event_from_mouseclick(self, event, pixmap):
+        pos = event.pos()
+        x = int(pos.x())
+        y = int(pos.y())
+        w = pixmap.width()
+        h = pixmap.height()
+        tile_size = 16
+        tiles_per_row = w // tile_size
+        tile_x = x // tile_size
+        tile_y = y // tile_size
+        event = self.get_event_at_pos((tile_x, tile_y))
+        return event, tile_x, tile_y
+
+    def update_event_editor(self, event, type):
+                #("person", person_events),
+                #("warp", warp_events),
+                #("trigger", trigger_events),
+                #("signpost", signpost_events)
+        if not type or not event:
+            return
+        if type == "person":
+            self.ui.eventsStackedWidget.setCurrentIndex(2)
+            self.ui.p_script_offset.setText(hex(event["script_ptr"])[2:])
+        elif type == "warp":
+            self.ui.eventsStackedWidget.setCurrentIndex(1)
+        elif type == "trigger":
+            self.ui.eventsStackedWidget.setCurrentIndex(3)
+        elif type == "signpost":
+            self.ui.eventsStackedWidget.setCurrentIndex(4)
+        self.selected_event = event
+        self.selected_event_type = type
+        #print(dir(self.ui.eventsStackedWidget))
+
+
+    def save_event_to_memory(self):
+        '''take event info from UI and save it in the events object'''
+        #self.selected_event[''] = None
+        type = self.selected_event_type
+        if type == "person":
+            try:
+                self.selected_event['script_ptr'] = int(self.ui.p_script_offset.text(), 16)
+                print("ok")
+            except Exception as e:
+                QtGui.QMessageBox.critical(self, "error", e)
+        elif type == "warp":
+            pass
+        elif type == "trigger":
+            pass
+        elif type == "signpost":
+            pass
+
     def map_clicked(self, event):
         #print(event)
         tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event, self.mapPixMap)
@@ -298,6 +397,16 @@ class Window(QtGui.QMainWindow):
         print("clicked tile:", hex(tile_num))
         self.map[tile_y][tile_x][1] = self.selected_mov_tile
         self.draw_map(self.map)
+
+    def event_clicked(self, event):
+        #print(event)
+        self.save_event_to_memory()
+        event, event_x, event_y = self.get_event_from_mouseclick(event, self.eventPixMap)
+        print("clicked event tile:", event)
+        type, event = event
+        #self.map[tile_y][tile_x][0] = self.selected_tile
+        self.draw_events(self.events)
+        self.update_event_editor(event, type)
 
     def palette_clicked(self, event):
         tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event, self.tilesetPixMap)
@@ -325,8 +434,9 @@ if __name__ == "__main__":
     app = QtGui.QApplication(sys.argv)
     win = Window()
     win.show()
-    r = app.exec_()
-    app.deleteLater() # Avoid errors on exit
+    r = app.exec_() # So yeah, I'm trying to make it not crash on exit
+    win.close()
+    app.deleteLater()
     sys.exit(r)
     #sys.exit(app.exec_())
 

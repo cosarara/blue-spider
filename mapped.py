@@ -48,10 +48,21 @@ def read_n_bytes(rom, addr, n):
         raise Exception("you are trying to read -1")
     return rom[addr:addr+n]
 
-read_long_at = lambda rom, addr : read_n_bytes(rom, addr, 4)
-read_ptr_at = read_long_at
-read_short_at = lambda rom, addr : read_n_bytes(rom, addr, 2)
-read_byte_at = lambda rom, addr : read_n_bytes(rom, addr, 1)
+read_long_at = lambda rom, addr : to_int(read_n_bytes(rom, addr, 4))
+read_ptr_at = lambda rom, addr : get_rom_addr(read_long_at(rom, addr))
+read_short_at = lambda rom, addr : to_int(read_n_bytes(rom, addr, 2))
+read_byte_at = lambda rom, addr : to_int(read_n_bytes(rom, addr, 1))
+
+def write_n_bytes(rom, addr, n, data):
+    if len(data) != n:
+        raise Exception("data is not the same size as n!")
+    rom[addr:addr+n] = data
+
+write_long_at = lambda rom, addr, num : write_n_bytes(rom, addr, 4, num.to_bytes(4, "little"))
+write_rom_ptr_at = lambda rom, addr, num : write_long_at(rom, addr, num + 0x8000000)
+write_short_at = lambda rom, addr, num : write_n_bytes(rom, addr, 2, num.to_bytes(2, "little"))
+write_byte_at = lambda rom, addr, num : write_n_bytes(rom, addr, 1, num.to_bytes(1, "little"))
+
 
 def get_banks(rom_contents, rom_data=axve, echo=False):
     if echo:
@@ -92,19 +103,19 @@ def get_map_headers(rom_contents, n, banks, echo=False):
     return maps
 
 def parse_map_header(rom_contents, map_h):
-    map_data_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, map_h)))
-    event_data_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, map_h+4)))
-    level_script_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, map_h+8)))
-    connections_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, map_h+12)))
-    song_index = to_int(read_short_at(rom_contents, map_h+16))
-    map_ptr_index = to_int(read_short_at(rom_contents, map_h+18))
-    label_index = to_int(read_byte_at(rom_contents, map_h+20))
-    is_a_cave = to_int(read_byte_at(rom_contents, map_h+21))
-    weather = to_int(read_byte_at(rom_contents, map_h+22))
-    map_type = to_int(read_byte_at(rom_contents, map_h+23))
+    map_data_ptr = read_ptr_at(rom_contents, map_h)
+    event_data_ptr = read_ptr_at(rom_contents, map_h+4)
+    level_script_ptr = read_ptr_at(rom_contents, map_h+8)
+    connections_ptr = read_ptr_at(rom_contents, map_h+12)
+    song_index = read_short_at(rom_contents, map_h+16)
+    map_ptr_index = read_short_at(rom_contents, map_h+18)
+    label_index = read_byte_at(rom_contents, map_h+20)
+    is_a_cave = read_byte_at(rom_contents, map_h+21)
+    weather = read_byte_at(rom_contents, map_h+22)
+    map_type = read_byte_at(rom_contents, map_h+23)
     # Unknown at 24-25
-    show_label = to_int(read_byte_at(rom_contents, map_h+26))
-    battle_type = to_int(read_byte_at(rom_contents, map_h+27))
+    show_label = read_byte_at(rom_contents, map_h+26)
+    battle_type = read_byte_at(rom_contents, map_h+27)
     map_header = {
             "map_data_ptr": map_data_ptr,
             "event_data_ptr": event_data_ptr,
@@ -121,17 +132,55 @@ def parse_map_header(rom_contents, map_h):
             }
     return map_header
 
+# That's the kind of thing lisp's macros are useful for, right?
+# Dunno, I don't know lisp =P
+read_function = lambda size : {
+            "byte": read_byte_at,
+            "short": read_short_at,
+            "ptr": read_ptr_at,
+            "long": read_long_at
+        }[size]
+
+write_function = lambda size : {
+            "byte": write_byte_at,
+            "short": write_short_at,
+            "ptr": write_rom_ptr_at,
+            "long": write_long_at
+        }[size]
+
+def parse_data_structure(rom_contents, struct, offset):
+    data = {}
+    for item in struct:
+        name, size, pos = item
+        data[name] = read_function(size)(rom_contents, offset+pos)
+    return data
+
 def parse_map_data(rom_contents, map_data_ptr, game):
+    struct = (
+            ("h", "long", 0),
+            ("w", "long", 4),
+            ("border_ptr", "ptr", 8),
+            ("tilemap_ptr", "ptr", 12),
+            ("global_tileset_ptr", "ptr", 16),
+            ("local_tileset_ptr", "ptr", 20),
+            # FR only
+            ("border_w", "byte", 24),
+            ("border_h", "byte", 25)
+            )
+    return parse_data_structure(rom_contents, struct, map_data_ptr)
+
+
+def parse_map_data_old(rom_contents, map_data_ptr, game):
     #print(game)
-    w = to_int(read_long_at(rom_contents, map_data_ptr+4))
-    h = to_int(read_long_at(rom_contents, map_data_ptr))
-    border_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, map_data_ptr+8)))
-    tilemap_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, map_data_ptr+12)))
-    global_tileset_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, map_data_ptr+16)))
-    local_tileset_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, map_data_ptr+20)))
+    w = read_long_at(rom_contents, map_data_ptr+4)
+    h = read_long_at(rom_contents, map_data_ptr)
+    border_ptr = read_ptr_at(rom_contents, map_data_ptr+8)
+    tilemap_ptr = read_ptr_at(rom_contents, map_data_ptr+12)
+    global_tileset_ptr = read_ptr_at(rom_contents, map_data_ptr+16)
+    local_tileset_ptr = read_ptr_at(rom_contents, map_data_ptr+20)
     # applies only to FR:
-    border_w = to_int(read_byte_at(rom_contents, map_data_ptr+24))
-    border_h = to_int(read_byte_at(rom_contents, map_data_ptr+25))
+    border_w = read_byte_at(rom_contents, map_data_ptr+24)
+    border_h = read_byte_at(rom_contents, map_data_ptr+25)
     map_data = {
             "w" : w,
             "h" : h,
@@ -145,19 +194,19 @@ def parse_map_data(rom_contents, map_data_ptr, game):
     return map_data
 
 def parse_tileset_header(rom_contents, tileset_header_ptr, game='RS'):
-    is_compressed = bool(to_int(read_byte_at(rom_contents, tileset_header_ptr)))
+    is_compressed = bool(read_byte_at(rom_contents, tileset_header_ptr))
     # "SubColorChoose"?
-    tileset_type = to_int(read_byte_at(rom_contents, tileset_header_ptr+1))
+    tileset_type = read_byte_at(rom_contents, tileset_header_ptr+1)
     # 0000
-    tileset_image_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, tileset_header_ptr+4)))
-    palettes_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, tileset_header_ptr+8)))
-    block_data_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, tileset_header_ptr+12)))
+    tileset_image_ptr = read_ptr_at(rom_contents, tileset_header_ptr+4)
+    palettes_ptr = read_ptr_at(rom_contents, tileset_header_ptr+8)
+    block_data_ptr = read_ptr_at(rom_contents, tileset_header_ptr+12)
     if game == 'RS':
-        behavior_data_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, tileset_header_ptr+16)))
-        animation_data_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, tileset_header_ptr+20)))
+        behavior_data_ptr = read_ptr_at(rom_contents, tileset_header_ptr+16)
+        animation_data_ptr = read_ptr_at(rom_contents, tileset_header_ptr+20)
     elif game == 'FR':
-        animation_data_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, tileset_header_ptr+16)))
-        behavior_data_ptr = get_rom_addr(to_int(read_ptr_at(rom_contents, tileset_header_ptr+20)))
+        animation_data_ptr = read_ptr_at(rom_contents, tileset_header_ptr+16)
+        behavior_data_ptr = read_ptr_at(rom_contents, tileset_header_ptr+20)
     tileset_header = {
             "is_compressed": is_compressed,
             "tileset_type": tileset_type,
@@ -170,10 +219,102 @@ def parse_tileset_header(rom_contents, tileset_header_ptr, game='RS'):
     return tileset_header
 
 def parse_events_header(rom_contents, events_header_ptr):
-    pass
+    events_header = {
+            "n_of_people": read_byte_at(rom_contents, events_header_ptr),
+            "n_of_warps": read_byte_at(rom_contents, events_header_ptr+1),
+            "n_of_triggers": read_byte_at(rom_contents, events_header_ptr+2),
+            "n_of_signposts": read_byte_at(rom_contents, events_header_ptr+3),
+            "people_events_ptr": read_ptr_at(rom_contents, events_header_ptr+4),
+            "warp_events_ptr": read_ptr_at(rom_contents, events_header_ptr+8),
+            "trigger_events_ptr": read_ptr_at(rom_contents, events_header_ptr+12),
+            "singpost_events_ptr": read_ptr_at(rom_contents, events_header_ptr+16)
+        }
+    return events_header
 
-def parse_movs_header(rom_contents, events_header_ptr):
-    pass
+def parse_events(rom_contents, events_header):
+    person_events = []
+    warp_events = []
+    trigger_events = []
+    signpost_events = []
+    # We make this thingy to loop nicely
+    parsing_functions = (
+            (parse_person_event, "n_of_people", "people_events_ptr", person_events, 24),
+            (parse_warp_event, "n_of_warps", "warp_events_ptr", warp_events, 8),
+            (parse_trigger_event, "n_of_triggers", "trigger_events_ptr", trigger_events, 16),
+            (parse_signpost_event, "n_of_signposts", "singpost_events_ptr", signpost_events, 12)
+        )
+    for fun, num_key, start_ptr_key, list, event_size in parsing_functions:
+        num = events_header[num_key]
+        for event in range(num):
+            ptr = events_header[start_ptr_key] + event_size * event
+            event_data = fun(rom_contents, ptr)
+            list.append(event_data)
+    print(warp_events)
+    return person_events, warp_events, trigger_events, signpost_events
+
+
+def parse_person_event(rom_contents, ptr):
+    event_header = {
+            "person_num" : read_byte_at(rom_contents, ptr),
+            "sprite_num" : read_byte_at(rom_contents, ptr+1),
+            "unknown1" : read_byte_at(rom_contents, ptr+2),
+            "unknown2" : read_byte_at(rom_contents, ptr+3),
+            "x" : read_short_at(rom_contents, ptr+4),
+            "y" : read_short_at(rom_contents, ptr+6),
+            "unknown3" : read_byte_at(rom_contents, ptr+8),
+            "mov_type" : read_byte_at(rom_contents, ptr+9),
+            "mov" : read_byte_at(rom_contents, ptr+10),
+            "unknown4" : read_byte_at(rom_contents, ptr+11),
+            "is_a_trainer" : read_byte_at(rom_contents, ptr+12),
+            "unknown5" : read_byte_at(rom_contents, ptr+13),
+            "radius" : read_short_at(rom_contents, ptr+14),
+            "script_ptr": read_ptr_at(rom_contents, ptr+16),
+            "flag" : read_short_at(rom_contents, ptr+20),
+            "unknown6" : read_byte_at(rom_contents, ptr+22),
+            "unknown7" : read_byte_at(rom_contents, ptr+23),
+        }
+    return event_header
+
+def parse_warp_event(rom_contents, ptr):
+    event_header = {
+            "x" : read_short_at(rom_contents, ptr),
+            "y" : read_short_at(rom_contents, ptr+2),
+            "unknown" : read_byte_at(rom_contents, ptr+4),
+            "warp_num" : read_byte_at(rom_contents, ptr+5),
+            "map_num" : read_byte_at(rom_contents, ptr+6),
+            "bank_num" : read_byte_at(rom_contents, ptr+7),
+        }
+    return event_header
+
+def parse_trigger_event(rom_contents, ptr):
+    event_header = {
+            "x" : read_short_at(rom_contents, ptr),
+            "y" : read_short_at(rom_contents, ptr+2),
+            "unknown" : read_short_at(rom_contents, ptr+4),
+            "var_num" : read_short_at(rom_contents, ptr+6),
+            "var_value" : read_short_at(rom_contents, ptr+8),
+            "unknown2" : read_byte_at(rom_contents, ptr+10),
+            "unknown3" : read_byte_at(rom_contents, ptr+11),
+            "script_offset" : read_ptr_at(rom_contents, ptr+12),
+        }
+    return event_header
+
+def parse_signpost_event(rom_contents, ptr):
+    event_header = {
+            "x" : read_short_at(rom_contents, ptr),
+            "y" : read_short_at(rom_contents, ptr+2),
+            "talking_level" : read_byte_at(rom_contents, ptr+4),
+            "type" : read_byte_at(rom_contents, ptr+5),
+            "unknown" : read_byte_at(rom_contents, ptr+6),
+            "unknown" : read_byte_at(rom_contents, ptr+7),
+        }
+    if event_header['type'] < 5:
+        event_header["script_offset"] = read_ptr_at(rom_contents, ptr+8)
+    else:
+        event_header["item_number"] = read_short_at(rom_contents, ptr+8)
+        event_header["hidden_item_id"] = read_byte_at(rom_contents, ptr+10)
+        event_header["ammount"] = read_byte_at(rom_contents, ptr+11)
+    return event_header
 
 def get_tileset_img(rom_contents, tileset_header):
     # TODO: Palettes
@@ -314,11 +455,11 @@ def build_block_imgs(blocks_mem, img):
         block_imgs.append(block_img)
     return block_imgs
 
-def get_movement_permissions_imgs(path=["data", "mov_perms"]):
+def get_imgs(path=["data", "mov_perms"], num=0x40):
     base_path = os.path.join(*path)
     alpha = Image.new("L", (16, 16), 150)
     imgs = []
-    img_paths = [hex(n)[2:].zfill(2).upper() + '.png' for n in range(0x40)]
+    img_paths = [hex(n)[2:].zfill(2).upper() + '.png' for n in range(num)]
     path = os.path.join(base_path, "N.png")
     if not os.path.exists(path):
         raise IOError("file " + path + " not found")
