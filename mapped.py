@@ -125,12 +125,15 @@ def parse_data_structure(rom_contents, struct, offset):
         data[name] = read_function(size)(rom_contents, offset+pos)
         if data[name] == -1:
             data[name] = 0
+    data["self"] = offset
     return data
 
-def write_data_structure(rom_contents, struct, data, offset):
+def write_data_structure(rom_contents, struct, data, offset=None):
+    if not offset:
+        offset = data["self"]
     for item in struct:
         name, size, pos = item
-        if data[name]:
+        if data[name] and name != "self":
             write_function(size)(rom_contents, offset+pos, data[name])
 
 def parse_map_header(rom_contents, map_h):
@@ -177,18 +180,37 @@ def parse_events(rom_contents, events_header):
     print(warp_events)
     return person_events, warp_events, trigger_events, signpost_events
 
+def write_event(rom_contents, event, type, offset=None):
+    writing_functions = {
+            "person" : write_person_event,
+            "warp" : write_warp_event,
+            "trigger" : write_trigger_event,
+            "signpost" : write_signpost_event,
+        }
+    writing_functions[type](rom_contents, event, offset)
+
 def parse_person_event(rom_contents, ptr):
     struct = structures.person_event
     return parse_data_structure(rom_contents, struct, ptr)
+
+def write_person_event(rom_contents, event, offset=None):
+    struct = structures.person_event
+    write_data_structure(rom_contents, struct, event, offset)
 
 # s/"\(.\{-}\)" : read_\(.\{-}\)_at(rom_contents, ptr[+]\?/("\1", "\2", /
 def parse_warp_event(rom_contents, ptr):
     struct = structures.warp_event
     return parse_data_structure(rom_contents, struct, ptr)
 
+def write_warp_event(rom_contents, event, offset=None):
+    pass
+
 def parse_trigger_event(rom_contents, ptr):
     struct = structures.trigger_event
     return parse_data_structure(rom_contents, struct, ptr)
+
+def write_trigger_event(rom_contents, event, offset=None):
+    pass
 
 def parse_signpost_event(rom_contents, ptr):
     struct = structures.signpost_event
@@ -211,6 +233,9 @@ def parse_signpost_event(rom_contents, ptr):
                 list(parse_data_structure(rom_contents, struct, ptr).items())
                 )
     return event_header
+
+def write_signpost_event(rom_contents, event, offset=None):
+    pass
 
 def get_tileset_img(rom_contents, tileset_header):
     # TODO: Palettes

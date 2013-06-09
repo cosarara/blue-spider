@@ -418,6 +418,18 @@ class Window(QtGui.QMainWindow):
         print("selected tile:", hex(tile_num))
         self.selected_mov_tile = tile_num
 
+    def save_events(self):
+        person_events, warp_events, trigger_events, signpost_events = self.events
+        types = (
+                ("person", person_events),
+                ("warp", warp_events),
+                ("trigger", trigger_events),
+                ("signpost", signpost_events)
+            )
+        for type, list in types:
+            for event in list:
+                mapped.write_event(self.rom_contents, event, type)
+
     def save_map(self):
         new_map_mem = mapped.map_to_mem(self.map)
         #print(self.map)
@@ -425,6 +437,7 @@ class Window(QtGui.QMainWindow):
         size = len(new_map_mem)
         self.rom_contents = bytearray(self.rom_contents)
         self.rom_contents[pos:pos+size] = new_map_mem
+        self.save_events()
         self.write_rom()
 
 

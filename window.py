@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'mapped.ui'
 #
-# Created: Sun Jun  9 10:21:39 2013
+# Created: Sun Jun  9 17:11:17 2013
 #      by: PyQt4 UI code generator 4.10.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -128,10 +128,12 @@ class Ui_MainWindow(object):
         self.label.setObjectName(_fromUtf8("label"))
         self.gridLayout_5.addWidget(self.label, 0, 1, 1, 1)
         self.addTriggerButton = QtGui.QPushButton(self.EventsBox)
+        self.addTriggerButton.setEnabled(False)
         self.addTriggerButton.setMaximumSize(QtCore.QSize(27, 16777215))
         self.addTriggerButton.setObjectName(_fromUtf8("addTriggerButton"))
         self.gridLayout_5.addWidget(self.addTriggerButton, 4, 4, 1, 1)
         self.addSignpostButton = QtGui.QPushButton(self.EventsBox)
+        self.addSignpostButton.setEnabled(False)
         self.addSignpostButton.setMaximumSize(QtCore.QSize(27, 16777215))
         self.addSignpostButton.setObjectName(_fromUtf8("addSignpostButton"))
         self.gridLayout_5.addWidget(self.addSignpostButton, 5, 4, 1, 1)
@@ -147,6 +149,7 @@ class Ui_MainWindow(object):
         self.label_8.setObjectName(_fromUtf8("label_8"))
         self.gridLayout_5.addWidget(self.label_8, 5, 2, 1, 1)
         self.addPersonButton = QtGui.QPushButton(self.EventsBox)
+        self.addPersonButton.setEnabled(False)
         self.addPersonButton.setMaximumSize(QtCore.QSize(27, 16777215))
         self.addPersonButton.setObjectName(_fromUtf8("addPersonButton"))
         self.gridLayout_5.addWidget(self.addPersonButton, 2, 4, 1, 1)
@@ -163,6 +166,7 @@ class Ui_MainWindow(object):
         self.label_7.setObjectName(_fromUtf8("label_7"))
         self.gridLayout_5.addWidget(self.label_7, 5, 1, 1, 1)
         self.addWarpButton = QtGui.QPushButton(self.EventsBox)
+        self.addWarpButton.setEnabled(False)
         self.addWarpButton.setMaximumSize(QtCore.QSize(27, 16777215))
         self.addWarpButton.setObjectName(_fromUtf8("addWarpButton"))
         self.gridLayout_5.addWidget(self.addWarpButton, 0, 4, 1, 1)
@@ -473,7 +477,7 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
         self.tabWidget.setCurrentIndex(0)
-        self.eventsStackedWidget.setCurrentIndex(0)
+        self.eventsStackedWidget.setCurrentIndex(2)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):

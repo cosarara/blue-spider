@@ -170,6 +170,9 @@
            </item>
            <item row="4" column="4">
             <widget class="QPushButton" name="addTriggerButton">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
              <property name="maximumSize">
               <size>
                <width>27</width>
@@ -183,6 +186,9 @@
            </item>
            <item row="5" column="4">
             <widget class="QPushButton" name="addSignpostButton">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
              <property name="maximumSize">
               <size>
                <width>27</width>
@@ -216,6 +222,9 @@
            </item>
            <item row="2" column="4">
             <widget class="QPushButton" name="addPersonButton">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
              <property name="maximumSize">
               <size>
                <width>27</width>
@@ -267,6 +276,9 @@
            </item>
            <item row="0" column="4">
             <widget class="QPushButton" name="addWarpButton">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
              <property name="maximumSize">
               <size>
                <width>27</width>
@@ -294,7 +306,7 @@
               </sizepolicy>
              </property>
              <property name="currentIndex">
-              <number>0</number>
+              <number>2</number>
              </property>
              <widget class="QWidget" name="emptyEditor"/>
              <widget class="QWidget" name="warpEditor">
