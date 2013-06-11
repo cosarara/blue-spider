@@ -333,9 +333,11 @@ def build_block_imgs(blocks_mem, img):
     #img.save("tileset.png", "PNG")
     block_imgs = []
     tiles_per_line = 16
+    base_block_img = Image.new("RGB", (16, 16))
     for block in range(len(blocks_mem)//16):
         block_mem = blocks_mem[block*16:block*16+16]
-        block_img = Image.new("RGB", (16, 16))
+        # Copying is faster than creating
+        block_img = base_block_img.copy()
         # Up/down
         for layer in range(2):
             layer_mem = block_mem[layer*8:layer*8+8]
@@ -367,7 +369,8 @@ def build_block_imgs(blocks_mem, img):
                 x, y = pos[part]
                 x *= 8
                 y *= 8
-                mask = Image.eval(part_img, lambda a: 255 if a != 0 else 0)
+                # Transparency
+                mask = Image.eval(part_img, lambda a: 255 if a else 0)
                 mask = mask.convert('L')
                 block_img.paste(part_img, (x, y, x+8, y+8), mask)
 
