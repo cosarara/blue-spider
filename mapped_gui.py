@@ -175,10 +175,9 @@ class Window(QtGui.QMainWindow):
             pos = (x, y, x2, y2)
             big_img.paste(tileset_img, pos)
             tileset_img = big_img
-        block_data_mem = mapped.get_block_data(self.rom_contents, tileset_header, self.game)
+        block_data_mem = mapped.get_block_data(self.rom_contents,
+                                               tileset_header, self.game)
         blocks_imgs = mapped.build_block_imgs(block_data_mem, tileset_img)
-        #dummy_img = Image.new("RGB", (16, 16))
-        #blocks_imgs += [dummy_img] * 512
         self.blocks_imgs += blocks_imgs
         return tileset_img
 
