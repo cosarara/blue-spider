@@ -3,7 +3,11 @@ import binascii
 from map_printer import *
 import os, sys
 import lz77
-import Image
+try:
+    from PIL import Image, ImageQt
+except:
+    import Image
+    import ImageQt
 import structures
 
 axve = {
@@ -316,30 +320,28 @@ def get_block_data(rom_contents, tileset_header, game='RS'):
     return mem
 
 def build_block_imgs(blocks_mem, img):
-    # Every block is 16 bytes, and holds down and up parts for a tile,
-    # composed of 4 subtiles
-    # every subtile is 2 bytes
-    # 1st byte and 2nd bytes last (two?) bit(s) is the index in the tile img
-    # 2nd byte's first 4 bits is the color palette index
-    # 2nd byte's final 4 bits is the flip information... and something else, I guess
-    #     0b0100 = x flip
+    ''' Build images from the block information and tilesets.
+     Every block is 16 bytes, and holds down and up parts for a tile,
+     composed of 4 subtiles
+     every subtile is 2 bytes
+     1st byte and 2nd bytes last (two?) bit(s) is the index in the tile img
+     2nd byte's first 4 bits is the color palette index
+     2nd byte's final 4 bits is the flip information... and something else, I guess
+         0b0100 = x flip
+     '''
+    # TODO: Optimize. A lot.
     #img.save("tileset.png", "PNG")
     block_imgs = []
     tiles_per_line = 16
-    #print('--------')
-    #print(len(blocks_mem))
     for block in range(len(blocks_mem)//16):
         block_mem = blocks_mem[block*16:block*16+16]
         block_img = Image.new("RGB", (16, 16))
-        #print("---", block)
         # Up/down
         for layer in range(2):
             layer_mem = block_mem[layer*8:layer*8+8]
             for part in range(4):
                 part_mem = layer_mem[part*2:part*2+2]
                 tile_num = part_mem[0] | ((part_mem[1] & 0b11) << 8)
-                #if len(blocks_mem)*16 < 200*16:
-                #print(tile_num)
                 palette_num = part_mem[1] >> 4
                 flips = (part_mem[1] & 0xC) >> 2
 
@@ -365,14 +367,10 @@ def build_block_imgs(blocks_mem, img):
                 x, y = pos[part]
                 x *= 8
                 y *= 8
-                #mask = Image.eval(part_img, lambda a: 255 if a == 0 else 0)
                 mask = Image.eval(part_img, lambda a: 255 if a != 0 else 0)
                 mask = mask.convert('L')
-                #print(mask)
                 block_img.paste(part_img, (x, y, x+8, y+8), mask)
-                #block_img.paste(part_img, (x, y, x+8, y+8), (0, 0, 0))
 
-                #mask = Image.eval(part_img, lambda a: print(a))
         block_imgs.append(block_img)
     return block_imgs
 
@@ -432,6 +430,16 @@ def map_to_mem(map):
 
     return mem
 
+
+def fits(num, size):
+    if size == "long":
+        return num <= 0xFFFFFFFF
+    elif size == "ptr":
+        return num <= 0xFFFFFF
+    elif size == "short":
+        return num <= 0xFFFF
+    elif size == "byte":
+        return num <= 0xFF
 
 
 

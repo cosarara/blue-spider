@@ -106,3 +106,18 @@ signpost_event = (
         ("unknown", "byte", 7),
         )
 
+events = {
+    "person": person_event,
+    "trigger": trigger_event,
+    "warp": warp_event,
+    "signpost": signpost_event
+    }
+
+def to_dict(structure):
+    d = {}
+    for element in structure:
+        key, size, pos = element
+        d[key] = (size, pos)
+    return d
+
+

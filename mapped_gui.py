@@ -6,23 +6,14 @@ from window import Ui_MainWindow
 import qmapview
 
 import mapped
+import structures
 
-#MapHeaders      = 0x53324
-#Maps            = 0x5326C
-#MapLabels       = 0xFBFE0
 
-#get_addr = lambda x : int.from_bytes(x, "little")
-#
-#def get_rom_addr(x): # Safer and more useful version
-#    a = int.from_bytes(x, "little")
-#    if a & 0x8000000 == 0x8000000:
-#        return a & 0xFFFFFF
-#    else:
-#        return -1
-
-#from PIL import Image, ImageQt
-import Image
-import ImageQt
+try:
+    from PIL import Image, ImageQt
+except:
+    import Image
+    import ImageQt
 
 
 class Window(QtGui.QMainWindow):
@@ -103,7 +94,18 @@ class Window(QtGui.QMainWindow):
                             "flag"
                         ),
                     ),
-                'warp': (),
+                'warp': (
+                        (
+                            hex_read(self.ui.w_x.text),
+                            hex_update(self.ui.w_x.setText),
+                            "x"
+                        ),
+                        (
+                            hex_read(self.ui.w_y.text),
+                            hex_update(self.ui.w_y.setText),
+                            "y"
+                        ),
+                    ),
                 "trigger": (),
                 "signpost": ()
             }
@@ -416,6 +418,7 @@ class Window(QtGui.QMainWindow):
         for connection in self.ui_event_connections[type]:
             read_function, update_function, data_element = connection
             update_function(event[data_element])
+            print(update_function, event[data_element], data_element)
             #self.ui.p_script_offset.setText(hex(event["script_ptr"])[2:])
         self.selected_event = event
         self.selected_event_type = type
@@ -430,6 +433,10 @@ class Window(QtGui.QMainWindow):
             return
         for connection in self.ui_event_connections[type]:
             read_function, update_function, data_element = connection
+            num = read_function()
+            size = structures.to_dict(structures.events[type])[data_element][0]
+            if not mapped.fits(num, size):
+                raise Exception(data_element + " too big")
             self.selected_event[data_element] = read_function()
 
     def map_clicked(self, event):
