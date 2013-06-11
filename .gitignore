@@ -5,3 +5,4 @@ __pycache__*
 map*.txt
 asdf/
 log*
+*.sw?
