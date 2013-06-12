@@ -35,6 +35,10 @@ class Window(QtGui.QMainWindow):
         self.ui.palette.setScene(self.palette_scene)
         self.perms_palette_scene = QtGui.QGraphicsScene()
         self.ui.MovPermissionsPalette.setScene(self.perms_palette_scene)
+        
+        self.t1_header = None
+        self.t1_img = None
+        self.t2_header = None
 
         self.ui.actionLoad_ROM.triggered.connect(self.load_rom)
         self.ui.actionSave.triggered.connect(self.save_map)
@@ -317,7 +321,6 @@ class Window(QtGui.QMainWindow):
                 self.game
                 )
 
-        self.blocks_imgs = []
 
         tileset_header = mapped.parse_tileset_header(
                 self.rom_contents,
@@ -329,8 +332,22 @@ class Window(QtGui.QMainWindow):
                 map_data_header['local_tileset_ptr'],
                 self.game
                 )
-        t1_img = self.load_tileset(tileset_header)
-        self.load_tileset(tileset2_header, t1_img)
+        if tileset_header != self.t1_header:
+            self.blocks_imgs = []
+            t1_img = self.load_tileset(tileset_header)
+            self.load_tileset(tileset2_header, t1_img)
+        else:
+            t1_img = self.t1_img
+            if tileset2_header != self.t2_header:
+                if self.game == 'RS':
+                    num_of_blocks = 512
+                else:
+                    num_of_blocks = 640
+                self.blocks_imgs = self.blocks_imgs[:num_of_blocks]
+                self.load_tileset(tileset2_header, t1_img)
+        self.t1_img = t1_img
+        self.t1_header = tileset_header
+        self.t2_header = tileset2_header
 
         self.mov_perms_imgs = mapped.get_imgs()
         events_header = mapped.parse_events_header(self.rom_contents,

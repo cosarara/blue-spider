@@ -1,6 +1,7 @@
 *.gba
 *.bak
 *.pyc
+*.pyo
 __pycache__*
 map*.txt
 asdf/
