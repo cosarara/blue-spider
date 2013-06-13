@@ -43,6 +43,8 @@ class Window(QtGui.QMainWindow):
         self.ui.actionLoad_ROM.triggered.connect(self.load_rom)
         self.ui.actionSave.triggered.connect(self.save_map)
         self.ui.treeView.clicked.connect(self.load_map)
+        self.ui.s_type.currentIndexChanged.connect(
+                self.update_signpost_stacked)
 
         self.selected_tile = 0
         self.selected_mov_tile = 0
@@ -59,59 +61,83 @@ class Window(QtGui.QMainWindow):
         hex_read = lambda x : (lambda : int(x(), 16))
         bool_update = lambda x : (lambda n : x(bool(n)))
         bool_read = lambda x : (lambda : int(x()))
+        combo_update = lambda x : (lambda n : print(n)or x(int(n)))
+        combo_read = lambda x : (lambda : print(x()) or int(x()))
+
+        text_element = lambda name, obj : (
+                        (
+                            hex_read(obj.text),
+                            hex_update(obj.setText),
+                            name 
+                        )
+                      )
 
         self.ui_event_connections = {
                 'person': (
+                        text_element("script_ptr", self.ui.p_script_offset),
+                        text_element("person_num", self.ui.person_num),
+                        text_element("sprite_num", self.ui.sprite_num),
+                        text_element("x", self.ui.p_x),
+                        text_element("y", self.ui.p_y),
+                        text_element("flag", self.ui.p_flag),
+                        text_element("radius", self.ui.p_view_radius),
+                        text_element("mov", self.ui.p_mov),
+                        text_element("unknown1", self.ui.p_unknown1),
+                        text_element("unknown2", self.ui.p_unknown2),
+                        text_element("unknown3", self.ui.p_unknown3),
+                        text_element("unknown4", self.ui.p_unknown4),
+                        text_element("unknown5", self.ui.p_unknown5),
+                        text_element("unknown6", self.ui.p_unknown6),
+                        text_element("unknown7", self.ui.p_unknown7),
                         (
-                            hex_read(self.ui.p_script_offset.text),
-                            hex_update(self.ui.p_script_offset.setText),
-                            "script_ptr"
-                        ),
-                        (
-                            hex_read(self.ui.person_num.text),
-                            hex_update(self.ui.person_num.setText),
-                            "person_num"
-                        ),
-                        (
-                            hex_read(self.ui.sprite_num.text),
-                            hex_update(self.ui.sprite_num.setText),
-                            "sprite_num"
-                        ),
-                        (
-                            hex_read(self.ui.p_x.text),
-                            hex_update(self.ui.p_x.setText),
-                            "x"
-                        ),
-                        (
-                            hex_read(self.ui.p_y.text),
-                            hex_update(self.ui.p_y.setText),
-                            "y"
+                            combo_read(self.ui.p_mov_type.currentIndex),
+                            combo_update(self.ui.p_mov_type.setCurrentIndex),
+                            "mov_type"
                         ),
                         (
                             bool_read(self.ui.is_a_trainer.isChecked),
                             bool_update(self.ui.is_a_trainer.setChecked),
                             "is_a_trainer"
                         ),
-                        (
-                            hex_read(self.ui.p_flag.text),
-                            hex_update(self.ui.p_flag.setText),
-                            "flag"
-                        ),
                     ),
                 'warp': (
-                        (
-                            hex_read(self.ui.w_x.text),
-                            hex_update(self.ui.w_x.setText),
-                            "x"
-                        ),
-                        (
-                            hex_read(self.ui.w_y.text),
-                            hex_update(self.ui.w_y.setText),
-                            "y"
-                        ),
+                        text_element("x", self.ui.w_x),
+                        text_element("y", self.ui.w_y),
+                        text_element("unknown", self.ui.w_unknown1),
+                        text_element("warp_num", self.ui.w_warp_n),
+                        text_element("bank_num", self.ui.w_bank_n),
+                        text_element("map_num", self.ui.w_map_n),
                     ),
-                "trigger": (),
-                "signpost": ()
+                "trigger": (
+                        text_element("x", self.ui.t_x),
+                        text_element("y", self.ui.t_y),
+                        text_element("unknown1", self.ui.t_unknown1),
+                        text_element("unknown2", self.ui.t_unknown2),
+                        text_element("unknown3", self.ui.t_unknown3),
+                        text_element("var_num", self.ui.t_var_num),
+                        text_element("var_value", self.ui.t_var_val),
+                        text_element("script_ptr", self.ui.t_script_offset),
+                    ),
+                "signpost": (
+                        text_element("x", self.ui.s_x),
+                        text_element("y", self.ui.s_y),
+                        (
+                            combo_read(self.ui.s_talking_level.currentIndex),
+                            combo_update(self.ui.s_talking_level.setCurrentIndex),
+                            "talking_level"
+                        ),
+                        (
+                            combo_read(self.ui.s_type.currentIndex),
+                            combo_update(self.ui.s_type.setCurrentIndex),
+                            "type"
+                        ),
+                        text_element("unknown1", self.ui.s_unknown1),
+                        text_element("unknown2", self.ui.s_unknown2),
+                        text_element("script_ptr", self.ui.s_script_offset),
+                        text_element("item_number", self.ui.s_item_id),
+                        text_element("hidden_item_id", self.ui.s_hidden_id),
+                        text_element("ammount", self.ui.s_ammount),
+                    )
             }
 
 
@@ -434,7 +460,7 @@ class Window(QtGui.QMainWindow):
         for connection in self.ui_event_connections[type]:
             read_function, update_function, data_element = connection
             update_function(event[data_element])
-            print(update_function, event[data_element], data_element)
+            #print(update_function, event[data_element], data_element)
             #self.ui.p_script_offset.setText(hex(event["script_ptr"])[2:])
         self.selected_event = event
         self.selected_event_type = type
@@ -450,10 +476,14 @@ class Window(QtGui.QMainWindow):
         for connection in self.ui_event_connections[type]:
             read_function, update_function, data_element = connection
             num = read_function()
-            size = structures.to_dict(structures.events[type])[data_element][0]
+            structure = structures.to_dict(structures.events[type])
+            if data_element in structure:
+                size = structure[data_element][0]
+            else: # Bah, don't check it (it'll apply only to signposts)
+                size = "long"
             if not mapped.fits(num, size):
                 raise Exception(data_element + " too big")
-            self.selected_event[data_element] = read_function()
+            self.selected_event[data_element] = num
 
     def map_clicked(self, event):
         #print(event)
@@ -510,6 +540,11 @@ class Window(QtGui.QMainWindow):
         self.save_events()
         self.write_rom()
 
+    def update_signpost_stacked(self):
+        if self.ui.s_type.currentIndex() < 5:
+            self.ui.signpost_stacked.setCurrentIndex(0)
+        else:
+            self.ui.signpost_stacked.setCurrentIndex(1)
 
 
 

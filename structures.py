@@ -89,12 +89,12 @@ warp_event = (
 trigger_event = (
         ("x", "short", 0),
         ("y", "short", 2),
-        ("unknown", "short", 4),
+        ("unknown1", "short", 4),
         ("var_num", "short", 6),
         ("var_value", "short", 8),
         ("unknown2", "byte", 10),
         ("unknown3", "byte", 11),
-        ("script_offset", "ptr", 12),
+        ("script_ptr", "ptr", 12),
         )
 
 signpost_event = (
@@ -102,8 +102,8 @@ signpost_event = (
         ("y", "short", 2),
         ("talking_level", "byte", 4),
         ("type", "byte", 5),
-        ("unknown", "byte", 6),
-        ("unknown", "byte", 7),
+        ("unknown1", "byte", 6),
+        ("unknown2", "byte", 7),
         )
 
 events = {

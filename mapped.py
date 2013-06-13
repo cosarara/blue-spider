@@ -207,25 +207,30 @@ def parse_warp_event(rom_contents, ptr):
     return parse_data_structure(rom_contents, struct, ptr)
 
 def write_warp_event(rom_contents, event, offset=None):
-    pass
+    struct = structures.warp_event
+    write_data_structure(rom_contents, struct, event, offset)
 
 def parse_trigger_event(rom_contents, ptr):
     struct = structures.trigger_event
     return parse_data_structure(rom_contents, struct, ptr)
 
 def write_trigger_event(rom_contents, event, offset=None):
-    pass
+    struct = structures.trigger_event
+    write_data_structure(rom_contents, struct, event, offset)
 
 def parse_signpost_event(rom_contents, ptr):
     struct = structures.signpost_event
     event_header = parse_data_structure(rom_contents, struct, ptr)
     if event_header['type'] < 5:
         #event_header["script_offset"] = read_ptr_at(rom_contents, ptr+8)
-        struct = (("script_offset", "ptr", 8),)
+        struct = (("script_ptr", "ptr", 8),)
         event_header = dict(
                 list(event_header.items()) +
                 list(parse_data_structure(rom_contents, struct, ptr).items())
                 )
+        event_header["item_number"] = 0
+        event_header["hidden_item_id"] = 0
+        event_header["ammount"] = 0
     else:
         struct = (
             ("item_number", "short", 8),
@@ -236,6 +241,7 @@ def parse_signpost_event(rom_contents, ptr):
                 list(event_header.items()) +
                 list(parse_data_structure(rom_contents, struct, ptr).items())
                 )
+        event_header["script_ptr"] = 0
     return event_header
 
 def write_signpost_event(rom_contents, event, offset=None):
