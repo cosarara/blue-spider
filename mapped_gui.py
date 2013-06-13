@@ -10,10 +10,10 @@ import structures
 
 
 try:
-    from PIL import Image, ImageQt
-except:
     import Image
     import ImageQt
+except:
+    from PIL import Image, ImageQt
 
 
 class Window(QtGui.QMainWindow):
@@ -48,6 +48,8 @@ class Window(QtGui.QMainWindow):
         self.ui.p_edit_script.clicked.connect(self.launch_script_editor)
         self.ui.s_edit_script.clicked.connect(self.launch_script_editor)
         self.ui.t_edit_script.clicked.connect(self.launch_script_editor)
+
+        self.ui.actionChoose_script_editor.triggered.connect(self.select_script_editor)
 
         self.selected_tile = 0
         self.selected_mov_tile = 0
@@ -142,8 +144,9 @@ class Window(QtGui.QMainWindow):
                         text_element("ammount", self.ui.s_ammount),
                     )
             }
-            
-        self.script_editor_command = '../asc/git/asc_gui_qt.py'
+
+        #self.script_editor_command = '../asc/git/asc_gui_qt.py'
+        self.load_settings()
 
 
 
@@ -524,6 +527,7 @@ class Window(QtGui.QMainWindow):
         self.selected_mov_tile = tile_num
 
     def save_events(self):
+        self.save_event_to_memory()
         person_events, warp_events, trigger_events, signpost_events = self.events
         types = (
                 ("person", person_events),
@@ -560,6 +564,30 @@ class Window(QtGui.QMainWindow):
             offset = self.selected_event['script_ptr']
         import subprocess
         subprocess.Popen([command, file_name, hex(offset)])
+
+    def select_script_editor(self):
+        fn = QtGui.QFileDialog.getOpenFileName(self, 'Choose script editor executable', 
+                                               QtCore.QDir.homePath(),
+                                               "All files (*)")
+
+        self.script_editor_command = fn
+        self.save_settings()
+
+    def load_settings(self):
+        try:
+            with open("settings.txt") as settings_file:
+                settings_text = settings_file.read()
+                import ast
+                settings = ast.literal_eval(settings_text)
+                if "script_editor" in settings:
+                    self.script_editor_command = settings["script_editor"]
+        except Exception as e:
+            print(e)
+
+    def save_settings(self):
+        settings = {"script_editor": self.script_editor_command}
+        with open("settings.txt", "w") as settings_file:
+            settings_file.write(str(settings))
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'mapped.ui'
 #
-# Created: Thu Jun 13 10:05:31 2013
+# Created: Thu Jun 13 18:53:53 2013
 #      by: PyQt4 UI code generator 4.10.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -123,11 +123,12 @@ class Ui_MainWindow(object):
         self.eventMap.setObjectName(_fromUtf8("eventMap"))
         self.gridLayout_4.addWidget(self.eventMap, 0, 0, 1, 1)
         self.scrollArea = QtGui.QScrollArea(self.EventsTab)
+        self.scrollArea.setMinimumSize(QtCore.QSize(270, 0))
         self.scrollArea.setMaximumSize(QtCore.QSize(280, 16777215))
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName(_fromUtf8("scrollArea"))
         self.scrollAreaWidgetContents = QtGui.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 268, 653))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 341, 677))
         self.scrollAreaWidgetContents.setObjectName(_fromUtf8("scrollAreaWidgetContents"))
         self.verticalLayout_2 = QtGui.QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_2.setObjectName(_fromUtf8("verticalLayout_2"))
@@ -765,10 +766,12 @@ class Ui_MainWindow(object):
         self.gridLayout.addWidget(self.tabWidget, 0, 1, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 958, 25))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 958, 21))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName(_fromUtf8("menuFile"))
+        self.menuEdit = QtGui.QMenu(self.menubar)
+        self.menuEdit.setObjectName(_fromUtf8("menuEdit"))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtGui.QStatusBar(MainWindow)
         self.statusbar.setObjectName(_fromUtf8("statusbar"))
@@ -777,9 +780,13 @@ class Ui_MainWindow(object):
         self.actionLoad_ROM.setObjectName(_fromUtf8("actionLoad_ROM"))
         self.actionSave = QtGui.QAction(MainWindow)
         self.actionSave.setObjectName(_fromUtf8("actionSave"))
+        self.actionChoose_script_editor = QtGui.QAction(MainWindow)
+        self.actionChoose_script_editor.setObjectName(_fromUtf8("actionChoose_script_editor"))
         self.menuFile.addAction(self.actionLoad_ROM)
         self.menuFile.addAction(self.actionSave)
+        self.menuEdit.addAction(self.actionChoose_script_editor)
         self.menubar.addAction(self.menuFile.menuAction())
+        self.menubar.addAction(self.menuEdit.menuAction())
 
         self.retranslateUi(MainWindow)
         self.tabWidget.setCurrentIndex(0)
@@ -950,6 +957,8 @@ class Ui_MainWindow(object):
         self.label_34.setText(_translate("MainWindow", "Unknown", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.EventsTab), _translate("MainWindow", "Events", None))
         self.menuFile.setTitle(_translate("MainWindow", "File", None))
+        self.menuEdit.setTitle(_translate("MainWindow", "Edit", None))
         self.actionLoad_ROM.setText(_translate("MainWindow", "Load ROM", None))
         self.actionSave.setText(_translate("MainWindow", "Save", None))
+        self.actionChoose_script_editor.setText(_translate("MainWindow", "Select script editor", None))
 

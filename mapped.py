@@ -4,10 +4,10 @@ from map_printer import *
 import os, sys
 import lz77
 try:
-    from PIL import Image, ImageQt
-except:
     import Image
     import ImageQt
+except:
+    from PIL import Image, ImageQt
 import structures
 
 axve = {
@@ -137,7 +137,7 @@ def write_data_structure(rom_contents, struct, data, offset=None):
         offset = data["self"]
     for item in struct:
         name, size, pos = item
-        if data[name] and name != "self":
+        if name in data and name != "self":
             write_function(size)(rom_contents, offset+pos, data[name])
 
 def parse_map_header(rom_contents, map_h):
@@ -245,7 +245,16 @@ def parse_signpost_event(rom_contents, ptr):
     return event_header
 
 def write_signpost_event(rom_contents, event, offset=None):
-    pass
+    struct = list(structures.signpost_event)
+    if event['type'] < 5:
+        struct += (("script_ptr", "ptr", 8),)
+    else:
+        struct += (
+            ("item_number", "short", 8),
+            ("hidden_item_id", "byte", 10),
+            ("ammount", "byte", 11),
+        )
+    write_data_structure(rom_contents, struct, event, offset)
 
 def get_tileset_img(rom_contents, tileset_header):
     # TODO: Palettes
