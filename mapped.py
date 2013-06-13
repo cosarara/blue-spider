@@ -1,6 +1,6 @@
 
 import binascii
-from map_printer import *
+#from map_printer import *
 import os, sys
 import lz77
 try:
