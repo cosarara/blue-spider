@@ -183,7 +183,7 @@
              <x>0</x>
              <y>0</y>
              <width>268</width>
-             <height>652</height>
+             <height>653</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -290,16 +290,6 @@
                  </property>
                  <property name="text">
                   <string>People:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="6" column="1">
-                <widget class="QGroupBox" name="groupBox">
-                 <property name="enabled">
-                  <bool>false</bool>
-                 </property>
-                 <property name="title">
-                  <string>Edit event</string>
                  </property>
                 </widget>
                </item>
@@ -1101,28 +1091,28 @@
                   </property>
                  </widget>
                 </item>
-                <item row="14" column="0">
+                <item row="15" column="0">
                  <widget class="QLabel" name="label_27">
                   <property name="text">
                    <string>Flag</string>
                   </property>
                  </widget>
                 </item>
-                <item row="14" column="1">
+                <item row="15" column="1">
                  <widget class="QLineEdit" name="p_flag">
                   <property name="maxLength">
                    <number>4</number>
                   </property>
                  </widget>
                 </item>
-                <item row="15" column="0">
+                <item row="16" column="0">
                  <widget class="QLabel" name="label_28">
                   <property name="text">
                    <string>Unknown</string>
                   </property>
                  </widget>
                 </item>
-                <item row="15" column="1">
+                <item row="16" column="1">
                  <layout class="QHBoxLayout" name="_6">
                   <item>
                    <widget class="QLineEdit" name="p_unknown6">
@@ -1182,6 +1172,13 @@
                  <widget class="QLineEdit" name="p_unknown5">
                   <property name="maxLength">
                    <number>2</number>
+                  </property>
+                 </widget>
+                </item>
+                <item row="14" column="1">
+                 <widget class="QPushButton" name="p_edit_script">
+                  <property name="text">
+                   <string>Edit Script</string>
                   </property>
                  </widget>
                 </item>
@@ -1333,6 +1330,13 @@
                  <widget class="QLabel" name="label_30">
                   <property name="text">
                    <string>Script offset</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="7" column="1">
+                 <widget class="QPushButton" name="t_edit_script">
+                  <property name="text">
+                   <string>Edit Script</string>
                   </property>
                  </widget>
                 </item>
@@ -1527,6 +1531,13 @@
                      <widget class="QLabel" name="label_64">
                       <property name="text">
                        <string>Script Offset</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="3" column="1">
+                     <widget class="QPushButton" name="s_edit_script">
+                      <property name="text">
+                       <string>Edit Script</string>
                       </property>
                      </widget>
                     </item>

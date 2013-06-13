@@ -45,6 +45,9 @@ class Window(QtGui.QMainWindow):
         self.ui.treeView.clicked.connect(self.load_map)
         self.ui.s_type.currentIndexChanged.connect(
                 self.update_signpost_stacked)
+        self.ui.p_edit_script.clicked.connect(self.launch_script_editor)
+        self.ui.s_edit_script.clicked.connect(self.launch_script_editor)
+        self.ui.t_edit_script.clicked.connect(self.launch_script_editor)
 
         self.selected_tile = 0
         self.selected_mov_tile = 0
@@ -139,6 +142,8 @@ class Window(QtGui.QMainWindow):
                         text_element("ammount", self.ui.s_ammount),
                     )
             }
+            
+        self.script_editor_command = '../asc/git/asc_gui_qt.py'
 
 
 
@@ -546,6 +551,15 @@ class Window(QtGui.QMainWindow):
         else:
             self.ui.signpost_stacked.setCurrentIndex(1)
 
+    def launch_script_editor(self, offset=None, file_name=None, command=None):
+        if not command:
+            command = self.script_editor_command
+        if not file_name:
+            file_name = self.rom_file_name
+        if not offset:
+            offset = self.selected_event['script_ptr']
+        import subprocess
+        subprocess.Popen([command, file_name, hex(offset)])
 
 
 if __name__ == "__main__":
