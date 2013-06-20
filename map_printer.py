@@ -65,5 +65,12 @@ def map_to_text(mem, w, h):
     text = text + '---\n' + text2
     return text
 
+def print_dict_hex(d):
+    for key in d:
+        print("%s: %s" % (key, hex(d[key])))
+
+
+
+
 
 

@@ -29,6 +29,22 @@ def main():
             banks = get_banks(rom_contents)
             bank_n = int(sys.argv[3])
             get_map_headers(rom_contents, bank_n, banks, echo=True)
+        elif len(sys.argv) == 5:
+            banks = get_banks(rom_contents)
+            bank_n = int(sys.argv[3])
+            map_header_ptrs = get_map_headers(rom_contents, bank_n, banks)
+            map_n = int(sys.argv[4])
+            map_header_ptr = map_header_ptrs[map_n]
+            map = parse_map_header(rom_contents, map_header_ptr)
+            print_dict_hex(map)
+        elif len(sys.argv) == 6:
+            banks = get_banks(rom_contents)
+            bank_n = int(sys.argv[3])
+            map_header_ptrs = get_map_headers(rom_contents, bank_n, banks)
+            map_n = int(sys.argv[4])
+            map_header_ptr = map_header_ptrs[map_n]
+            map = parse_map_header(rom_contents, map_header_ptr)
+            eval(sys.argv[5]) # Yup! Let the user run whatever the fuck he wants
         else:
             get_banks(rom_contents, echo=True)
             sys.exit(0)
