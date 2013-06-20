@@ -9,6 +9,7 @@
 
 
 from mapped import *
+from map_printer import *
 
 
 def main():
