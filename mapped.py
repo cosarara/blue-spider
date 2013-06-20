@@ -147,7 +147,7 @@ def parse_map_header(rom_contents, map_h):
     struct = structures.map_header
     return parse_data_structure(rom_contents, struct, map_h)
 
-def parse_map_data(rom_contents, map_data_ptr, game):
+def parse_map_data(rom_contents, map_data_ptr, game='RS'):
     struct = structures.map_data
     return parse_data_structure(rom_contents, struct, map_data_ptr)
 
