@@ -267,9 +267,53 @@ def write_signpost_event(rom_contents, event, offset=None):
         )
     write_data_structure(rom_contents, struct, event, offset)
 
+def get_pal_colors(rom_contents, pals_ptr, num=0):
+    mem = rom_contents[pals_ptr+32*num:pals_ptr+32*(1+num)]
+    colors = []
+    for i in range(0, 32, 2):
+        color_bytes = mem[i:i+2]
+        color = int.from_bytes(color_bytes, "little")
+        r = (color & 0b11111) * 8
+        g = ((color & 0b1111100000) >> 5) * 8
+        b = ((color & 0b111110000000000) >> 10) * 8
+        colors.append((r, g, b))
+    return colors
+
+def build_tileset_img(data, im, palette):
+    tiles_per_line = 16
+    for pos in range(len(data)):
+        tile = pos // (8*4) # At 2 pixels per byte, we have 8*8/2 bytes per tile
+        x = ((pos-(tile*8*4))%4)*2+((tile % tiles_per_line)*8)
+        y = (pos-(tile*8*4))//4 + (tile//tiles_per_line*8)
+
+        if pos < len(data):
+            color2 = ((data[pos] >> 4) & 0xF)
+            color1 = data[pos] & 0xF
+        else:
+            color1 = 0
+            color2 = 0
+        #color1 *= 255//16
+        #color2 *= 255//16
+        #color1 = (color1, color1, color1)
+        #color2 = (color2, color2, color2)
+        color1 = palette[color1]
+        color2 = palette[color2]
+        try:
+            #print(pos, tile, x, y, color1)
+            #if color1 != palette[15]:
+                im.putpixel((x, y), color1)
+            #print(pos, tile, x+1, y, color2)
+            #if color2 != palette[15]:
+                im.putpixel((x+1, y), color2)
+        except Exception as e:
+            print(x, y, w, h, pos, len(data), tile)
+            print(e)
+            raise Exception()
+    return im
+
 def get_tileset_img(rom_contents, tileset_header):
-    # TODO: Palettes
     tileset_img_ptr = tileset_header["tileset_image_ptr"]
+    pals_ptr = tileset_header["palettes_ptr"]
     tiles_per_line = 16
     if tileset_header["is_compressed"]:
         decompressed_data = lz77.decompress(rom_contents[
@@ -284,45 +328,17 @@ def get_tileset_img(rom_contents, tileset_header):
         rows = len(data)*2//(8*8)//tiles_per_line + 1
     else:
         rows = len(data)*2//(8*8)//tiles_per_line
-    #pixels = len(decompressed_data)*2
     w = tiles_per_line*8
-    #h = pixels//w
     h = rows*8
-    #print("lalalal", (w, h), len(data))
     im = Image.new("RGB", (w, h))
-    #imlist = []
-    for pos in range(len(data)):
-        tile = pos // (8*4) # At 2 pixels per byte, we have 8*8/2 bytes per tile
-        x = ((pos-(tile*8*4))%4)*2+((tile % tiles_per_line)*8)
-        y = (pos-(tile*8*4))//4 + (tile//tiles_per_line*8)
+    im_list = [im.copy() for i in range(12)]
+    for i, im in enumerate(im_list):
+        palette = get_pal_colors(rom_contents, pals_ptr, i)
+        print(i, palette)
+        build_tileset_img(data, im, palette)
 
-        if pos < len(data):
-            color2 = ((data[pos] >> 4) & 0xF)
-            color1 = data[pos] & 0xF
-        else:
-            color1 = 0
-            color2 = 0
-        color1 *= 255//16
-        color2 *= 255//16
-        color1 = (color1, color1, color1)
-        color2 = (color2, color2, color2)
-        try:
-            #print(pos, tile, x, y, color1)
-            im.putpixel((x, y), color1)
-            #print(pos, tile, x+1, y, color2)
-            im.putpixel((x+1, y), color2)
-        except Exception as e:
-            print(x, y, w, h, pos, len(data), tile)
-            print(e)
-            raise Exception()
-
-
-    #    imlist.append((x, y, color1))
-    #    imlist.append((x+1, y, color2))
-    #im = Image.new("RGB", (16*8, 400))
-    #for pixel in imlist:
-    #    im.putpixel((pixel[0], pixel[1]), pixel[2])
-    return im
+    im_list[0].save("%s.png" % tileset_img_ptr, "PNG")
+    return im_list[0]
 
 
 def get_block_data(rom_contents, tileset_header, game='RS'):
@@ -345,7 +361,7 @@ def get_block_data(rom_contents, tileset_header, game='RS'):
     #return block_mem
     return mem
 
-def build_block_imgs(blocks_mem, img):
+def build_block_imgs(blocks_mem, img, palettes=[[(208, 208, 168), (80, 80, 104), (120, 120, 120), (176, 176, 160), (248, 248, 248), (168, 144, 64), (208, 192, 104), (240, 232, 144), (80, 144, 192), (152, 208, 248), (216, 224, 224), (104, 192, 104), (160, 248, 176), (200, 80, 64), (248, 128, 112), (144, 144, 136)]]):
     ''' Build images from the block information and tilesets.
      Every block is 16 bytes, and holds down and up parts for a tile,
      composed of 4 subtiles
@@ -360,6 +376,7 @@ def build_block_imgs(blocks_mem, img):
     block_imgs = []
     tiles_per_line = 16
     base_block_img = Image.new("RGB", (16, 16))
+    mask = Image.new("L", (8, 8))
     for block in range(len(blocks_mem)//16):
         block_mem = blocks_mem[block*16:block*16+16]
         # Copying is faster than creating
@@ -371,6 +388,7 @@ def build_block_imgs(blocks_mem, img):
                 part_mem = layer_mem[part*2:part*2+2]
                 tile_num = part_mem[0] | ((part_mem[1] & 0b11) << 8)
                 palette_num = part_mem[1] >> 4
+                palette = palettes[0] # TODO: [palete_num]
                 flips = (part_mem[1] & 0xC) >> 2
 
                 x = tile_num % tiles_per_line
@@ -396,8 +414,11 @@ def build_block_imgs(blocks_mem, img):
                 x *= 8
                 y *= 8
                 # Transparency
-                mask = Image.eval(part_img, lambda a: 255 if a else 0)
-                mask = mask.convert('L')
+                #mask = Image.eval(part_img, lambda a: 255 if a else 0)
+                t = palette[0]
+                img_data = tuple(part_img.getdata())
+                mask_data = tuple(map(lambda p : (0 if p == t else 255), img_data))
+                mask.putdata(mask_data)
                 block_img.paste(part_img, (x, y, x+8, y+8), mask)
 
         block_imgs.append(block_img)

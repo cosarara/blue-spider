@@ -44,6 +44,12 @@ def main():
             map_n = int(sys.argv[4])
             map_header_ptr = map_header_ptrs[map_n]
             map = parse_map_header(rom_contents, map_header_ptr)
+            map_data_ptr = map['map_data_ptr']
+            map_data = parse_map_data(rom_contents, map_data_ptr)
+            t1_ptr = map_data["global_tileset_ptr"]
+            t2_ptr = map_data["local_tileset_ptr"]
+            t1 = parse_tileset_header(rom_contents, t1_ptr)
+            t2 = parse_tileset_header(rom_contents, t2_ptr)
             eval(sys.argv[5]) # Yup! Let the user run whatever the fuck he wants
         else:
             get_banks(rom_contents, echo=True)
