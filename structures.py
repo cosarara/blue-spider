@@ -51,10 +51,10 @@ events_header = (
         ("n_of_warps", "byte", 1),
         ("n_of_triggers", "byte", 2),
         ("n_of_signposts", "byte", 3),
-        ("people_events_ptr", "ptr", 4),
+        ("person_events_ptr", "ptr", 4),
         ("warp_events_ptr", "ptr", 8),
         ("trigger_events_ptr", "ptr", 12),
-        ("singpost_events_ptr", "ptr", 16)
+        ("signpost_events_ptr", "ptr", 16)
         )
 
 person_event = (
@@ -119,5 +119,23 @@ def to_dict(structure):
         key, size, pos = element
         d[key] = (size, pos)
     return d
+
+bytes_in_size = {
+        "byte": 1,
+        "short": 2,
+        "ptr": 4,
+        "long": 4
+        }
+
+def size_of(structure):
+    total = 0
+    for _, size, _ in structure:
+        total += bytes_in_size[size]
+    return total
+
+
+
+
+
 
 

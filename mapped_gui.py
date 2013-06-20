@@ -35,13 +35,13 @@ class Window(QtGui.QMainWindow):
         self.ui.palette.setScene(self.palette_scene)
         self.perms_palette_scene = QtGui.QGraphicsScene()
         self.ui.MovPermissionsPalette.setScene(self.perms_palette_scene)
-        
+
         self.t1_header = None
         self.t1_img = None
         self.t2_header = None
 
         self.ui.actionLoad_ROM.triggered.connect(self.load_rom)
-        self.ui.actionSave.triggered.connect(self.save_map)
+        self.ui.actionSave.triggered.connect(self.write_to_file)
         self.ui.treeView.clicked.connect(self.load_map)
         self.ui.s_type.currentIndexChanged.connect(
                 self.update_signpost_stacked)
@@ -61,6 +61,8 @@ class Window(QtGui.QMainWindow):
         self.rom_code = None
         self.rom_data = None
         self.mov_perms_imgs = None
+
+        self.loaded_map = False
 
         hex_update = lambda x : (lambda n : x(hex(n)[2:]))
         hex_read = lambda x : (lambda : int(x(), 16))
@@ -145,6 +147,15 @@ class Window(QtGui.QMainWindow):
                     )
             }
 
+        self.ui.addWarpButton.clicked.connect(self.add_warp)
+        self.ui.remWarpButton.clicked.connect(self.rem_warp)
+        self.ui.addPersonButton.clicked.connect(self.add_person)
+        self.ui.remPersonButton.clicked.connect(self.rem_person)
+        self.ui.addTriggerButton.clicked.connect(self.add_trigger)
+        self.ui.remTriggerButton.clicked.connect(self.rem_trigger)
+        self.ui.addSignpostButton.clicked.connect(self.add_signpost)
+        self.ui.remSignpostButton.clicked.connect(self.rem_signpost)
+
         #self.script_editor_command = '../asc/git/asc_gui_qt.py'
         self.load_settings()
 
@@ -152,6 +163,8 @@ class Window(QtGui.QMainWindow):
 
 
     def load_rom(self):
+        self.loaded_map = None
+
         self.treemodel.clear()
         self.banks = []
         fn = QtGui.QFileDialog.getOpenFileName(self, 'Open ROM file', 
@@ -164,6 +177,7 @@ class Window(QtGui.QMainWindow):
         with open(fn, "rb") as rom_file:
             self.rom_contents = rom_file.read()
 
+        self.rom_contents = bytearray(self.rom_contents)
         self.rom_file_name = fn
         self.rom_code = self.rom_contents[0xAC:0xAC+4]
         if self.rom_code == b'AXVE':
@@ -339,7 +353,21 @@ class Window(QtGui.QMainWindow):
         self.event_scene.update()
         self.event_pixmap_qobject.clicked.connect(self.event_clicked)
 
+    def load_events(self):
+        map_header = self.map_header
+        events_header = mapped.parse_events_header(self.rom_contents,
+                map_header['event_data_ptr'])
+        self.events_header = events_header
+        self.ui.num_of_warps.setText(str(events_header['n_of_warps']))
+        self.ui.num_of_people.setText(str(events_header['n_of_people']))
+        self.ui.num_of_triggers.setText(str(events_header['n_of_triggers']))
+        self.ui.num_of_signposts.setText(str(events_header['n_of_signposts']))
+        self.events = mapped.parse_events(self.rom_contents, events_header)
+
     def load_map(self, qindex):
+        if self.loaded_map:
+            self.save_map()
+            self.save_events()
         bank_n = qindex.parent().row()
         self.bank_n = bank_n
         if bank_n == -1:
@@ -350,6 +378,7 @@ class Window(QtGui.QMainWindow):
         maps = mapped.get_map_headers(self.rom_contents, bank_n, self.banks)
         map_h_ptr = maps[map_n]
         map_header = mapped.parse_map_header(self.rom_contents, map_h_ptr)
+        self.map_header = map_header
         map_data_header = mapped.parse_map_data(
                 self.rom_contents, map_header['map_data_ptr'],
                 self.game
@@ -384,13 +413,8 @@ class Window(QtGui.QMainWindow):
         self.t2_header = tileset2_header
 
         self.mov_perms_imgs = mapped.get_imgs()
-        events_header = mapped.parse_events_header(self.rom_contents,
-                map_header['event_data_ptr'])
-        self.ui.num_of_warps.setText(str(events_header['n_of_warps']))
-        self.ui.num_of_people.setText(str(events_header['n_of_people']))
-        self.ui.num_of_triggers.setText(str(events_header['n_of_triggers']))
-        self.ui.num_of_signposts.setText(str(events_header['n_of_signposts']))
-        self.events = mapped.parse_events(self.rom_contents, events_header)
+
+        self.load_events()
 
         map_size = map_data_header['w'] * map_data_header['h'] * 2 # Every tile is 2 bytes
         tilemap_ptr = map_data_header['tilemap_ptr']
@@ -401,6 +425,7 @@ class Window(QtGui.QMainWindow):
         self.draw_map(self.map)
         self.draw_palette()
         self.draw_events(self.events)
+        self.loaded_map = True
 
     def get_tile_num_from_mouseclick(self, event, pixmap):
         pos = event.pos()
@@ -499,12 +524,14 @@ class Window(QtGui.QMainWindow):
         print("clicked tile:", hex(tile_num))
         self.map[tile_y][tile_x][0] = self.selected_tile
         self.draw_map(self.map)
+        self.draw_events(self.events)
 
     def mov_clicked(self, event):
         tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event, self.movPixMap)
         print("clicked tile:", hex(tile_num))
         self.map[tile_y][tile_x][1] = self.selected_mov_tile
         self.draw_map(self.map)
+        self.draw_events(self.events)
 
     def event_clicked(self, event):
         #print(event)
@@ -538,14 +565,17 @@ class Window(QtGui.QMainWindow):
         for type, list in types:
             for event in list:
                 mapped.write_event(self.rom_contents, event, type)
+        mapped.write_events_header(self.rom_contents, self.events_header)
 
     def save_map(self):
         new_map_mem = mapped.map_to_mem(self.map)
         #print(self.map)
         pos = self.tilemap_ptr
         size = len(new_map_mem)
-        self.rom_contents = bytearray(self.rom_contents)
         self.rom_contents[pos:pos+size] = new_map_mem
+
+    def write_to_file(self):
+        self.save_map()
         self.save_events()
         self.write_rom()
 
@@ -554,6 +584,29 @@ class Window(QtGui.QMainWindow):
             self.ui.signpost_stacked.setCurrentIndex(0)
         else:
             self.ui.signpost_stacked.setCurrentIndex(1)
+
+    def add_event(self, type):
+        self.save_events()
+        mapped.add_event(self.rom_contents, self.events_header, type)
+        mapped.write_events_header(self.rom_contents, self.events_header)
+        self.load_events()
+        self.draw_events(self.events)
+
+    def rem_event(self, type):
+        self.save_events()
+        mapped.rem_event(self.rom_contents, self.events_header, type)
+        mapped.write_events_header(self.rom_contents, self.events_header)
+        self.load_events()
+        self.draw_events(self.events)
+
+    add_warp = lambda self : self.add_event("warps")
+    rem_warp = lambda self : self.rem_event("warps")
+    add_person = lambda self : self.add_event("people")
+    rem_person = lambda self : self.rem_event("people")
+    add_trigger = lambda self : self.add_event("triggers")
+    rem_trigger = lambda self : self.rem_event("triggers")
+    add_signpost = lambda self : self.add_event("signposts")
+    rem_signpost = lambda self : self.rem_event("signposts")
 
     def launch_script_editor(self, offset=None, file_name=None, command=None):
         if not command:

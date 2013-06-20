@@ -106,16 +106,14 @@ def get_map_headers(rom_contents, n, banks, echo=False):
         i += 1
     return maps
 
-# That's the kind of thing lisp's macros are useful for, right?
-# Dunno, I don't know lisp =P
-read_function = lambda size : {
+get_read_function = lambda size : {
             "byte": read_byte_at,
             "short": read_short_at,
             "ptr": read_ptr_at,
             "long": read_long_at
         }[size]
 
-write_function = lambda size : {
+get_write_function = lambda size : {
             "byte": write_byte_at,
             "short": write_short_at,
             "ptr": write_rom_ptr_at,
@@ -126,7 +124,7 @@ def parse_data_structure(rom_contents, struct, offset):
     data = {}
     for item in struct:
         name, size, pos = item
-        data[name] = read_function(size)(rom_contents, offset+pos)
+        data[name] = get_read_function(size)(rom_contents, offset+pos)
         if data[name] == -1:
             data[name] = 0
     data["self"] = offset
@@ -138,7 +136,12 @@ def write_data_structure(rom_contents, struct, data, offset=None):
     for item in struct:
         name, size, pos = item
         if name in data and name != "self":
-            write_function(size)(rom_contents, offset+pos, data[name])
+            get_write_function(size)(rom_contents, offset+pos, data[name])
+
+def new_data_structure(struct, data):
+    size = size_of(struct)
+    mem = bytearray(size)
+    write_data_structure(mem, struct, data)
 
 def parse_map_header(rom_contents, map_h):
     struct = structures.map_header
@@ -163,6 +166,10 @@ def parse_events_header(rom_contents, events_header_ptr):
     struct = structures.events_header
     return parse_data_structure(rom_contents, struct, events_header_ptr)
 
+def write_events_header(rom_contents, data):
+    struct = structures.events_header
+    return write_data_structure(rom_contents, struct, data)
+
 def parse_events(rom_contents, events_header):
     person_events = []
     warp_events = []
@@ -170,10 +177,10 @@ def parse_events(rom_contents, events_header):
     signpost_events = []
     # We make this thingy to loop nicely
     parsing_functions = (
-            (parse_person_event, "n_of_people", "people_events_ptr", person_events, 24),
+            (parse_person_event, "n_of_people", "person_events_ptr", person_events, 24),
             (parse_warp_event, "n_of_warps", "warp_events_ptr", warp_events, 8),
             (parse_trigger_event, "n_of_triggers", "trigger_events_ptr", trigger_events, 16),
-            (parse_signpost_event, "n_of_signposts", "singpost_events_ptr", signpost_events, 12)
+            (parse_signpost_event, "n_of_signposts", "signpost_events_ptr", signpost_events, 12)
         )
     for fun, num_key, start_ptr_key, list, event_size in parsing_functions:
         num = events_header[num_key]
@@ -181,7 +188,11 @@ def parse_events(rom_contents, events_header):
             ptr = events_header[start_ptr_key] + event_size * event
             event_data = fun(rom_contents, ptr)
             list.append(event_data)
-    print(warp_events)
+    #print("Events:")
+    #print(person_events)
+    #print(warp_events)
+    #print(trigger_events)
+    #print(signpost_events)
     return person_events, warp_events, trigger_events, signpost_events
 
 def write_event(rom_contents, event, type, offset=None):
@@ -458,6 +469,61 @@ def fits(num, size):
         return num <= 0xFFFF
     elif size == "byte":
         return num <= 0xFF
+
+def find_free_space(rom_memory, size, start_pos=None):
+    if start_pos is None:
+        start_pos = 0x6B0000
+    new_offset = rom_memory[start_pos:].index(b'\xFF'*size) + start_pos
+    return new_offset
+
+def add_event(rom_memory, events_header, type):
+    # Everything should be saved to rom_memory before calling this function,
+    # and re-read afterwards.
+    # We'll move the memory and update the header, but events will remain
+    # with old offsets, so they have to be re-read.
+    singular_name = {
+            "people": "person",
+            "warps": "warp",
+            "triggers": "trigger",
+            "signposts": "signpost",
+            }
+    num_key = 'n_of_' + type
+    ptr_key = singular_name[type] + "_events_ptr"
+    old_offset = events_header[ptr_key]
+    backup = bytearray(rom_memory)
+    num_of_events = events_header[num_key]
+    base_size = structures.size_of(structures.events[singular_name[type]])
+    size = base_size * num_of_events
+    events_memory = rom_memory[old_offset:old_offset+size]
+    rom_memory[old_offset:old_offset+size] = b'\xFF'*size
+    new_size = size + base_size
+    try:
+        new_offset = find_free_space(rom_memory, new_size)
+    except ValueError:
+        rom_memory[:] = backup
+        raise Exception("Your ROM is full!")
+    # New event will be zeroed, because it's better than being FF'ed.
+    rom_memory[new_offset:new_offset+new_size] = events_memory + b'\x00'*base_size
+    events_header[ptr_key] = new_offset
+    events_header[num_key] += 1
+
+def rem_event(rom_memory, events_header, type):
+    singular_name = {
+            "people": "person",
+            "warps": "warp",
+            "triggers": "trigger",
+            "signposts": "signpost",
+            }
+    num_key = 'n_of_' + type
+    ptr_key = singular_name[type] + "_events_ptr"
+    base_size = structures.size_of(structures.events[singular_name[type]])
+    offset = events_header[ptr_key]
+    num_of_events = events_header[num_key]
+    old_size = base_size * num_of_events
+    rom_memory[offset+old_size:offset+old_size+base_size] = b'\xFF'*base_size
+    events_header[num_key] -= 1
+
+
 
 
 
