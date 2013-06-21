@@ -4,8 +4,9 @@
 *.pyo
 __pycache__*
 map*.txt
-asdf/
+asdf*/
 log*
 *.log
 *.sw?
 settings.txt
+.directory
