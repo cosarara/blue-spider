@@ -190,11 +190,6 @@ def parse_events(rom_contents, events_header):
             ptr = events_header[start_ptr_key] + event_size * event
             event_data = fun(rom_contents, ptr)
             list.append(event_data)
-    #print("Events:")
-    #print(person_events)
-    #print(warp_events)
-    #print(trigger_events)
-    #print(signpost_events)
     return person_events, warp_events, trigger_events, signpost_events
 
 def write_event(rom_contents, event, type, offset=None):
@@ -415,9 +410,12 @@ def build_block_imgs(blocks_mem, imgs, palettes):
                 #mask = Image.eval(part_img, lambda a: 255 if a else 0)
                 t = palette[0]
                 img_data = tuple(part_img.getdata())
-                mask_data = tuple(map(lambda p : (0 if p == t else 255), img_data))
-                mask.putdata(mask_data)
-                block_img.paste(part_img, (x, y, x+8, y+8), mask)
+                if layer:
+                    mask_data = tuple(map(lambda p : (0 if p == t else 255), img_data))
+                    mask.putdata(mask_data)
+                    block_img.paste(part_img, (x, y, x+8, y+8), mask)
+                else:
+                    block_img.paste(part_img, (x, y, x+8, y+8))
 
         block_imgs.append(block_img)
     return block_imgs

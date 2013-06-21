@@ -68,8 +68,8 @@ class Window(QtGui.QMainWindow):
         hex_read = lambda x : (lambda : int(x(), 16))
         bool_update = lambda x : (lambda n : x(bool(n)))
         bool_read = lambda x : (lambda : int(x()))
-        combo_update = lambda x : (lambda n : print(n)or x(int(n)))
-        combo_read = lambda x : (lambda : print(x()) or int(x()))
+        combo_update = lambda x : (lambda n : x(int(n)))
+        combo_read = lambda x : (lambda : int(x()))
 
         text_element = lambda name, obj : (
                         (
@@ -632,6 +632,8 @@ class Window(QtGui.QMainWindow):
         self.rom_contents[pos:pos+size] = new_map_mem
 
     def write_to_file(self):
+        with open(self.rom_file_name, "rb") as rom_file:
+            self.rom_contents = bytearray(rom_file.read())
         self.save_map()
         self.save_events()
         self.write_rom()
@@ -671,6 +673,7 @@ class Window(QtGui.QMainWindow):
         if not file_name:
             file_name = self.rom_file_name
         if not offset:
+            self.save_event_to_memory()
             offset = self.selected_event['script_ptr']
         import subprocess
         subprocess.Popen([command, file_name, hex(offset)])
