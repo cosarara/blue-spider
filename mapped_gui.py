@@ -212,26 +212,72 @@ class Window(QtGui.QMainWindow):
                     QtGui.QStandardItem(hex(i) + " - " + hex(map))
                     )
 
-    def load_tileset(self, tileset_header, previous_img=None):
-        tileset_img = mapped.get_tileset_img(self.rom_contents, tileset_header)
-        if previous_img:
-            w = previous_img.size[0]
-            h = previous_img.size[1] + tileset_img.size[1]
+    def load_tilesets(self, t1_header, t2_header):
+        pals1_ptr = t1_header["palettes_ptr"]
+        pals2_ptr = t2_header["palettes_ptr"]
+        imgs = []
+        pals = []
+        for pal_n in range(7):
+            palette = mapped.get_pal_colors(self.rom_contents, pals1_ptr, pal_n)
+            pals.append(palette)
+        for pal_n in range(6):
+            palette = mapped.get_pal_colors(self.rom_contents, pals2_ptr, pal_n+7)
+            pals.append(palette)
+
+        for pal_n in range(13):
+            palette = pals[pal_n]
+            #print(pal_n, palette)
+            t1_img = mapped.get_tileset_img(self.rom_contents, t1_header, palette)
+            t2_img = mapped.get_tileset_img(self.rom_contents, t2_header, palette)
+            t1_img.save("asdf2/t1_p%s.png" % pal_n, "PNG")
+            t2_img.save("asdf2/t2_p%s.png" % pal_n, "PNG")
+            w = t1_img.size[0]
+            h = t1_img.size[1] + t2_img.size[1]
             big_img = Image.new("RGB", (w, h))
-            pos = (0, 0, previous_img.size[0], previous_img.size[1])
-            big_img.paste(previous_img, pos)
+            pos = (0, 0, t1_img.size[0], t1_img.size[1])
+            big_img.paste(t1_img, pos)
             x = 0
-            y = previous_img.size[1]
-            x2 = x + tileset_img.size[0]
-            y2 = y + tileset_img.size[1]
+            y = t1_img.size[1]
+            x2 = x + t2_img.size[0]
+            y2 = y + t2_img.size[1]
             pos = (x, y, x2, y2)
-            big_img.paste(tileset_img, pos)
-            tileset_img = big_img
-        block_data_mem = mapped.get_block_data(self.rom_contents,
-                                               tileset_header, self.game)
-        blocks_imgs = mapped.build_block_imgs(block_data_mem, tileset_img)
-        self.blocks_imgs += blocks_imgs
-        return tileset_img
+            big_img.paste(t2_img, pos)
+            imgs.append(big_img)
+
+        for tileset_header in (t1_header, t2_header):
+            block_data_mem = mapped.get_block_data(self.rom_contents,
+                                                   tileset_header, self.game)
+            blocks_imgs = mapped.build_block_imgs(block_data_mem, imgs, pals)
+            self.blocks_imgs += blocks_imgs
+
+        #if previous_img:
+        #    tileset_img = mapped.get_tileset_img(self.rom_contents, tileset_header, pal)
+        #    w = previous_img.size[0]
+        #    h = previous_img.size[1] + tileset_img.size[1]
+        #    big_img = Image.new("RGB", (w, h))
+        #    pos = (0, 0, previous_img.size[0], previous_img.size[1])
+        #    big_img.paste(previous_img, pos)
+        #    x = 0
+        #    y = previous_img.size[1]
+        #    x2 = x + tileset_img.size[0]
+        #    y2 = y + tileset_img.size[1]
+        #    pos = (x, y, x2, y2)
+        #    big_img.paste(tileset_img, pos)
+        #    tileset_img = big_img
+        #    imgs = [tileset_img]
+        #else:
+        #    imgs = []
+        #    for pal_n in range(12):
+        #        tileset_img = mapped.get_tileset_img(self.rom_contents, tileset_header, pal_n)
+        #        imgs.append(tileset_img)
+        #    tileset_img = imgs[0]
+
+        #block_data_mem = mapped.get_block_data(self.rom_contents,
+        #                                       tileset_header, self.game)
+        #blocks_imgs = mapped.build_block_imgs(block_data_mem, tileset_img)
+        #self.blocks_imgs += blocks_imgs
+        ##return tileset_img
+        #return imgs
 
     def draw_palette(self):
         # The tile palette, not the color one
@@ -395,20 +441,22 @@ class Window(QtGui.QMainWindow):
                 map_data_header['local_tileset_ptr'],
                 self.game
                 )
-        if tileset_header != self.t1_header:
-            self.blocks_imgs = []
-            t1_img = self.load_tileset(tileset_header)
-            self.load_tileset(tileset2_header, t1_img)
-        else:
-            t1_img = self.t1_img
-            if tileset2_header != self.t2_header:
-                if self.game == 'RS':
-                    num_of_blocks = 512
-                else:
-                    num_of_blocks = 640
-                self.blocks_imgs = self.blocks_imgs[:num_of_blocks]
-                self.load_tileset(tileset2_header, t1_img)
-        self.t1_img = t1_img
+        #if tileset_header != self.t1_header:
+        #    self.blocks_imgs = []
+        #    t1_img = self.load_tileset(tileset_header)
+        #    self.load_tileset(tileset2_header, t1_img)
+        #else:
+        #    t1_img = self.t1_img
+        #    if tileset2_header != self.t2_header:
+        #        if self.game == 'RS':
+        #            num_of_blocks = 512
+        #        else:
+        #            num_of_blocks = 640
+        #        self.blocks_imgs = self.blocks_imgs[:num_of_blocks]
+        #        self.load_tileset(tileset2_header, t1_img)
+        #self.t1_img = t1_img
+        self.blocks_imgs = []
+        self.load_tilesets(tileset_header, tileset2_header)
         self.t1_header = tileset_header
         self.t2_header = tileset2_header
 

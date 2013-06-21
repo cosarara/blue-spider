@@ -24,13 +24,22 @@ def main():
     #"axve.gba"
     with open(file_name, "rb") as rom_file:
         rom_contents = rom_file.read()
+    rom_code = rom_contents[0xAC:0xAC+4]
+    if rom_code == b'AXVE':
+        rom_data = axve
+        game = 'RS'
+    elif rom_code == b'BPRE':
+        rom_data = bpre
+        game = 'FR'
+    else:
+        raise Exception("ROM code not found")
     if mode == 'p':
         if len(sys.argv) == 4:
-            banks = get_banks(rom_contents)
+            banks = get_banks(rom_contents, rom_data)
             bank_n = int(sys.argv[3])
             get_map_headers(rom_contents, bank_n, banks, echo=True)
         elif len(sys.argv) == 5:
-            banks = get_banks(rom_contents)
+            banks = get_banks(rom_contents, rom_data)
             bank_n = int(sys.argv[3])
             map_header_ptrs = get_map_headers(rom_contents, bank_n, banks)
             map_n = int(sys.argv[4])
@@ -38,7 +47,7 @@ def main():
             map = parse_map_header(rom_contents, map_header_ptr)
             print_dict_hex(map)
         elif len(sys.argv) == 6:
-            banks = get_banks(rom_contents)
+            banks = get_banks(rom_contents, rom_data)
             bank_n = int(sys.argv[3])
             map_header_ptrs = get_map_headers(rom_contents, bank_n, banks)
             map_n = int(sys.argv[4])
@@ -52,7 +61,7 @@ def main():
             t2 = parse_tileset_header(rom_contents, t2_ptr)
             eval(sys.argv[5]) # Yup! Let the user run whatever the fuck he wants
         else:
-            get_banks(rom_contents, echo=True)
+            get_banks(rom_contents, rom_data, echo=True)
             sys.exit(0)
     elif mode == 'r' or mode == 'w':
         banks = get_banks(rom_contents)
