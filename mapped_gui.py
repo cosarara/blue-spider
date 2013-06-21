@@ -15,11 +15,11 @@ try:
 except:
     from PIL import Image, ImageQt
 
-
 class Window(QtGui.QMainWindow):
     def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
         self.ui = Ui_MainWindow()
+
         self.ui.setupUi(self)
 
         self.treemodel = QtGui.QStandardItemModel()
@@ -694,13 +694,25 @@ class Window(QtGui.QMainWindow):
                 settings = ast.literal_eval(settings_text)
                 if "script_editor" in settings:
                     self.script_editor_command = settings["script_editor"]
+                else:
+                    self.script_editor_command = None
+                if "nocolor" in settings:
+                    if settings["nocolor"] is True:
+                        mapped.GRAYSCALE = mapped.grayscale_pal
+                    else:
+                        mapped.GRAYSCALE = settings["nocolor"]
         except Exception as e:
             print(e)
 
     def save_settings(self):
-        settings = {"script_editor": self.script_editor_command}
+        settings = {"script_editor": self.script_editor_command,
+                    "nocolor": mapped.GRAYSCALE}
         with open("settings.txt", "w") as settings_file:
             settings_file.write(str(settings))
+
+    def closeEvent(self, event):
+        self.save_settings()
+        event.accept()
 
 
 if __name__ == "__main__":

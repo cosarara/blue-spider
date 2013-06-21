@@ -22,6 +22,7 @@ bpre = {
     #MapLabels       : 0x3F1CAC
 }
 
+grayscale_pal = [(i, i, i) for i in range(0, 255, 16)]
 #GRAYSCALE = [(i, i, i) for i in range(0, 255, 16)]
 GRAYSCALE = False
 
