@@ -229,8 +229,8 @@ class Window(QtGui.QMainWindow):
             #print(pal_n, palette)
             t1_img = mapped.get_tileset_img(self.rom_contents, t1_header, palette)
             t2_img = mapped.get_tileset_img(self.rom_contents, t2_header, palette)
-            t1_img.save("asdf2/t1_p%s.png" % pal_n, "PNG")
-            t2_img.save("asdf2/t2_p%s.png" % pal_n, "PNG")
+            #t1_img.save("asdf2/t1_p%s.png" % pal_n, "PNG")
+            #t2_img.save("asdf2/t2_p%s.png" % pal_n, "PNG")
             w = t1_img.size[0]
             h = t1_img.size[1] + t2_img.size[1]
             big_img = Image.new("RGB", (w, h))
