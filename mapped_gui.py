@@ -231,11 +231,11 @@ class Window(QtGui.QMainWindow):
         pals2_ptr = t2_header["palettes_ptr"]
         imgs = []
         pals = []
-        for pal_n in range(7):
+        for pal_n in range(6):
             palette = mapped.get_pal_colors(self.rom_contents, pals1_ptr, pal_n)
             pals.append(palette)
-        for pal_n in range(6):
-            palette = mapped.get_pal_colors(self.rom_contents, pals2_ptr, pal_n+7)
+        for pal_n in range(7):
+            palette = mapped.get_pal_colors(self.rom_contents, pals2_ptr, pal_n+6)
             pals.append(palette)
 
         new_t1_imgs = []
