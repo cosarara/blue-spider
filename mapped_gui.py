@@ -200,16 +200,25 @@ class Window(QtGui.QMainWindow):
 
     def load_banks(self):
         self.banks = mapped.get_banks(self.rom_contents, self.rom_data)
+        map_labels = mapped.get_map_labels(self.rom_contents, self.rom_data, self.game)
         for i, bank in enumerate(self.banks):
             self.treemodel.appendRow(QtGui.QStandardItem(hex(i) + " - " + hex(bank)))
-            self.load_maps(i)
+            self.load_maps(i, map_labels)
 
-    def load_maps(self, bank_num):
-        maps = mapped.get_map_headers(self.rom_contents, bank_num, self.banks)
+    def load_maps(self, bank_num, map_labels):
+        # Incredibly slow
+        map_header_ptrs = mapped.get_map_headers(self.rom_contents, bank_num, self.banks)
 
-        for i, map, in enumerate(maps):
+        for i, ptr in enumerate(map_header_ptrs):
+            map = mapped.parse_map_header(self.rom_contents, ptr)
+            index = map['label_index']
+            if self.game == 'FR':
+                index -= 88 # Magic!
+            if index >= len(map_labels):
+                continue
+            label = map_labels[index]
             self.treemodel.item(bank_num).appendRow(
-                    QtGui.QStandardItem(hex(i) + " - " + hex(map))
+                    QtGui.QStandardItem("%s - %s" % (i, label))
                     )
 
     def load_tilesets(self, t1_header, t2_header, t1_imgs=None):

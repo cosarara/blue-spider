@@ -9,17 +9,16 @@ try:
 except:
     from PIL import Image, ImageQt
 import structures
+import text_translate
 
 axve = {
-    'MapHeaders'      : 0x53324
-    #Maps            : 0x5326C
-    #MapLabels       : 0xFBFE0
+    'MapHeaders'      : 0x53324,
+    'MapLabels'       : 0x3e73c4
 }
 
 bpre = {
-    'MapHeaders'      : 0x5524C
-    #Maps            : 0x55194
-    #MapLabels       : 0x3F1CAC
+    'MapHeaders'      : 0x5524C,
+    'MapLabels'       : 0x3F1CAC
 }
 
 grayscale_pal = [(i, i, i) for i in range(0, 255, 16)]
@@ -100,8 +99,12 @@ def get_map_headers(rom_contents, n, banks, echo=False):
     maps = []
     i = 0
     while True:
-        a = get_rom_addr_at(maps_addr + i * 4, rom_contents)
-        if a == -1 or maps_addr + i * 4 == maps_of_next_bank:
+        # FIXME: We read too many maps at the end of FR
+        addr_offset = maps_addr + i * 4
+        if addr_offset == maps_of_next_bank:
+            break
+        a = get_rom_addr_at(addr_offset, rom_contents)
+        if a == -1:
             break
         if echo:
             print(hex(i) + "\t" + hex(a))
@@ -379,6 +382,9 @@ def build_block_imgs(blocks_mem, imgs, palettes):
                 tile_num = part_mem[0] | ((part_mem[1] & 0b11) << 8)
                 palette_num = part_mem[1] >> 4
                 #sys.stdout.write(" - %s" % palette_num)
+                # XXX
+                if palette_num >= len(palettes):
+                    palette_num = 0
                 palette = palettes[palette_num]
                 if GRAYSCALE:
                     palette = GRAYSCALE
@@ -541,6 +547,19 @@ def rem_event(rom_memory, events_header, type):
     rom_memory[offset+old_size:offset+old_size+base_size] = b'\xFF'*base_size
     events_header[num_key] -= 1
 
+def get_map_labels(rom_memory, game=axve, type='RS'):
+    labels = []
+    labels_ptr = read_ptr_at(rom_memory, game["MapLabels"])
+    labels_ptr = game["MapLabels"]
+    add = (type == 'RS' and 4) or (type == 'FR' and 0)
+    for i in range(0x59 if type=='RS' else 0x6D): # Magic!
+        # RS: [4 unknown bytes][ptr to label][4 unknown bytes][ptr to label]...
+        # FR: [ptr to label][ptr to label]...
+        ptr = read_ptr_at(rom_memory, labels_ptr+i*(4+add)+add)
+        mem = rom_memory[ptr:ptr+rom_memory[ptr:].find(b'\xff')].replace(b'\xfc', b'')
+        label = text_translate.hex_to_ascii(mem).replace("  ", " ")
+        labels.append(label)
+    return labels
 
 
 
