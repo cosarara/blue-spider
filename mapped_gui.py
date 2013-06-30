@@ -206,7 +206,6 @@ class Window(QtGui.QMainWindow):
             self.load_maps(i, map_labels)
 
     def load_maps(self, bank_num, map_labels):
-        # Incredibly slow
         map_header_ptrs = mapped.get_map_headers(self.rom_contents, bank_num, self.banks)
 
         for i, ptr in enumerate(map_header_ptrs):
