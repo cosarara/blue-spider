@@ -200,14 +200,14 @@ class Window(QtGui.QMainWindow):
 
     def load_banks(self):
         self.banks = mapped.get_banks(self.rom_contents, self.rom_data)
+        map_labels = mapped.get_map_labels(self.rom_contents, self.rom_data, self.game)
         for i, bank in enumerate(self.banks):
             self.treemodel.appendRow(QtGui.QStandardItem(hex(i) + " - " + hex(bank)))
-            self.load_maps(i)
+            self.load_maps(i, map_labels)
 
-    def load_maps(self, bank_num):
+    def load_maps(self, bank_num, map_labels):
         # Incredibly slow
         map_header_ptrs = mapped.get_map_headers(self.rom_contents, bank_num, self.banks)
-        map_labels = mapped.get_map_labels(self.rom_contents, self.rom_data, self.game)
 
         for i, ptr in enumerate(map_header_ptrs):
             map = mapped.parse_map_header(self.rom_contents, ptr)
