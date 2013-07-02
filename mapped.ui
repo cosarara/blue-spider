@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>958</width>
-    <height>553</height>
+    <width>1032</width>
+    <height>714</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -528,6 +528,13 @@
                 </item>
                 <item row="5" column="1">
                  <widget class="QLineEdit" name="w_warp_n"/>
+                </item>
+                <item row="6" column="1">
+                 <widget class="QPushButton" name="openInEmulatorButton">
+                  <property name="text">
+                   <string>Open in emulator</string>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </widget>
@@ -1776,7 +1783,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>958</width>
+     <width>1032</width>
      <height>21</height>
     </rect>
    </property>

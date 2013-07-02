@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'mapped.ui'
 #
-# Created: Thu Jun 20 17:54:54 2013
+# Created: Mon Jul  1 15:06:50 2013
 #      by: PyQt4 UI code generator 4.10.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -26,7 +26,7 @@ except AttributeError:
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName(_fromUtf8("MainWindow"))
-        MainWindow.resize(958, 553)
+        MainWindow.resize(1032, 714)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -288,6 +288,9 @@ class Ui_MainWindow(object):
         self.w_warp_n = QtGui.QLineEdit(self.warpEditor)
         self.w_warp_n.setObjectName(_fromUtf8("w_warp_n"))
         self.formLayout_2.setWidget(5, QtGui.QFormLayout.FieldRole, self.w_warp_n)
+        self.openInEmulatorButton = QtGui.QPushButton(self.warpEditor)
+        self.openInEmulatorButton.setObjectName(_fromUtf8("openInEmulatorButton"))
+        self.formLayout_2.setWidget(6, QtGui.QFormLayout.FieldRole, self.openInEmulatorButton)
         self.eventsStackedWidget.addWidget(self.warpEditor)
         self.personEditor = QtGui.QWidget()
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
@@ -786,7 +789,7 @@ class Ui_MainWindow(object):
         self.gridLayout.addWidget(self.tabWidget, 0, 1, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 958, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1032, 21))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         self.menuFile = QtGui.QMenu(self.menubar)
         self.menuFile.setObjectName(_fromUtf8("menuFile"))
@@ -840,6 +843,7 @@ class Ui_MainWindow(object):
         self.label_12.setText(_translate("MainWindow", "Bank num.", None))
         self.label_13.setText(_translate("MainWindow", "Map num.", None))
         self.label_14.setText(_translate("MainWindow", "Warp num.", None))
+        self.openInEmulatorButton.setText(_translate("MainWindow", "Open in emulator", None))
         self.label_16.setText(_translate("MainWindow", "Person num.", None))
         self.label_17.setText(_translate("MainWindow", "Sprite num.", None))
         self.label_18.setText(_translate("MainWindow", "Unknown", None))

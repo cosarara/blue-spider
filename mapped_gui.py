@@ -7,6 +7,7 @@ import qmapview
 
 import mapped
 import structures
+import os
 
 
 try:
@@ -22,8 +23,8 @@ class Window(QtGui.QMainWindow):
 
         self.ui.setupUi(self)
 
-        self.treemodel = QtGui.QStandardItemModel()
-        self.ui.treeView.setModel(self.treemodel)
+        self.tree_model = QtGui.QStandardItemModel()
+        self.ui.treeView.setModel(self.tree_model)
 
         self.map_scene = QtGui.QGraphicsScene()
         self.ui.map.setScene(self.map_scene)
@@ -50,6 +51,8 @@ class Window(QtGui.QMainWindow):
         self.ui.t_edit_script.clicked.connect(self.launch_script_editor)
 
         self.ui.actionChoose_script_editor.triggered.connect(self.select_script_editor)
+
+        self.ui.openInEmulatorButton.clicked.connect(self.open_warp_in_emulator)
 
         self.selected_tile = 0
         self.selected_mov_tile = 0
@@ -165,7 +168,7 @@ class Window(QtGui.QMainWindow):
     def load_rom(self):
         self.loaded_map = None
 
-        self.treemodel.clear()
+        self.tree_model.clear()
         self.banks = []
         fn = QtGui.QFileDialog.getOpenFileName(self, 'Open ROM file', 
                                                QtCore.QDir.homePath(),
@@ -186,6 +189,9 @@ class Window(QtGui.QMainWindow):
         elif self.rom_code == b'BPRE':
             self.rom_data = mapped.bpre
             self.game = 'FR'
+        elif self.rom_code == b'BPEE':
+            self.rom_data = mapped.bpee
+            self.game = 'EM'
         else:
             raise Exception("ROM code not found")
 
@@ -202,7 +208,7 @@ class Window(QtGui.QMainWindow):
         self.banks = mapped.get_banks(self.rom_contents, self.rom_data)
         map_labels = mapped.get_map_labels(self.rom_contents, self.rom_data, self.game)
         for i, bank in enumerate(self.banks):
-            self.treemodel.appendRow(QtGui.QStandardItem(hex(i) + " - " + hex(bank)))
+            self.tree_model.appendRow(QtGui.QStandardItem(hex(i) + " - " + hex(bank)))
             self.load_maps(i, map_labels)
 
     def load_maps(self, bank_num, map_labels):
@@ -216,7 +222,7 @@ class Window(QtGui.QMainWindow):
             if index >= len(map_labels):
                 continue
             label = map_labels[index]
-            self.treemodel.item(bank_num).appendRow(
+            self.tree_model.item(bank_num).appendRow(
                     QtGui.QStandardItem("%s - %s" % (i, label))
                     )
 
@@ -282,34 +288,6 @@ class Window(QtGui.QMainWindow):
 
         return new_t1_imgs or t1_imgs
 
-        #if previous_img:
-        #    tileset_img = mapped.get_tileset_img(self.rom_contents, tileset_header, pal)
-        #    w = previous_img.size[0]
-        #    h = previous_img.size[1] + tileset_img.size[1]
-        #    big_img = Image.new("RGB", (w, h))
-        #    pos = (0, 0, previous_img.size[0], previous_img.size[1])
-        #    big_img.paste(previous_img, pos)
-        #    x = 0
-        #    y = previous_img.size[1]
-        #    x2 = x + tileset_img.size[0]
-        #    y2 = y + tileset_img.size[1]
-        #    pos = (x, y, x2, y2)
-        #    big_img.paste(tileset_img, pos)
-        #    tileset_img = big_img
-        #    imgs = [tileset_img]
-        #else:
-        #    imgs = []
-        #    for pal_n in range(12):
-        #        tileset_img = mapped.get_tileset_img(self.rom_contents, tileset_header, pal_n)
-        #        imgs.append(tileset_img)
-        #    tileset_img = imgs[0]
-
-        #block_data_mem = mapped.get_block_data(self.rom_contents,
-        #                                       tileset_header, self.game)
-        #blocks_imgs = mapped.build_block_imgs(block_data_mem, tileset_img)
-        #self.blocks_imgs += blocks_imgs
-        ##return tileset_img
-        #return imgs
 
     def draw_palette(self):
         # The tile palette, not the color one
@@ -507,9 +485,12 @@ class Window(QtGui.QMainWindow):
 
     def get_event_at_pos_from_list(self, pos, events):
         x, y = pos
+        i = 0
         for event in events:
             if event['x'] == x and event['y'] == y:
+                self.event_n = i
                 return event
+            i += 1
         return None
 
     def get_event_at_pos(self, pos):
@@ -693,6 +674,41 @@ class Window(QtGui.QMainWindow):
 
         self.script_editor_command = fn
         self.save_settings()
+
+    def open_warp_in_emulator(self):
+        warp_num = self.event_n
+        bank_num = self.bank_n
+        map_num = self.map_n
+        if self.game == "EM":
+            codebin_fn = "warpem.gba"
+        elif self.game == "FR":
+            codebin_fn = "warpfr.gba"
+        elif self.game == "RS":
+            codebin_fn = "warprs.gba"
+        with open(codebin_fn, "rb") as codebin:
+            code = codebin.read()
+        script = "load 1\n"
+        script += "er 15 0x02f10000\n"
+        script += ''.join(['eb ' + hex(0x02f10000+i) + " " + hex(byte)[2:] + "\n"
+                           for i, byte in enumerate(code)])
+        script += """eb 0x02f30000 39
+eb 0x02f30001 %s
+eb 0x02f30002 %s
+eb 0x02f30003 %s
+eb 0x02f30004 02
+t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
+        print(script)
+        with open("script.txt", "w") as file:
+            file.write(script)
+        file_name = self.rom_file_name
+        if os.name == 'posix': # Dunno 'bout macs and BSDs, but linux is posix
+            command = './vbam'
+        else:
+            command = './vbam.exe'
+        import subprocess
+        print(command, "-c", "cfg", "-r", file_name)
+        #subprocess.Popen([command, "-c", "cfg", "--debug", "-r", file_name])
+        subprocess.Popen([command, "-c", "cfg", "-r", file_name])
 
     def load_settings(self):
         try:

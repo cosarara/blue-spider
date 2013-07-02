@@ -33,6 +33,9 @@ def main():
     elif rom_code == b'BPRE':
         rom_data = bpre
         game = 'FR'
+    elif rom_code == b'BPEE':
+        rom_data = bpee
+        game = 'EM'
     else:
         raise Exception("ROM code not found")
     if mode == 'p':

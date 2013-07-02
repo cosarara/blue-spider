@@ -21,6 +21,11 @@ bpre = {
     'MapLabels'       : 0x3F1CAC
 }
 
+bpee = {
+    'MapHeaders'      : 543396,
+    'MapLabels'       : 1194820
+}
+
 grayscale_pal = [(i, i, i) for i in range(0, 255, 16)]
 #GRAYSCALE = [(i, i, i) for i in range(0, 255, 16)]
 GRAYSCALE = False
@@ -160,7 +165,7 @@ def parse_map_data(rom_contents, map_data_ptr, game='RS'):
 def parse_tileset_header(rom_contents, tileset_header_ptr, game='RS'):
     struct_rs = structures.tileset_header_rs
     struct_fr = structures.tileset_header_fr
-    if game == 'RS':
+    if game == 'RS' or game == 'EM':
         struct = struct_rs
     elif game == 'FR':
         struct = struct_fr
@@ -338,7 +343,7 @@ def get_block_data(rom_contents, tileset_header, game='RS'):
     block_data_ptr = tileset_header['block_data_ptr']
     t_type = tileset_header['tileset_type']
     if t_type == 0:
-        if game == 'RS':
+        if game == 'RS' or game == 'EM':
             num_of_blocks = 512
         else:
             num_of_blocks = 640
@@ -551,7 +556,7 @@ def get_map_labels(rom_memory, game=axve, type='RS'):
     labels = []
     labels_ptr = read_ptr_at(rom_memory, game["MapLabels"])
     labels_ptr = game["MapLabels"]
-    add = (type == 'RS' and 4) or (type == 'FR' and 0)
+    add = (type == 'RS' and 4) or (type == 'EM' and 0) or (type == 'FR' and 0)
     for i in range(0x59 if type=='RS' else 0x6D): # Magic!
         # RS: [4 unknown bytes][ptr to label][4 unknown bytes][ptr to label]...
         # FR: [ptr to label][ptr to label]...

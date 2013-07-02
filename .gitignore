@@ -10,3 +10,8 @@ log*
 *.sw?
 settings.txt
 .directory
+*.log?
+vbam
+vbam.exe
+fetch_warp_code.sh
+script.txt
