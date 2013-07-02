@@ -232,7 +232,7 @@ class Window(QtGui.QMainWindow):
             if self.t2_header == t2_header:
                 return t1_imgs
             else:
-                if self.game == 'RS':
+                if self.game == 'RS' or self.game == 'EM':
                     num_of_blocks = 512
                 else:
                     num_of_blocks = 640

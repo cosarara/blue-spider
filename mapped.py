@@ -23,7 +23,8 @@ bpre = {
 
 bpee = {
     'MapHeaders'      : 543396,
-    'MapLabels'       : 1194820
+    #'MapLabels'       : 1194820
+    'MapLabels'       : 0x5a147c
 }
 
 grayscale_pal = [(i, i, i) for i in range(0, 255, 16)]
@@ -556,7 +557,7 @@ def get_map_labels(rom_memory, game=axve, type='RS'):
     labels = []
     labels_ptr = read_ptr_at(rom_memory, game["MapLabels"])
     labels_ptr = game["MapLabels"]
-    add = (type == 'RS' and 4) or (type == 'EM' and 0) or (type == 'FR' and 0)
+    add = (type == 'RS' and 4) or (type == 'EM' and 4) or (type == 'FR' and 0)
     for i in range(0x59 if type=='RS' else 0x6D): # Magic!
         # RS: [4 unknown bytes][ptr to label][4 unknown bytes][ptr to label]...
         # FR: [ptr to label][ptr to label]...
