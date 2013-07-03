@@ -24,6 +24,7 @@ import string
 
 with open("pktext.tbl", "r") as table_file:
     table_str = table_file.read().rstrip("\n")
+table = table_str
 
 def read_table_encode(table_string=table_str):
     table = table_string.split("\n")
