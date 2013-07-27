@@ -113,6 +113,19 @@ events = {
     "signpost": signpost_event
     }
 
+sprite = (
+        #("null", "short", 0), # FFFF
+        ("palette_num", "byte", 2),
+        ("width", "short", 8),
+        ("heigth", "short", 10),
+        ("header2_ptr", "ptr", 28),
+        )
+
+sprite2 = (
+        ("img_ptr", "ptr", 0),
+        )
+
+
 def to_dict(structure):
     d = {}
     for element in structure:

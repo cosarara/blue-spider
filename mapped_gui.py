@@ -36,13 +36,19 @@ class Window(QtGui.QMainWindow):
         self.ui.palette.setScene(self.palette_scene)
         self.perms_palette_scene = QtGui.QGraphicsScene()
         self.ui.MovPermissionsPalette.setScene(self.perms_palette_scene)
+        self.sprite_scene = QtGui.QGraphicsScene()
+        self.sprite_scene.setSceneRect(QtCore.QRectF(0, 0, 16, 32))
+        self.ui.spriteImg.setScene(self.sprite_scene)
 
         self.t1_header = None
         self.t1_imgs = None
         self.t2_header = None
 
+        self.sprites = []
+
         self.ui.actionLoad_ROM.triggered.connect(self.load_rom)
         self.ui.actionSave.triggered.connect(self.write_to_file)
+        self.ui.actionSave_As.triggered.connect(self.save_as)
         self.ui.treeView.clicked.connect(self.load_map)
         self.ui.s_type.currentIndexChanged.connect(
                 self.update_signpost_stacked)
@@ -53,6 +59,7 @@ class Window(QtGui.QMainWindow):
         self.ui.actionChoose_script_editor.triggered.connect(self.select_script_editor)
 
         self.ui.openInEmulatorButton.clicked.connect(self.open_warp_in_emulator)
+        self.ui.warpGoToMapButton.clicked.connect(self.go_to_warp)
 
         self.selected_tile = 0
         self.selected_mov_tile = 0
@@ -86,7 +93,12 @@ class Window(QtGui.QMainWindow):
                 'person': (
                         text_element("script_ptr", self.ui.p_script_offset),
                         text_element("person_num", self.ui.person_num),
-                        text_element("sprite_num", self.ui.sprite_num),
+                        (
+                            self.ui.sprite_num.value,
+                            self.ui.sprite_num.setValue,
+                            "sprite_num"
+                        ),
+                        #text_element("sprite_num", self.ui.sprite_num),
                         text_element("x", self.ui.p_x),
                         text_element("y", self.ui.p_y),
                         text_element("flag", self.ui.p_flag),
@@ -158,11 +170,41 @@ class Window(QtGui.QMainWindow):
         self.ui.remTriggerButton.clicked.connect(self.rem_trigger)
         self.ui.addSignpostButton.clicked.connect(self.add_signpost)
         self.ui.remSignpostButton.clicked.connect(self.rem_signpost)
+        
+        self.reload_lock = 0
+        redrawing_items = (
+                self.ui.w_x, self.ui.w_y,
+                self.ui.p_x, self.ui.p_y,
+                self.ui.t_x, self.ui.t_y,
+                self.ui.s_x, self.ui.s_y)
+        for item in redrawing_items:
+            item.textChanged.connect(self.redraw_events)
+        #self.ui.sprite_num.textChanged.connect(self.reload_person_img)
+        self.ui.sprite_num.valueChanged.connect(self.reload_person_img)
+
+        self.current_index = None
+        self.event_n = None
 
         #self.script_editor_command = '../asc/git/asc_gui_qt.py'
+        self.script_editor_command = ''
         self.load_settings()
 
+    def redraw_events(self):
+        if self.reload_lock:
+            return
+        #self.draw_events()
+        self.save_event_to_memory()
+        self.load_map(self.current_index)
+        index = ["person", "warp",
+                "trigger", "signpost"].index(self.selected_event_type)
+        self.selected_event = self.events[index][self.event_n]
+        #print(self.events)
 
+    def reload_person_img(self):
+        if self.reload_lock:
+            return
+        self.save_event_to_memory()
+        self.update_event_editor()
 
 
     def load_rom(self):
@@ -196,6 +238,7 @@ class Window(QtGui.QMainWindow):
             raise Exception("ROM code not found")
 
         self.load_banks()
+        self.sprites = mapped.get_ow_sprites(self.rom_contents, self.rom_data)
 
     def write_rom(self):
         if not self.rom_file_name:
@@ -229,9 +272,11 @@ class Window(QtGui.QMainWindow):
     def load_tilesets(self, t1_header, t2_header, t1_imgs=None):
         do_not_load_1 = False
         if self.t1_header == t1_header:
-            if self.t2_header == t2_header:
+            if self.t2_header == t2_header and t1_imgs:
+                print("asdf1")
                 return t1_imgs
             else:
+                print("asdf2")
                 if self.game == 'RS' or self.game == 'EM':
                     num_of_blocks = 512
                 else:
@@ -239,17 +284,25 @@ class Window(QtGui.QMainWindow):
                 self.blocks_imgs = self.blocks_imgs[:num_of_blocks]
                 do_not_load_1 = True
         else:
+            print("asdf3")
             self.blocks_imgs = []
             t1_imgs = None
         pals1_ptr = t1_header["palettes_ptr"]
         pals2_ptr = t2_header["palettes_ptr"]
         imgs = []
         pals = []
-        for pal_n in range(6):
+        if self.game == 'RS' or self.game == 'EM':
+            num_of_pals1 = 6
+            num_of_pals2 = 7
+        else:
+            num_of_pals1 = 7
+            num_of_pals2 = 6
+        for pal_n in range(num_of_pals1):
             palette = mapped.get_pal_colors(self.rom_contents, pals1_ptr, pal_n)
             pals.append(palette)
-        for pal_n in range(7):
-            palette = mapped.get_pal_colors(self.rom_contents, pals2_ptr, pal_n+6)
+        for pal_n in range(num_of_pals2):
+            palette = mapped.get_pal_colors(self.rom_contents, pals2_ptr,
+                    pal_n+num_of_pals1)
             pals.append(palette)
 
         new_t1_imgs = []
@@ -377,7 +430,9 @@ class Window(QtGui.QMainWindow):
         self.map_pixmap_qobject.clicked.connect(self.map_clicked)
         self.mov_pixmap_qobject.clicked.connect(self.mov_clicked)
 
-    def draw_events(self, events):
+    def draw_events(self, events=None):
+        if events is None:
+            events = self.events
         event_img = self.map_img.copy()
         person_events, warp_events, trigger_events, signpost_events = events
         event_imgs = mapped.get_imgs(["data", "events"], 4)
@@ -421,6 +476,7 @@ class Window(QtGui.QMainWindow):
         self.events = mapped.parse_events(self.rom_contents, events_header)
 
     def load_map(self, qindex):
+        self.current_index = qindex
         if self.loaded_map:
             self.save_map()
             self.save_events()
@@ -524,11 +580,23 @@ class Window(QtGui.QMainWindow):
         event = self.get_event_at_pos((tile_x, tile_y))
         return event, tile_x, tile_y
 
-    def update_event_editor(self, event, type):
-        if not type or not event:
-            return
+    def update_event_editor(self, event=None, type=None):
+        if not type:
+            type = self.selected_event_type
+        if not event:
+            event = self.selected_event
+
         if type == "person":
             self.ui.eventsStackedWidget.setCurrentIndex(2)
+            sprite_num = event['sprite_num']
+            if sprite_num < len(self.sprites):
+                img = self.sprites[sprite_num]
+                #img.save("sprite.png", "PNG")
+                self.sprite_qimg = ImageQt.ImageQt(img)
+                self.sprite_scene.clear()
+                self.spritePixMap = QtGui.QPixmap.fromImage(self.sprite_qimg)
+                self.sprite_scene.addPixmap(self.spritePixMap)
+                self.sprite_scene.update()
         elif type == "warp":
             self.ui.eventsStackedWidget.setCurrentIndex(1)
         elif type == "trigger":
@@ -541,8 +609,6 @@ class Window(QtGui.QMainWindow):
             update_function(event[data_element])
             #print(update_function, event[data_element], data_element)
             #self.ui.p_script_offset.setText(hex(event["script_ptr"])[2:])
-        self.selected_event = event
-        self.selected_event_type = type
         #print(dir(self.ui.eventsStackedWidget))
 
 
@@ -581,13 +647,19 @@ class Window(QtGui.QMainWindow):
 
     def event_clicked(self, event):
         #print(event)
+        self.reload_lock = True
         self.save_event_to_memory()
         event, event_x, event_y = self.get_event_from_mouseclick(event, self.eventPixMap)
+        if event == (None, None):
+            return
         print("clicked event tile:", event)
         type, event = event
         #self.map[tile_y][tile_x][0] = self.selected_tile
         self.draw_events(self.events)
+        self.selected_event = event
+        self.selected_event_type = type
         self.update_event_editor(event, type)
+        self.reload_lock = False
 
     def palette_clicked(self, event):
         tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event, self.tilesetPixMap)
@@ -627,6 +699,21 @@ class Window(QtGui.QMainWindow):
         self.save_events()
         self.write_rom()
 
+    def save_as(self):
+        fn = QtGui.QFileDialog.getSaveFileName(self, 'Save ROM file', 
+                                               QtCore.QDir.homePath(),
+                                               "GBA ROM (*.gba);;"
+                                               "All files (*)")
+
+        if not fn:
+            print("Nothing selected")
+            return
+        print(fn)
+        import shutil
+        shutil.copyfile(self.rom_file_name, fn)
+        self.rom_file_name = fn
+        self.write_to_file()
+
     def update_signpost_stacked(self):
         if self.ui.s_type.currentIndex() < 5:
             self.ui.signpost_stacked.setCurrentIndex(0)
@@ -655,6 +742,15 @@ class Window(QtGui.QMainWindow):
     rem_trigger = lambda self : self.rem_event("triggers")
     add_signpost = lambda self : self.add_event("signposts")
     rem_signpost = lambda self : self.rem_event("signposts")
+
+    def go_to_warp(self, _, bank=None, map=None):
+        if bank is None:
+            bank = self.selected_event["bank_num"]
+        if map is None:
+            map = self.selected_event["map_num"]
+        print(bank, map)
+        #print(self.tree_model.item(bank))
+        self.load_map(self.tree_model.item(bank).child(map))
 
     def launch_script_editor(self, offset=None, file_name=None, command=None):
         if not command:

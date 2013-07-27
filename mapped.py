@@ -13,21 +13,28 @@ import text_translate
 
 axve = {
     'MapHeaders'      : 0x53324,
-    'MapLabels'       : 0x3e73c4
+    'MapLabels'       : 0x3e73c4,
+    'Sprites'         : 0x36DC58,
+    'SpritePalettes'  : 0x37377C,
 }
 
 bpre = {
     'MapHeaders'      : 0x5524C,
-    'MapLabels'       : 0x3F1CAC
+    'MapLabels'       : 0x3F1CAC,
+    'Sprites'         : 0x39FDB0,
+    'SpritePalettes'  : 0x3A5158,
 }
 
 bpee = {
     'MapHeaders'      : 543396,
-    #'MapLabels'       : 1194820
-    'MapLabels'       : 0x5a147c
+    #'MapLabels'       : 1194820,
+    'MapLabels'       : 0x5a147c,
+    'Sprites'         : 0x505620,
+    'SpritePalettes'  : 0x50BBC8,
 }
 
 grayscale_pal = [(i, i, i) for i in range(0, 255, 16)]
+grayscale_pal2 = [(i, i, i) for i in range(255, 0, -16)]
 #GRAYSCALE = [(i, i, i) for i in range(0, 255, 16)]
 GRAYSCALE = False
 
@@ -70,10 +77,14 @@ def write_n_bytes(rom, addr, n, data):
         raise Exception("data is not the same size as n!")
     rom[addr:addr+n] = data
 
-write_long_at = lambda rom, addr, num : write_n_bytes(rom, addr, 4, num.to_bytes(4, "little"))
-write_rom_ptr_at = lambda rom, addr, num : write_long_at(rom, addr, num + 0x8000000)
-write_short_at = lambda rom, addr, num : write_n_bytes(rom, addr, 2, num.to_bytes(2, "little"))
-write_byte_at = lambda rom, addr, num : write_n_bytes(rom, addr, 1, num.to_bytes(1, "little"))
+write_long_at = (lambda rom, addr, num :
+        write_n_bytes(rom, addr, 4, num.to_bytes(4, "little")))
+write_rom_ptr_at = (lambda rom, addr, num :
+        write_long_at(rom, addr, num + 0x8000000))
+write_short_at = (lambda rom, addr, num :
+        write_n_bytes(rom, addr, 2, num.to_bytes(2, "little")))
+write_byte_at = (lambda rom, addr, num :
+        write_n_bytes(rom, addr, 1, num.to_bytes(1, "little")))
 
 
 def get_banks(rom_contents, rom_data=axve, echo=False):
@@ -286,10 +297,10 @@ def get_pal_colors(rom_contents, pals_ptr, num=0):
         colors.append((r, g, b))
     return colors
 
-def build_tileset_img(data, im, palette):
+def build_img(data, im, palette, w):
     if GRAYSCALE:
         palette = GRAYSCALE
-    tiles_per_line = 16
+    tiles_per_line = w
     for pos in range(len(data)):
         tile = pos // (8*4) # At 2 pixels per byte, we have 8*8/2 bytes per tile
         x = ((pos-(tile*8*4))%4)*2+((tile % tiles_per_line)*8)
@@ -311,6 +322,12 @@ def build_tileset_img(data, im, palette):
             print(e)
             raise Exception()
     return im
+
+def build_tileset_img(data, im, palette):
+    return build_img(data, im, palette, 16)
+
+def build_sprite_img(data, im, palette=grayscale_pal2):
+    return build_img(data, im, palette, 2)
 
 def get_tileset_img(rom_contents, tileset_header, pal):
     tileset_img_ptr = tileset_header["tileset_image_ptr"]
@@ -434,6 +451,7 @@ def build_block_imgs(blocks_mem, imgs, palettes):
     return block_imgs
 
 def get_imgs(path=["data", "mov_perms"], num=0x40):
+    ''' load png images to show in GUI '''
     base_path = os.path.join(*path)
     alpha = Image.new("L", (16, 16), 150)
     imgs = []
@@ -566,6 +584,47 @@ def get_map_labels(rom_memory, game=axve, type='RS'):
         label = text_translate.hex_to_ascii(mem).replace("  ", " ")
         labels.append(label)
     return labels
+
+
+def get_sprite_palette_ptr(rom_memory, pal_num, game=axve):
+    base_offset = game["SpritePalettes"]
+    i = 0
+    while True:
+        offset = base_offset + 8*i
+        if read_byte_at(rom_memory, offset + 4) == pal_num:
+            return read_ptr_at(rom_memory, offset)
+        if read_byte_at(rom_memory, offset + 5) == 0:
+            raise Exception("End of palettes, pal num %s not found" % pal_num)
+        if i > 20:
+            raise Exception("Security break")
+        i += 1
+
+def get_ow_sprites(rom_memory, game=axve):
+    # get_pal_colors SpritePalettes
+    sprites_table_ptr = game['Sprites']
+    sprite_imgs = []
+    for i in range(152): # XXX
+        header_fullptr = read_long_at(rom_memory, sprites_table_ptr+i*4)
+        if (header_fullptr & 0x8000000) != 0x8000000:
+            break
+        header_ptr = read_ptr_at(rom_memory, sprites_table_ptr+i*4)
+        header = parse_data_structure(rom_memory, structures.sprite, header_ptr)
+        header2_ptr = header['header2_ptr']
+        header2 = parse_data_structure(rom_memory, structures.sprite2, header2_ptr)
+        img_ptr = header2['img_ptr']
+        pal_ptr = get_sprite_palette_ptr(rom_memory, header["palette_num"], game)
+        #print(header["palette_num"], hex(pal_ptr))
+        pal = get_pal_colors(rom_memory, pal_ptr)
+        #print(i, hex(img_ptr))
+        #from pprint import pprint
+        ##print(img_ptr)
+        #pprint(header)
+        #pprint(header2)
+        data = rom_memory[img_ptr:img_ptr+0x100] # XXX
+        im = Image.new("RGB", (16, 32)) # XXX
+        im = build_sprite_img(data, im, pal)
+        sprite_imgs.append(im)
+    return sprite_imgs
 
 
 
