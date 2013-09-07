@@ -273,10 +273,8 @@ class Window(QtGui.QMainWindow):
         do_not_load_1 = False
         if self.t1_header == t1_header:
             if self.t2_header == t2_header and t1_imgs:
-                print("asdf1")
                 return t1_imgs
             else:
-                print("asdf2")
                 if self.game == 'RS' or self.game == 'EM':
                     num_of_blocks = 512
                 else:
@@ -284,7 +282,6 @@ class Window(QtGui.QMainWindow):
                 self.blocks_imgs = self.blocks_imgs[:num_of_blocks]
                 do_not_load_1 = True
         else:
-            print("asdf3")
             self.blocks_imgs = []
             t1_imgs = None
         pals1_ptr = t1_header["palettes_ptr"]
@@ -305,29 +302,61 @@ class Window(QtGui.QMainWindow):
                     pal_n+num_of_pals1)
             pals.append(palette)
 
+        #new_t1_imgs = []
+        #times = (mapped.GRAYSCALE and True) or 13
+        #for pal_n in range(times):
+        #    palette = pals[pal_n]
+        #    if t1_imgs:
+        #        t1_img = t1_imgs[pal_n]
+        #    else:
+        #        t1_img = mapped.get_tileset_img(self.rom_contents, t1_header,
+        #                palette)
+        #        new_t1_imgs.append(t1_img)
+        #    t2_img = mapped.get_tileset_img(self.rom_contents, t2_header, palette)
+        #    w = t1_img.size[0]
+        #    h = t1_img.size[1] + t2_img.size[1]
+        #    big_img = Image.new("RGB", (w, h))
+        #    pos = (0, 0, t1_img.size[0], t1_img.size[1])
+        #    big_img.paste(t1_img, pos)
+        #    x = 0
+        #    y = t1_img.size[1]
+        #    x2 = x + t2_img.size[0]
+        #    y2 = y + t2_img.size[1]
+        #    pos = (x, y, x2, y2)
+        #    big_img.paste(t2_img, pos)
+        #    imgs.append(big_img)
+
+        palette = mapped.grayscale_pal
         new_t1_imgs = []
-        for pal_n in range(13):
-            palette = pals[pal_n]
-            if t1_imgs:
-                t1_img = t1_imgs[pal_n]
-            else:
-                t1_img = mapped.get_tileset_img(self.rom_contents, t1_header, palette)
-                new_t1_imgs.append(t1_img)
-            t2_img = mapped.get_tileset_img(self.rom_contents, t2_header, palette)
-            #t1_img.save("asdf2/t1_p%s.png" % pal_n, "PNG")
-            #t2_img.save("asdf2/t2_p%s.png" % pal_n, "PNG")
-            w = t1_img.size[0]
-            h = t1_img.size[1] + t2_img.size[1]
-            big_img = Image.new("RGB", (w, h))
-            pos = (0, 0, t1_img.size[0], t1_img.size[1])
-            big_img.paste(t1_img, pos)
-            x = 0
-            y = t1_img.size[1]
-            x2 = x + t2_img.size[0]
-            y2 = y + t2_img.size[1]
-            pos = (x, y, x2, y2)
-            big_img.paste(t2_img, pos)
-            imgs.append(big_img)
+        if t1_imgs:
+            t1_img = t1_imgs[pal_n]
+        else:
+            t1_img = mapped.get_tileset_img(self.rom_contents, t1_header, palette)
+            new_t1_imgs.append(t1_img)
+        t2_img = mapped.get_tileset_img(self.rom_contents, t2_header, palette)
+        w = t1_img.size[0]
+        h = t1_img.size[1] + t2_img.size[1]
+        big_img = Image.new("RGB", (w, h))
+        pos = (0, 0, t1_img.size[0], t1_img.size[1])
+        big_img.paste(t1_img, pos)
+        x = 0
+        y = t1_img.size[1]
+        x2 = x + t2_img.size[0]
+        y2 = y + t2_img.size[1]
+        pos = (x, y, x2, y2)
+        big_img.paste(t2_img, pos)
+        for pal in pals:
+            c = {}
+            for i in range(16):
+                c[palette[i]] = pal[i]
+            coloured_img = big_img.copy()
+            coloured_img_data = coloured_img.getdata()
+            coloured_img_data = [c[i] for i in coloured_img_data]
+            coloured_img.putdata(coloured_img_data)
+            imgs.append(coloured_img)
+
+        #if len(imgs) == 1:
+        #    imgs *= 13
 
         if do_not_load_1:
             to_load = (t2_header,)
@@ -339,6 +368,7 @@ class Window(QtGui.QMainWindow):
             blocks_imgs = mapped.build_block_imgs(block_data_mem, imgs, pals)
             self.blocks_imgs += blocks_imgs
 
+        #return new_t1_imgs or t1_imgs
         return new_t1_imgs or t1_imgs
 
 
@@ -496,7 +526,6 @@ class Window(QtGui.QMainWindow):
                 self.game
                 )
 
-
         tileset_header = mapped.parse_tileset_header(
                 self.rom_contents,
                 map_data_header['global_tileset_ptr'],
@@ -507,7 +536,8 @@ class Window(QtGui.QMainWindow):
                 map_data_header['local_tileset_ptr'],
                 self.game
                 )
-        self.t1_imgs = self.load_tilesets(tileset_header, tileset2_header, self.t1_imgs)
+        self.t1_imgs = self.load_tilesets(tileset_header, tileset2_header,
+                self.t1_imgs)
         self.t1_header = tileset_header
         self.t2_header = tileset2_header
 
@@ -515,11 +545,13 @@ class Window(QtGui.QMainWindow):
 
         self.load_events()
 
-        map_size = map_data_header['w'] * map_data_header['h'] * 2 # Every tile is 2 bytes
+        # Every tile is 2 bytes
+        map_size = map_data_header['w'] * map_data_header['h'] * 2
         tilemap_ptr = map_data_header['tilemap_ptr']
         self.tilemap_ptr = tilemap_ptr
         map_mem = self.rom_contents[tilemap_ptr:tilemap_ptr+map_size]
-        self.map = mapped.parse_map_mem(map_mem, map_data_header['w'], map_data_header['h'])
+        self.map = mapped.parse_map_mem(map_mem, map_data_header['w'],
+                map_data_header['h'])
 
         self.draw_map(self.map)
         self.draw_palette()
@@ -810,17 +842,17 @@ t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
         try:
             with open("settings.txt") as settings_file:
                 settings_text = settings_file.read()
-                import ast
-                settings = ast.literal_eval(settings_text)
-                if "script_editor" in settings:
-                    self.script_editor_command = settings["script_editor"]
+            import ast
+            settings = ast.literal_eval(settings_text)
+            if "script_editor" in settings:
+                self.script_editor_command = settings["script_editor"]
+            else:
+                self.script_editor_command = None
+            if "nocolor" in settings:
+                if settings["nocolor"] is True:
+                    mapped.GRAYSCALE = mapped.grayscale_pal
                 else:
-                    self.script_editor_command = None
-                if "nocolor" in settings:
-                    if settings["nocolor"] is True:
-                        mapped.GRAYSCALE = mapped.grayscale_pal
-                    else:
-                        mapped.GRAYSCALE = settings["nocolor"]
+                    mapped.GRAYSCALE = settings["nocolor"]
         except Exception as e:
             print(e)
 

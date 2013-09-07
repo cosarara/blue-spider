@@ -301,6 +301,8 @@ def build_img(data, im, palette, w):
     if GRAYSCALE:
         palette = GRAYSCALE
     tiles_per_line = w
+    imw, imh = im.size
+    imdata = [0]*imw*imh
     for pos in range(len(data)):
         tile = pos // (8*4) # At 2 pixels per byte, we have 8*8/2 bytes per tile
         x = ((pos-(tile*8*4))%4)*2+((tile % tiles_per_line)*8)
@@ -308,19 +310,11 @@ def build_img(data, im, palette, w):
 
         color2 = ((data[pos] >> 4) & 0xF)
         color1 = data[pos] & 0xF
-        #color1 *= 255//16
-        #color2 *= 255//16
-        #color1 = (color1, color1, color1)
-        #color2 = (color2, color2, color2)
         color1 = palette[color1]
         color2 = palette[color2]
-        try:
-            im.putpixel((x, y), color1)
-            im.putpixel((x+1, y), color2)
-        except Exception as e:
-            print(x, y, w, h, pos, len(data), tile)
-            print(e)
-            raise Exception()
+        imdata[x+y*imw] = color1
+        imdata[x+y*imw+1] = color2
+    im.putdata(imdata)
     return im
 
 def build_tileset_img(data, im, palette):
@@ -388,11 +382,16 @@ def build_block_imgs(blocks_mem, imgs, palettes):
          0b0100 = x flip
      '''
     # TODO: Optimize. A lot.
-    #img.save("tileset.png", "PNG")
     block_imgs = []
     tiles_per_line = 16
     base_block_img = Image.new("RGB", (16, 16))
     mask = Image.new("L", (8, 8))
+    positions = {
+            0: (0,0),
+            1: (8,0),
+            2: (0,8),
+            3: (8,8)
+          }
     for block in range(len(blocks_mem)//16):
         block_mem = blocks_mem[block*16:block*16+16]
         # Copying is faster than creating
@@ -401,47 +400,30 @@ def build_block_imgs(blocks_mem, imgs, palettes):
         for layer in range(2):
             layer_mem = block_mem[layer*8:layer*8+8]
             for part in range(4):
-                part_mem = layer_mem[part*2:part*2+2]
-                tile_num = part_mem[0] | ((part_mem[1] & 0b11) << 8)
-                palette_num = part_mem[1] >> 4
-                #sys.stdout.write(" - %s" % palette_num)
-                # XXX
-                if palette_num >= len(palettes):
-                    palette_num = 0
-                palette = palettes[palette_num]
-                if GRAYSCALE:
-                    palette = GRAYSCALE
+                d = part*2
+                byte1=layer_mem[d]
+                byte2=layer_mem[d+1]
+                tile_num = byte1 | ((byte2 & 0b11) << 8)
+                palette_num = byte2 >> 4
+                palette = GRAYSCALE or palettes[palette_num]
                 img = imgs[palette_num]
-                flips = (part_mem[1] & 0xC) >> 2
-
-                x = tile_num % tiles_per_line
-                y = tile_num // tiles_per_line
-                x *= 8
-                y *= 8
-                x2 = x + 8
-                y2 = y + 8
-                pos = (x, y, x2, y2)
+                flips = (byte2 & 0xC) >> 2
+                x = (tile_num % tiles_per_line) * 8
+                y = (tile_num // tiles_per_line) * 8
+                pos = (x, y, x+8, y+8)
                 part_img = img.crop(pos)
                 if flips & 1:
                     part_img = part_img.transpose(Image.FLIP_LEFT_RIGHT)
                 if flips & 2:
                     part_img = part_img.transpose(Image.FLIP_TOP_BOTTOM)
-                # the four positions
-                pos = {
-                        0: (0,0),
-                        1: (1,0),
-                        2: (0,1),
-                        3: (1,1)
-                      }
-                x, y = pos[part]
-                x *= 8
-                y *= 8
+                x, y = positions[part]
                 # Transparency
                 #mask = Image.eval(part_img, lambda a: 255 if a else 0)
                 t = palette[0]
-                img_data = tuple(part_img.getdata())
                 if layer:
-                    mask_data = tuple(map(lambda p : (0 if p == t else 255), img_data))
+                    img_data = tuple(part_img.getdata())
+                    #mask_data = tuple(map(lambda p : (0 if p == t else 255), img_data))
+                    mask_data = [0 if i == t else 255 for i in img_data]
                     mask.putdata(mask_data)
                     block_img.paste(part_img, (x, y, x+8, y+8), mask)
                 else:
