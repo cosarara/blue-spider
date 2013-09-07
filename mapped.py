@@ -35,7 +35,6 @@ bpee = {
 
 grayscale_pal = [(i, i, i) for i in range(0, 255, 16)]
 grayscale_pal2 = [(i, i, i) for i in range(255, 0, -16)]
-#GRAYSCALE = [(i, i, i) for i in range(0, 255, 16)]
 GRAYSCALE = False
 
 def hexbytes(s):
@@ -345,7 +344,7 @@ def get_tileset_img(rom_contents, tileset_header, pal):
     #im_list = [im.copy() for i in range(12)]
     build_tileset_img(data, im, pal)
 
-    import random
+    #import random
     #im.save("asdf2/%s-%s.png" % (tileset_img_ptr, random.randint(0, 100)), "PNG")
     #return im_list[0]
     return im
@@ -362,13 +361,8 @@ def get_block_data(rom_contents, tileset_header, game='RS'):
     else:
         behavior_data_ptr = tileset_header['behavior_data_ptr']
         num_of_blocks = (behavior_data_ptr - block_data_ptr) // 16
-        #raise Exception('TO DO')
     length = num_of_blocks*16
     mem = rom_contents[block_data_ptr:block_data_ptr+length]
-    #for block_i in range(num_of_blocks):
-    #    pos = block_i*16
-    #    block_mem = mem[pos:pos+16]
-    #return block_mem
     return mem
 
 def build_block_imgs(blocks_mem, imgs, palettes):

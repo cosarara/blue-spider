@@ -301,31 +301,6 @@ class Window(QtGui.QMainWindow):
             palette = mapped.get_pal_colors(self.rom_contents, pals2_ptr,
                     pal_n+num_of_pals1)
             pals.append(palette)
-
-        #new_t1_imgs = []
-        #times = (mapped.GRAYSCALE and True) or 13
-        #for pal_n in range(times):
-        #    palette = pals[pal_n]
-        #    if t1_imgs:
-        #        t1_img = t1_imgs[pal_n]
-        #    else:
-        #        t1_img = mapped.get_tileset_img(self.rom_contents, t1_header,
-        #                palette)
-        #        new_t1_imgs.append(t1_img)
-        #    t2_img = mapped.get_tileset_img(self.rom_contents, t2_header, palette)
-        #    w = t1_img.size[0]
-        #    h = t1_img.size[1] + t2_img.size[1]
-        #    big_img = Image.new("RGB", (w, h))
-        #    pos = (0, 0, t1_img.size[0], t1_img.size[1])
-        #    big_img.paste(t1_img, pos)
-        #    x = 0
-        #    y = t1_img.size[1]
-        #    x2 = x + t2_img.size[0]
-        #    y2 = y + t2_img.size[1]
-        #    pos = (x, y, x2, y2)
-        #    big_img.paste(t2_img, pos)
-        #    imgs.append(big_img)
-
         palette = mapped.grayscale_pal
         new_t1_imgs = []
         if t1_imgs:
