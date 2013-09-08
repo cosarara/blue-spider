@@ -303,9 +303,9 @@ class Window(QtGui.QMainWindow):
             pals.append(palette)
         palette = mapped.grayscale_pal
         new_t1_imgs = []
-        if t1_imgs:
+        try:
             t1_img = t1_imgs[pal_n]
-        else:
+        except Exception:
             t1_img = mapped.get_tileset_img(self.rom_contents, t1_header, palette)
             new_t1_imgs.append(t1_img)
         t2_img = mapped.get_tileset_img(self.rom_contents, t2_header, palette)
