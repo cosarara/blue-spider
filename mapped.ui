@@ -1160,7 +1160,7 @@
                 <item row="13" column="0">
                  <widget class="QLabel" name="label_25">
                   <property name="text">
-                   <string>Vier radius</string>
+                   <string>View radius</string>
                   </property>
                  </widget>
                 </item>

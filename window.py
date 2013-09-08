@@ -958,7 +958,7 @@ class Ui_MainWindow(object):
         self.label_22.setText(_translate("MainWindow", "Unknown", None))
         self.label_23.setText(_translate("MainWindow", "Is a trainer", None))
         self.label_24.setText(_translate("MainWindow", "Unknown", None))
-        self.label_25.setText(_translate("MainWindow", "Vier radius", None))
+        self.label_25.setText(_translate("MainWindow", "View radius", None))
         self.label_26.setText(_translate("MainWindow", "Script offset", None))
         self.label_27.setText(_translate("MainWindow", "Flag", None))
         self.label_28.setText(_translate("MainWindow", "Unknown", None))
