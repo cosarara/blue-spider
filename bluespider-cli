@@ -1,0 +1,3 @@
+#!/usr/bin/env python3
+from bluespider.mapped_text import main
+main()

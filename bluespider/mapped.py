@@ -1,15 +1,15 @@
 
 import binascii
-#from map_printer import *
 import os, sys
-import lz77
 try:
     import Image
     import ImageQt
 except:
     from PIL import Image, ImageQt
-import structures
-import text_translate
+
+from . import lz77
+from . import structures
+from . import text_translate
 
 axve = {
     'MapHeaders'      : 0x53324,
@@ -426,26 +426,43 @@ def build_block_imgs(blocks_mem, imgs, palettes):
         block_imgs.append(block_img)
     return block_imgs
 
-def get_imgs(path=["data", "mov_perms"], num=0x40):
+def get_imgs(path=["data", "mov_perms"], num=0x40, usepackagedata=True):
     ''' load png images to show in GUI '''
-    base_path = os.path.join(*path)
     alpha = Image.new("L", (16, 16), 150)
+    img_names = [hex(n)[2:].zfill(2).upper() + '.png' for n in range(num)]
     imgs = []
-    img_paths = [hex(n)[2:].zfill(2).upper() + '.png' for n in range(num)]
-    path = os.path.join(base_path, "N.png")
-    if not os.path.exists(path):
-        raise IOError("file " + path + " not found")
-    else:
-        null_image = Image.open(path)
-        null_image.putalpha(alpha)
-    for img in img_paths:
-        path = os.path.join(base_path, img)
-        if os.path.exists(path):
-            imgs.append(Image.open(path))
-            imgs[-1].putalpha(alpha)
-            #imgs[-1].save(path + ".alpha.png", "PNG")
+    if not usepackagedata:
+        base_path = os.path.join(*path)
+        path = os.path.join(base_path, "N.png")
+        if not os.path.exists(path):
+            raise IOError("file " + path + " not found")
         else:
-            imgs.append(null_image)
+            null_image = Image.open(path)
+            null_image.putalpha(alpha)
+        for img in img_names:
+            path = os.path.join(base_path, img)
+            if os.path.exists(path):
+                imgs.append(Image.open(path))
+                imgs[-1].putalpha(alpha)
+                #imgs[-1].save(path + ".alpha.png", "PNG")
+            else:
+                imgs.append(null_image)
+    else:
+        import pkgutil
+        get = lambda x : pkgutil.get_data('bluespider', x)
+        import io
+        makeimg = lambda x : Image.open(io.BytesIO(x))
+        get_img = lambda x : makeimg(get(x))
+        base_path = os.path.join(*path)
+        null_image = get_img(os.path.join(base_path, "N.png"))
+        for img in img_names:
+            path = os.path.join(base_path, img)
+            try:
+                imgs.append(get_img(path))
+            except FileNotFoundError:
+                imgs.append(null_image)
+            imgs[-1].putalpha(alpha)
+        
     return imgs
 
 

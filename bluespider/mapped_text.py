@@ -7,10 +7,12 @@
 # Elitemap's source code
 # http://www.pokecommunity.com/showthread.php?t=156018
 
-
-from mapped import *
-from map_printer import *
-from text_translate import *
+# heh, ugly
+# It was the easy way to move lots of function to their own modules without
+# touching anything
+from .mapped import *
+from .map_printer import *
+from .text_translate import *
 
 
 def main():
@@ -76,7 +78,7 @@ def main():
             get_banks(rom_contents, rom_data, echo=True)
             sys.exit(0)
     elif mode == 'r' or mode == 'w':
-        banks = get_banks(rom_contents)
+        banks = get_banks(rom_contents, rom_data)
         bank_n = int(sys.argv[3])
         map_n = int(sys.argv[4])
         map_headers = get_map_headers(rom_contents, bank_n, banks)

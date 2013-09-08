@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 #This file is part of ASC.
@@ -16,14 +16,16 @@
 #    You should have received a copy of the GNU General Public License
 #    along with ASC.  If not, see <http://www.gnu.org/licenses/>.
 
-
-# Compat. with python 3.2
-from __future__ import unicode_literals
-
 import string
+import pkgutil
+import os
 
-with open("pktext.tbl", "r") as table_file:
-    table_str = table_file.read().rstrip("\n")
+try:
+    data = pkgutil.get_data('bluespider', os.path.join('data', 'pktext.tbl'))
+    table_str = data.decode("utf8").rstrip("\n")
+except Exception as e:
+    print(e)
+    table_str='FF=$$'
 table = table_str
 
 def read_table_encode(table_string=table_str):

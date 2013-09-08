@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
 
+import os
 import sys
 from PyQt4 import Qt, QtCore, QtGui
-from window import Ui_MainWindow
-import qmapview
-
-import mapped
-import structures
-import os
-
-
 try:
     import Image
     import ImageQt
 except:
     from PIL import Image, ImageQt
+
+from .window import Ui_MainWindow
+from . import qmapview
+from . import mapped
+from . import structures
 
 class Window(QtGui.QMainWindow):
     def __init__(self, parent=None):
@@ -841,8 +839,7 @@ t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
         self.save_settings()
         event.accept()
 
-
-if __name__ == "__main__":
+def main():
     app = QtGui.QApplication(sys.argv)
     win = Window()
     win.show()
@@ -852,4 +849,6 @@ if __name__ == "__main__":
     sys.exit(r)
     #sys.exit(app.exec_())
 
+if __name__ == "__main__":
+    main()
 
