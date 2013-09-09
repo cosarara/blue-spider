@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'mapped.ui'
 #
-# Created: Sun Jul  7 11:56:09 2013
-#      by: PyQt4 UI code generator 4.10.2
+# Created: Mon Sep  9 22:29:20 2013
+#      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -288,12 +288,13 @@ class Ui_MainWindow(object):
         self.w_warp_n = QtGui.QLineEdit(self.warpEditor)
         self.w_warp_n.setObjectName(_fromUtf8("w_warp_n"))
         self.formLayout_2.setWidget(5, QtGui.QFormLayout.FieldRole, self.w_warp_n)
-        self.openInEmulatorButton = QtGui.QPushButton(self.warpEditor)
-        self.openInEmulatorButton.setObjectName(_fromUtf8("openInEmulatorButton"))
-        self.formLayout_2.setWidget(6, QtGui.QFormLayout.FieldRole, self.openInEmulatorButton)
         self.warpGoToMapButton = QtGui.QPushButton(self.warpEditor)
         self.warpGoToMapButton.setObjectName(_fromUtf8("warpGoToMapButton"))
         self.formLayout_2.setWidget(7, QtGui.QFormLayout.FieldRole, self.warpGoToMapButton)
+        self.openInEmulatorButton = QtGui.QPushButton(self.warpEditor)
+        self.openInEmulatorButton.setEnabled(False)
+        self.openInEmulatorButton.setObjectName(_fromUtf8("openInEmulatorButton"))
+        self.formLayout_2.setWidget(8, QtGui.QFormLayout.FieldRole, self.openInEmulatorButton)
         self.eventsStackedWidget.addWidget(self.warpEditor)
         self.personEditor = QtGui.QWidget()
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
@@ -865,8 +866,8 @@ class Ui_MainWindow(object):
         self.label_12.setText(_translate("MainWindow", "Bank num.", None))
         self.label_13.setText(_translate("MainWindow", "Map num.", None))
         self.label_14.setText(_translate("MainWindow", "Warp num.", None))
-        self.openInEmulatorButton.setText(_translate("MainWindow", "Open in emulator", None))
         self.warpGoToMapButton.setText(_translate("MainWindow", "Go to map", None))
+        self.openInEmulatorButton.setText(_translate("MainWindow", "Open in emulator", None))
         self.label_16.setText(_translate("MainWindow", "Person num.", None))
         self.label_17.setText(_translate("MainWindow", "Sprite num. (dec)", None))
         self.label_18.setText(_translate("MainWindow", "Unknown", None))

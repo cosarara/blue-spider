@@ -529,17 +529,20 @@
                 <item row="5" column="1">
                  <widget class="QLineEdit" name="w_warp_n"/>
                 </item>
-                <item row="6" column="1">
-                 <widget class="QPushButton" name="openInEmulatorButton">
-                  <property name="text">
-                   <string>Open in emulator</string>
-                  </property>
-                 </widget>
-                </item>
                 <item row="7" column="1">
                  <widget class="QPushButton" name="warpGoToMapButton">
                   <property name="text">
                    <string>Go to map</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="8" column="1">
+                 <widget class="QPushButton" name="openInEmulatorButton">
+                  <property name="enabled">
+                   <bool>false</bool>
+                  </property>
+                  <property name="text">
+                   <string>Open in emulator</string>
                   </property>
                  </widget>
                 </item>
