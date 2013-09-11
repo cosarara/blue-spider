@@ -438,7 +438,13 @@ class Window(QtGui.QMainWindow):
             events = self.events
         event_img = self.map_img.copy()
         person_events, warp_events, trigger_events, signpost_events = events
-        event_imgs = mapped.get_imgs(["data", "events"], 4)
+        base = ''
+        usepackagedata = True
+        if getattr(sys, 'frozen', False):
+            base = os.path.join(os.path.dirname(sys.executable), "bluespider")
+            usepackagedata = False
+        event_imgs = mapped.get_imgs([base, "data", "events"], 4,
+                usepackagedata)
         person_img, warp_img, trigger_img, signpost_img = event_imgs
         event_types = (
                 (person_events, person_img),
@@ -514,7 +520,13 @@ class Window(QtGui.QMainWindow):
         self.t1_header = tileset_header
         self.t2_header = tileset2_header
 
-        self.mov_perms_imgs = mapped.get_imgs()
+        base = ''
+        usepackagedata = True
+        if getattr(sys, 'frozen', False):
+            base = os.path.join(os.path.dirname(sys.executable), "bluespider")
+            usepackagedata = False
+        self.mov_perms_imgs = mapped.get_imgs([base, "data", "mov_perms"],
+                0x40, usepackagedata)
 
         self.load_events()
 

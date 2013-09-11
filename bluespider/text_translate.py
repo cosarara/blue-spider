@@ -19,10 +19,17 @@
 import string
 import pkgutil
 import os
+import sys
 
 try:
-    data = pkgutil.get_data('bluespider', os.path.join('data', 'pktext.tbl'))
-    table_str = data.decode("utf8").rstrip("\n")
+    if getattr(sys, 'frozen', False):
+        datadir = os.path.dirname(sys.executable)
+        path = os.path.join(datadir, 'bluespider', 'data', 'pktext.tbl')
+        with open(path, "r", encoding="utf8") as file:
+            table_str = file.read().rstrip("\n")
+    else:
+        data = pkgutil.get_data('bluespider', os.path.join('data', 'pktext.tbl'))
+        table_str = data.decode("utf8").rstrip("\n")
 except Exception as e:
     print(e)
     table_str='FF=$$'

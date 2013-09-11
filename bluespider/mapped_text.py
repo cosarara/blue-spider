@@ -7,13 +7,11 @@
 # Elitemap's source code
 # http://www.pokecommunity.com/showthread.php?t=156018
 
-# heh, ugly
-# It was the easy way to move lots of function to their own modules without
-# touching anything
-from .mapped import *
-from .map_printer import *
-from .text_translate import *
-
+import sys
+from .mapped import bpre, axve
+from .mapped import get_banks, get_map_headers
+from .mapped import parse_map_header, parse_map_data
+from .map_printer import map_to_text, text_to_mem, print_dict_hex
 
 def main():
     if ((len(sys.argv) < 3) or (sys.argv[2] == "r" and len(sys.argv) < 5)

@@ -5,7 +5,10 @@ try:
     import Image
     import ImageQt
 except:
-    from PIL import Image, ImageQt
+    try:
+        from PIL import Image, ImageQt
+    except:
+        print("Warning: Couldn't import PIL")
 
 from . import lz77
 from . import structures
