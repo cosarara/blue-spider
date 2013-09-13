@@ -9,6 +9,8 @@ try:
 except:
     from PIL import Image, ImageQt
 
+import pkgutil
+
 from .window import Ui_MainWindow
 from . import qmapview
 from . import mapped
@@ -20,6 +22,20 @@ class Window(QtGui.QMainWindow):
         self.ui = Ui_MainWindow()
 
         self.ui.setupUi(self)
+        if getattr(sys, 'frozen', False):
+            iconpath = os.path.join(
+                    os.path.dirname(sys.executable),
+                    "bluespider", "data", "icon.svg")
+            pixmap = QtGui.QPixmap(iconpath)
+        else:
+            icon = pkgutil.get_data('bluespider',
+                    os.path.join('data', 'icon.svg'))
+            pixmap = QtGui.QPixmap()
+            pixmap.loadFromData(icon)
+        icon = QtGui.QIcon()
+        icon.addPixmap(pixmap,
+                QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.setWindowIcon(icon)
 
         self.tree_model = QtGui.QStandardItemModel()
         self.ui.treeView.setModel(self.tree_model)
