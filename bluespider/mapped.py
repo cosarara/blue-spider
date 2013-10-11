@@ -51,26 +51,32 @@ def hexbytes(s):
 print32bytes = lambda x, rom_contents : print(hexbytes(rom_contents[x:x+32]))
 
 to_int = lambda x : int.from_bytes(x, "little")
-get_addr = lambda x : int.from_bytes(x, "little") & 0xFFFFFF
+get_addr = lambda x : int.from_bytes(x, "little") #& 0xFFFFFF
 
-def get_rom_addr(a): # Safer and more useful version
-    #a = int.from_bytes(x, "little")
-    #print(hex(a))
-    if a & 0x8000000 == 0x8000000:
-        return a & 0xFFFFFF
+def get_rom_addr(x):
+    if x >= 0x8000000:
+        x -= 0x8000000
+    #if x < 0:
+    #    raise Exception("Address < 0 (%s)" % x)
+    return x
+
+def check_rom_addr(a):
+    if a & 0x8000000 == 0x8000000 or a & 0x9000000 == 0x9000000:
+        return a
     else:
         return -1
 
-def get_rom_addr_at(x, rom_contents):
-    return get_rom_addr(to_int(rom_contents[x:x+4]))
-
 def read_n_bytes(rom, addr, n):
+    addr = get_rom_addr(addr)
     if addr == -1:
         raise Exception("you are trying to read -1")
     return rom[addr:addr+n]
 
 read_long_at = lambda rom, addr : to_int(read_n_bytes(rom, addr, 4))
-read_ptr_at = lambda rom, addr : get_rom_addr(read_long_at(rom, addr))
+read_ptr_at = read_long_at
+read_rom_addr_at = lambda rom, addr : get_rom_addr(
+    check_rom_addr(read_long_at(rom, addr))
+    )
 read_short_at = lambda rom, addr : to_int(read_n_bytes(rom, addr, 2))
 read_byte_at = lambda rom, addr : to_int(read_n_bytes(rom, addr, 1))
 
@@ -82,7 +88,7 @@ def write_n_bytes(rom, addr, n, data):
 write_long_at = (lambda rom, addr, num :
         write_n_bytes(rom, addr, 4, num.to_bytes(4, "little")))
 write_rom_ptr_at = (lambda rom, addr, num :
-        write_long_at(rom, addr, num + 0x8000000))
+        write_long_at(rom, addr, (num + 0x8000000 if num < 0x1000000 else num)))
 write_short_at = (lambda rom, addr, num :
         write_n_bytes(rom, addr, 2, num.to_bytes(2, "little")))
 write_byte_at = (lambda rom, addr, num :
@@ -95,9 +101,12 @@ def get_banks(rom_contents, rom_data=axve, echo=False):
     i = 0
     banks = []
     while True:
-        a = get_rom_addr_at(get_rom_addr_at(rom_data['MapHeaders'], rom_contents) + i * 4,
-                            rom_contents)
+        a = read_rom_addr_at(rom_contents, rom_data['MapHeaders']) + i * 4
+        a = read_rom_addr_at(rom_contents, a)
+        #a = read_rom_addr_at(rom_contents,
+        #        read_rom_addr_at(rom_contents, rom_data['MapHeaders']) + i * 4)
         if a == -1:
+            if echo: print("-1!")
             break
         if echo:
             print(hex(i) + "\t" + hex(a))
@@ -122,7 +131,7 @@ def get_map_headers(rom_contents, n, banks, echo=False):
         addr_offset = maps_addr + i * 4
         if addr_offset == maps_of_next_bank:
             break
-        a = get_rom_addr_at(addr_offset, rom_contents)
+        a = read_rom_addr_at(rom_contents, addr_offset)
         if a == -1:
             break
         if echo:
@@ -210,7 +219,7 @@ def parse_events(rom_contents, events_header):
     for fun, num_key, start_ptr_key, list, event_size in parsing_functions:
         num = events_header[num_key]
         for event in range(num):
-            ptr = events_header[start_ptr_key] + event_size * event
+            ptr = get_rom_addr(events_header[start_ptr_key]) + event_size * event
             event_data = fun(rom_contents, ptr)
             list.append(event_data)
     return person_events, warp_events, trigger_events, signpost_events
@@ -327,6 +336,7 @@ def build_sprite_img(data, im, palette=grayscale_pal2):
 
 def get_tileset_img(rom_contents, tileset_header, pal):
     tileset_img_ptr = tileset_header["tileset_image_ptr"]
+    tileset_img_ptr = get_rom_addr(tileset_img_ptr)
     tiles_per_line = 16
     if tileset_header["is_compressed"]:
         decompressed_data = lz77.decompress(rom_contents[
@@ -354,7 +364,7 @@ def get_tileset_img(rom_contents, tileset_header, pal):
 
 
 def get_block_data(rom_contents, tileset_header, game='RS'):
-    block_data_ptr = tileset_header['block_data_ptr']
+    block_data_ptr = get_rom_addr(tileset_header['block_data_ptr'])
     t_type = tileset_header['tileset_type']
     if t_type == 0:
         if game == 'RS' or game == 'EM':
@@ -362,7 +372,7 @@ def get_block_data(rom_contents, tileset_header, game='RS'):
         else:
             num_of_blocks = 640
     else:
-        behavior_data_ptr = tileset_header['behavior_data_ptr']
+        behavior_data_ptr = get_rom_addr(tileset_header['behavior_data_ptr'])
         num_of_blocks = (behavior_data_ptr - block_data_ptr) // 16
     length = num_of_blocks*16
     mem = rom_contents[block_data_ptr:block_data_ptr+length]
@@ -505,10 +515,10 @@ def map_to_mem(map):
 
 
 def fits(num, size):
-    if size == "long":
+    if size == "long" or size == "ptr":
         return num <= 0xFFFFFFFF
-    elif size == "ptr":
-        return num <= 0xFFFFFF
+    #elif size == "ptr":
+    #    return num <= 0xFFFFFF
     elif size == "short":
         return num <= 0xFFFF
     elif size == "byte":
@@ -569,13 +579,13 @@ def rem_event(rom_memory, events_header, type):
 
 def get_map_labels(rom_memory, game=axve, type='RS'):
     labels = []
-    labels_ptr = read_ptr_at(rom_memory, game["MapLabels"])
-    labels_ptr = game["MapLabels"]
+    #labels_ptr = read_ptr_at(rom_memory, game["MapLabels"])
+    labels_ptr = get_rom_addr(game["MapLabels"])
     add = (type == 'RS' and 4) or (type == 'EM' and 4) or (type == 'FR' and 0)
     for i in range(0x59 if type=='RS' else 0x6D): # Magic!
         # RS: [4 unknown bytes][ptr to label][4 unknown bytes][ptr to label]...
         # FR: [ptr to label][ptr to label]...
-        ptr = read_ptr_at(rom_memory, labels_ptr+i*(4+add)+add)
+        ptr = get_rom_addr(read_ptr_at(rom_memory, labels_ptr+i*(4+add)+add))
         mem = rom_memory[ptr:ptr+rom_memory[ptr:].find(b'\xff')].replace(b'\xfc', b'')
         label = text_translate.hex_to_ascii(mem).replace("  ", " ")
         labels.append(label)
@@ -583,7 +593,7 @@ def get_map_labels(rom_memory, game=axve, type='RS'):
 
 
 def get_sprite_palette_ptr(rom_memory, pal_num, game=axve):
-    base_offset = game["SpritePalettes"]
+    base_offset = get_rom_addr(game["SpritePalettes"])
     i = 0
     while True:
         offset = base_offset + 8*i
@@ -597,23 +607,27 @@ def get_sprite_palette_ptr(rom_memory, pal_num, game=axve):
 
 def get_ow_sprites(rom_memory, game=axve):
     # get_pal_colors SpritePalettes
-    sprites_table_ptr = game['Sprites']
+    sprites_table_ptr = get_rom_addr(game['Sprites'])
     sprite_imgs = []
     for i in range(152): # XXX
         header_fullptr = read_long_at(rom_memory, sprites_table_ptr+i*4)
-        if (header_fullptr & 0x8000000) != 0x8000000:
+        if (header_fullptr & 0x8000000 != 0x8000000 and
+            header_fullptr & 0x9000000 != 0x9000000):
             break
-        header_ptr = read_ptr_at(rom_memory, sprites_table_ptr+i*4)
+        header_ptr = get_rom_addr(read_ptr_at(rom_memory, sprites_table_ptr+i*4))
         header = parse_data_structure(rom_memory, structures.sprite, header_ptr)
-        header2_ptr = header['header2_ptr']
+        header2_ptr = get_rom_addr(header['header2_ptr'])
         header2 = parse_data_structure(rom_memory, structures.sprite2, header2_ptr)
-        img_ptr = header2['img_ptr']
-        pal_ptr = get_sprite_palette_ptr(rom_memory, header["palette_num"], game)
-        #print(header["palette_num"], hex(pal_ptr))
+        img_ptr = get_rom_addr(header2['img_ptr'])
+        pal_ptr = get_rom_addr(get_sprite_palette_ptr(
+            rom_memory, header["palette_num"], game
+            ))
         pal = get_pal_colors(rom_memory, pal_ptr)
         #print(i, hex(img_ptr))
+        #print("------")
         #from pprint import pprint
-        ##print(img_ptr)
+        #pprint(img_ptr)
+        #pprint(pal_ptr)
         #pprint(header)
         #pprint(header2)
         data = rom_memory[img_ptr:img_ptr+0x100] # XXX

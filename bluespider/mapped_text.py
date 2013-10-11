@@ -8,6 +8,7 @@
 # http://www.pokecommunity.com/showthread.php?t=156018
 
 import sys
+from . import mapped
 from .mapped import bpre, axve
 from .mapped import get_banks, get_map_headers
 from .mapped import parse_map_header, parse_map_data
@@ -40,9 +41,12 @@ def main():
         raise Exception("ROM code not found")
     if mode == 'p':
         if len(sys.argv) == 4:
-            banks = get_banks(rom_contents, rom_data)
-            bank_n = int(sys.argv[3], 16)
-            get_map_headers(rom_contents, bank_n, banks, echo=True)
+            if sys.argv[3] in ("-h", "--help"):
+                print("Usage: p [bank [map [command]]]")
+            else:
+                banks = get_banks(rom_contents, rom_data)
+                bank_n = int(sys.argv[3], 16)
+                get_map_headers(rom_contents, bank_n, banks, echo=True)
         elif len(sys.argv) == 5:
             banks = get_banks(rom_contents, rom_data)
             bank_n = int(sys.argv[3], 16)
@@ -69,7 +73,7 @@ def main():
             ph = lambda x : print(hexbytes(x))
             rc = rom_contents
             p32b = print32bytes
-            gaddrat = get_rom_addr_at
+            raddrat = read_rom_addr_at
             r = lambda rom, start, length : rom[start:start+length]
             eval(sys.argv[5]) # Yup! Let the user run whatever the fuck he wants
         else:
@@ -91,6 +95,8 @@ def main():
             #tileset1_data = parse_tileset_header(rom_contents, map_data['global_tileset_ptr'])
             #block_data_ptr = tileset1_data['block_data_ptr']
             #print('tileset1 block data ptr is ', hex(block_data_ptr))
+            #print(hex(tilemap_address))
+            tilemap_address = mapped.get_rom_addr(tilemap_address)
             mapmem = rom_contents[tilemap_address:]
             #print(mapmem[:100])
             text_map = map_to_text(mapmem, w, h)

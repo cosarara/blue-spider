@@ -60,7 +60,7 @@ class Window(QtGui.QMainWindow):
 
         self.sprites = []
 
-        self.ui.actionLoad_ROM.triggered.connect(self.load_rom)
+        self.ui.actionLoad_ROM.triggered.connect(self.load_rom_dialog)
         self.ui.actionSave.triggered.connect(self.write_to_file)
         self.ui.actionSave_As.triggered.connect(self.save_as)
         self.ui.treeView.clicked.connect(self.load_map)
@@ -88,7 +88,7 @@ class Window(QtGui.QMainWindow):
 
         self.loaded_map = False
 
-        hex_update = lambda x : (lambda n : x(hex(n)[2:]))
+        hex_update = lambda x : (lambda n : x(hex(n)))
         hex_read = lambda x : (lambda : int(x(), 16))
         bool_update = lambda x : (lambda n : x(bool(n)))
         bool_read = lambda x : (lambda : int(x()))
@@ -201,7 +201,12 @@ class Window(QtGui.QMainWindow):
 
         #self.script_editor_command = '../asc/git/asc_gui_qt.py'
         self.script_editor_command = ''
+        self.isxse = False
         self.load_settings()
+
+        if len(sys.argv) >= 2:
+            self.load_rom(sys.argv[1])
+
 
     def redraw_events(self):
         if self.reload_lock:
@@ -221,16 +226,19 @@ class Window(QtGui.QMainWindow):
         self.update_event_editor()
 
 
-    def load_rom(self):
+    def load_rom_dialog(self):
+        self.load_rom()
+
+    def load_rom(self, fn=None):
         self.loaded_map = None
 
         self.tree_model.clear()
         self.banks = []
-        fn = QtGui.QFileDialog.getOpenFileName(self, 'Open ROM file', 
+        if fn is None:
+            fn = QtGui.QFileDialog.getOpenFileName(self, 'Open ROM file', 
                                                QtCore.QDir.homePath(),
                                                "GBA ROM (*.gba);;"
                                                "All files (*)")
-
         if not fn:
             return
         with open(fn, "rb") as rom_file:
@@ -262,7 +270,7 @@ class Window(QtGui.QMainWindow):
             rom_file.write(self.rom_contents)
 
     def load_banks(self):
-        self.banks = mapped.get_banks(self.rom_contents, self.rom_data)
+        self.banks = mapped.get_banks(self.rom_contents, self.rom_data, echo=True)
         map_labels = mapped.get_map_labels(self.rom_contents, self.rom_data, self.game)
         for i, bank in enumerate(self.banks):
             self.tree_model.appendRow(QtGui.QStandardItem(hex(i) + " - " + hex(bank)))
@@ -298,8 +306,8 @@ class Window(QtGui.QMainWindow):
         else:
             self.blocks_imgs = []
             t1_imgs = None
-        pals1_ptr = t1_header["palettes_ptr"]
-        pals2_ptr = t2_header["palettes_ptr"]
+        pals1_ptr = mapped.get_rom_addr(t1_header["palettes_ptr"])
+        pals2_ptr = mapped.get_rom_addr(t2_header["palettes_ptr"])
         imgs = []
         pals = []
         if self.game == 'RS' or self.game == 'EM':
@@ -513,7 +521,7 @@ class Window(QtGui.QMainWindow):
         self.map_n = map_n
         print(bank_n, map_n)
         maps = mapped.get_map_headers(self.rom_contents, bank_n, self.banks)
-        map_h_ptr = maps[map_n]
+        map_h_ptr = mapped.get_rom_addr(maps[map_n])
         map_header = mapped.parse_map_header(self.rom_contents, map_h_ptr)
         self.map_header = map_header
         map_data_header = mapped.parse_map_data(
@@ -549,6 +557,7 @@ class Window(QtGui.QMainWindow):
         # Every tile is 2 bytes
         map_size = map_data_header['w'] * map_data_header['h'] * 2
         tilemap_ptr = map_data_header['tilemap_ptr']
+        tilemap_ptr = mapped.get_rom_addr(tilemap_ptr)
         self.tilemap_ptr = tilemap_ptr
         map_mem = self.rom_contents[tilemap_ptr:tilemap_ptr+map_size]
         self.map = mapped.parse_map_mem(map_mem, map_data_header['w'],
@@ -661,6 +670,8 @@ class Window(QtGui.QMainWindow):
                 size = "long"
             if not mapped.fits(num, size):
                 raise Exception(data_element + " too big")
+            if size == "ptr" and num < 0x8000000:
+                num &= 0x8000000
             self.selected_event[data_element] = num
 
     def map_clicked(self, event):
@@ -785,7 +796,9 @@ class Window(QtGui.QMainWindow):
         #print(self.tree_model.item(bank))
         self.load_map(self.tree_model.item(bank).child(map))
 
-    def launch_script_editor(self, offset=None, file_name=None, command=None):
+    def launch_script_editor(self, offset=None, file_name=None, command=None, xse=None):
+        if xse is None:
+            xse = self.isxse
         if not command:
             command = self.script_editor_command
         if not file_name:
@@ -793,13 +806,26 @@ class Window(QtGui.QMainWindow):
         if not offset:
             self.save_event_to_memory()
             offset = self.selected_event['script_ptr']
+        print(hex(offset))
+        print(xse)
+        if not xse:
+            args = [command, file_name, hex(offset)]
+        else:
+            args = [command, file_name+";"+hex(offset)[2:]]
         import subprocess
-        subprocess.Popen([command, file_name, hex(offset)])
+        subprocess.Popen(args)
 
     def select_script_editor(self):
         fn = QtGui.QFileDialog.getOpenFileName(self, 'Choose script editor executable', 
                                                QtCore.QDir.homePath(),
                                                "All files (*)")
+        q = "Is it XSE?"
+        isxse = QtGui.QMessageBox.question(self, q, q, 
+                QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
+        if isxse == QtGui.QMessageBox.Yes:
+            self.isxse = True
+        else:
+            self.isxse = False
 
         self.script_editor_command = fn
         self.save_settings()
@@ -849,6 +875,8 @@ t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
                 self.script_editor_command = settings["script_editor"]
             else:
                 self.script_editor_command = None
+            if "script_editor_is_xse" in settings:
+                self.isxse = settings["script_editor_is_xse"]
             if "nocolor" in settings:
                 if settings["nocolor"] is True:
                     mapped.GRAYSCALE = mapped.grayscale_pal
@@ -859,7 +887,8 @@ t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
 
     def save_settings(self):
         settings = {"script_editor": self.script_editor_command,
-                    "nocolor": mapped.GRAYSCALE}
+                    "nocolor": mapped.GRAYSCALE,
+                    "script_editor_is_xse": self.isxse}
         with open("settings.txt", "w") as settings_file:
             settings_file.write(str(settings))
 
