@@ -88,7 +88,8 @@ def write_n_bytes(rom, addr, n, data):
 write_long_at = (lambda rom, addr, num :
         write_n_bytes(rom, addr, 4, num.to_bytes(4, "little")))
 write_rom_ptr_at = (lambda rom, addr, num :
-        write_long_at(rom, addr, (num + 0x8000000 if num < 0x1000000 else num)))
+        write_long_at(rom, addr, (num + 0x8000000 if num < 0x1000000 and
+                                                     num != 0 else num)))
 write_short_at = (lambda rom, addr, num :
         write_n_bytes(rom, addr, 2, num.to_bytes(2, "little")))
 write_byte_at = (lambda rom, addr, num :
@@ -161,7 +162,7 @@ def parse_data_structure(rom_contents, struct, offset):
         data[name] = get_read_function(size)(rom_contents, offset+pos)
         if data[name] == -1:
             data[name] = 0
-    data["self"] = offset
+    data["self"] = get_rom_addr(offset)
     return data
 
 def write_data_structure(rom_contents, struct, data, offset=None):
@@ -203,6 +204,12 @@ def parse_events_header(rom_contents, events_header_ptr):
 def write_events_header(rom_contents, data):
     struct = structures.events_header
     return write_data_structure(rom_contents, struct, data)
+
+write_map_header = lambda rom_contents, data : write_data_structure(
+        rom_contents, structures.map_header, data)
+
+write_map_data_header = lambda rom_contents, data : write_data_structure(
+        rom_contents, structures.map_data, data)
 
 def parse_events(rom_contents, events_header):
     person_events = []

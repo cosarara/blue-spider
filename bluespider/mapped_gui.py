@@ -15,6 +15,7 @@ from .window import Ui_MainWindow
 from . import qmapview
 from . import mapped
 from . import structures
+from . import gui_connections
 
 class Window(QtGui.QMainWindow):
     def __init__(self, parent=None):
@@ -88,93 +89,8 @@ class Window(QtGui.QMainWindow):
 
         self.loaded_map = False
 
-        hex_update = lambda x : (lambda n : x(hex(n)))
-        hex_read = lambda x : (lambda : int(x(), 16))
-        bool_update = lambda x : (lambda n : x(bool(n)))
-        bool_read = lambda x : (lambda : int(x()))
-        combo_update = lambda x : (lambda n : x(int(n)))
-        combo_read = lambda x : (lambda : int(x()))
-
-        text_element = lambda name, obj : (
-                        (
-                            hex_read(obj.text),
-                            hex_update(obj.setText),
-                            name 
-                        )
-                      )
-
-        self.ui_event_connections = {
-                'person': (
-                        text_element("script_ptr", self.ui.p_script_offset),
-                        text_element("person_num", self.ui.person_num),
-                        (
-                            self.ui.sprite_num.value,
-                            self.ui.sprite_num.setValue,
-                            "sprite_num"
-                        ),
-                        #text_element("sprite_num", self.ui.sprite_num),
-                        text_element("x", self.ui.p_x),
-                        text_element("y", self.ui.p_y),
-                        text_element("flag", self.ui.p_flag),
-                        text_element("radius", self.ui.p_view_radius),
-                        text_element("mov", self.ui.p_mov),
-                        text_element("unknown1", self.ui.p_unknown1),
-                        text_element("unknown2", self.ui.p_unknown2),
-                        text_element("unknown3", self.ui.p_unknown3),
-                        text_element("unknown4", self.ui.p_unknown4),
-                        text_element("unknown5", self.ui.p_unknown5),
-                        text_element("unknown6", self.ui.p_unknown6),
-                        text_element("unknown7", self.ui.p_unknown7),
-                        (
-                            combo_read(self.ui.p_mov_type.currentIndex),
-                            combo_update(self.ui.p_mov_type.setCurrentIndex),
-                            "mov_type"
-                        ),
-                        (
-                            bool_read(self.ui.is_a_trainer.isChecked),
-                            bool_update(self.ui.is_a_trainer.setChecked),
-                            "is_a_trainer"
-                        ),
-                    ),
-                'warp': (
-                        text_element("x", self.ui.w_x),
-                        text_element("y", self.ui.w_y),
-                        text_element("unknown", self.ui.w_unknown1),
-                        text_element("warp_num", self.ui.w_warp_n),
-                        text_element("bank_num", self.ui.w_bank_n),
-                        text_element("map_num", self.ui.w_map_n),
-                    ),
-                "trigger": (
-                        text_element("x", self.ui.t_x),
-                        text_element("y", self.ui.t_y),
-                        text_element("unknown1", self.ui.t_unknown1),
-                        text_element("unknown2", self.ui.t_unknown2),
-                        text_element("unknown3", self.ui.t_unknown3),
-                        text_element("var_num", self.ui.t_var_num),
-                        text_element("var_value", self.ui.t_var_val),
-                        text_element("script_ptr", self.ui.t_script_offset),
-                    ),
-                "signpost": (
-                        text_element("x", self.ui.s_x),
-                        text_element("y", self.ui.s_y),
-                        (
-                            combo_read(self.ui.s_talking_level.currentIndex),
-                            combo_update(self.ui.s_talking_level.setCurrentIndex),
-                            "talking_level"
-                        ),
-                        (
-                            combo_read(self.ui.s_type.currentIndex),
-                            combo_update(self.ui.s_type.setCurrentIndex),
-                            "type"
-                        ),
-                        text_element("unknown1", self.ui.s_unknown1),
-                        text_element("unknown2", self.ui.s_unknown2),
-                        text_element("script_ptr", self.ui.s_script_offset),
-                        text_element("item_number", self.ui.s_item_id),
-                        text_element("hidden_item_id", self.ui.s_hidden_id),
-                        text_element("ammount", self.ui.s_ammount),
-                    )
-            }
+        self.ui_event_connections = gui_connections.get_event_connections(self.ui)
+        self.update_header, self.save_header = gui_connections.make_header_connections(self)
 
         self.ui.addWarpButton.clicked.connect(self.add_warp)
         self.ui.remWarpButton.clicked.connect(self.rem_warp)
@@ -270,7 +186,7 @@ class Window(QtGui.QMainWindow):
             rom_file.write(self.rom_contents)
 
     def load_banks(self):
-        self.banks = mapped.get_banks(self.rom_contents, self.rom_data, echo=True)
+        self.banks = mapped.get_banks(self.rom_contents, self.rom_data)
         map_labels = mapped.get_map_labels(self.rom_contents, self.rom_data, self.game)
         for i, bank in enumerate(self.banks):
             self.tree_model.appendRow(QtGui.QStandardItem(hex(i) + " - " + hex(bank)))
@@ -528,6 +444,7 @@ class Window(QtGui.QMainWindow):
                 self.rom_contents, map_header['map_data_ptr'],
                 self.game
                 )
+        self.map_data = map_data_header
 
         tileset_header = mapped.parse_tileset_header(
                 self.rom_contents,
@@ -560,13 +477,16 @@ class Window(QtGui.QMainWindow):
         tilemap_ptr = mapped.get_rom_addr(tilemap_ptr)
         self.tilemap_ptr = tilemap_ptr
         map_mem = self.rom_contents[tilemap_ptr:tilemap_ptr+map_size]
-        self.map = mapped.parse_map_mem(map_mem, map_data_header['w'],
-                map_data_header['h'])
+        self.map = mapped.parse_map_mem(map_mem, map_data_header['h'],
+                map_data_header['w'])
 
         self.draw_map(self.map)
         self.draw_palette()
         self.draw_events(self.events)
         self.loaded_map = True
+
+        self.update_header()
+
 
     def get_tile_num_from_mouseclick(self, event, pixmap):
         pos = event.pos()
@@ -593,7 +513,6 @@ class Window(QtGui.QMainWindow):
 
     def get_event_at_pos(self, pos):
         person_events, warp_events, trigger_events, signpost_events = self.events
-        #events = person_events + warp_events + trigger_events + signpost_events
         types = (
                 ("person", person_events),
                 ("warp", warp_events),
@@ -649,14 +568,10 @@ class Window(QtGui.QMainWindow):
         for connection in self.ui_event_connections[type]:
             read_function, update_function, data_element = connection
             update_function(event[data_element])
-            #print(update_function, event[data_element], data_element)
-            #self.ui.p_script_offset.setText(hex(event["script_ptr"])[2:])
-        #print(dir(self.ui.eventsStackedWidget))
 
 
     def save_event_to_memory(self):
         '''take event info from UI and save it in the events object'''
-        #self.selected_event[''] = None
         type = self.selected_event_type
         if not type or not self.selected_event:
             return
@@ -730,6 +645,7 @@ class Window(QtGui.QMainWindow):
         mapped.write_events_header(self.rom_contents, self.events_header)
 
     def save_map(self):
+        self.save_header()
         new_map_mem = mapped.map_to_mem(self.map)
         #print(self.map)
         pos = self.tilemap_ptr

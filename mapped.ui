@@ -151,7 +151,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="EventsTab">
+      <widget class="QWidget" name="eventsTab">
        <attribute name="title">
         <string>Events</string>
        </attribute>
@@ -186,7 +186,7 @@
           <widget class="QWidget" name="scrollAreaWidgetContents">
            <property name="geometry">
             <rect>
-             <x>0</x>
+             <x>-110</x>
              <y>0</y>
              <width>372</width>
              <height>715</height>
@@ -1739,6 +1739,295 @@
             </item>
            </layout>
           </widget>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="HeaderTab">
+       <attribute name="title">
+        <string>Header</string>
+       </attribute>
+       <layout class="QGridLayout" name="gridLayout_6">
+        <item row="1" column="0">
+         <widget class="QGroupBox" name="groupBox">
+          <property name="title">
+           <string>Map Header</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_12">
+           <item row="5" column="1">
+            <widget class="QLineEdit" name="song_index"/>
+           </item>
+           <item row="4" column="1">
+            <widget class="QLineEdit" name="con_data_ptr"/>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="label_103">
+             <property name="text">
+              <string>Connection Data Address</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="0">
+            <widget class="QLabel" name="label_42">
+             <property name="text">
+              <string>Show Label on Entering</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_105">
+             <property name="text">
+              <string>Map Address Index</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QLineEdit" name="m_ptr_index"/>
+           </item>
+           <item row="12" column="1">
+            <widget class="QLineEdit" name="weather_type"/>
+           </item>
+           <item row="14" column="0">
+            <widget class="QLabel" name="label_95">
+             <property name="text">
+              <string>Battle Type</string>
+             </property>
+            </widget>
+           </item>
+           <item row="14" column="1">
+            <widget class="QLineEdit" name="battle_type"/>
+           </item>
+           <item row="5" column="0">
+            <widget class="QLabel" name="label_104">
+             <property name="text">
+              <string>Song Index</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="1">
+            <widget class="QCheckBox" name="show_label">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item row="15" column="1">
+            <spacer name="verticalSpacer">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_36">
+             <property name="text">
+              <string>Map Data Address</string>
+             </property>
+            </widget>
+           </item>
+           <item row="11" column="0">
+            <widget class="QLabel" name="label_39">
+             <property name="text">
+              <string>Is a Cave</string>
+             </property>
+            </widget>
+           </item>
+           <item row="10" column="0">
+            <widget class="QLabel" name="label_41">
+             <property name="text">
+              <string>Map Type Number</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_38">
+             <property name="text">
+              <string>Event Data Address</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QLineEdit" name="e_data_ptr"/>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_37">
+             <property name="text">
+              <string>Level script Address</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QLineEdit" name="ls_ptr"/>
+           </item>
+           <item row="6" column="0">
+            <widget class="QLabel" name="label_35">
+             <property name="text">
+              <string>Label Index</string>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="1">
+            <widget class="QLineEdit" name="label_index"/>
+           </item>
+           <item row="10" column="1">
+            <widget class="QLineEdit" name="map_type"/>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLineEdit" name="m_data_ptr"/>
+           </item>
+           <item row="12" column="0">
+            <widget class="QLabel" name="label_40">
+             <property name="text">
+              <string>Weather Type Number</string>
+             </property>
+            </widget>
+           </item>
+           <item row="11" column="1">
+            <widget class="QCheckBox" name="is_cave">
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QGroupBox" name="groupBox_2">
+          <property name="title">
+           <string>Map Data</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_13">
+           <item row="4" column="2">
+            <widget class="QLineEdit" name="t1_ptr"/>
+           </item>
+           <item row="5" column="0">
+            <widget class="QLabel" name="label_102">
+             <property name="text">
+              <string>Local Tileset Address</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_96">
+             <property name="text">
+              <string>Dimensions:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="2">
+            <spacer name="verticalSpacer_3">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="5" column="2">
+            <widget class="QLineEdit" name="t2_ptr"/>
+           </item>
+           <item row="6" column="0">
+            <widget class="QLabel" name="label_99">
+             <property name="text">
+              <string>Border Info Address</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_100">
+             <property name="text">
+              <string>Tilemap Address</string>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="2">
+            <widget class="QLineEdit" name="border_info_ptr"/>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="label_101">
+             <property name="text">
+              <string>Global Tileset Address</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="2">
+            <widget class="QLineEdit" name="tilemap_ptr"/>
+           </item>
+           <item row="0" column="2">
+            <layout class="QHBoxLayout" name="_18">
+             <item>
+              <widget class="QLabel" name="label_97">
+               <property name="text">
+                <string>Width</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLineEdit" name="map_w">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>40</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_98">
+               <property name="text">
+                <string>Height</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLineEdit" name="map_h">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>40</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <spacer name="horizontalSpacer_3">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>40</width>
+                 <height>20</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </item>
+          </layout>
          </widget>
         </item>
        </layout>

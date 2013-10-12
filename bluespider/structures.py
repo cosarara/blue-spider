@@ -16,8 +16,8 @@ map_header = (
         )
 
 map_data = (
-        ("h", "long", 0),
-        ("w", "long", 4),
+        ("w", "long", 0),
+        ("h", "long", 4),
         ("border_ptr", "ptr", 8),
         ("tilemap_ptr", "ptr", 12),
         ("global_tileset_ptr", "ptr", 16),
