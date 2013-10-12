@@ -724,10 +724,12 @@ class Window(QtGui.QMainWindow):
             offset = self.selected_event['script_ptr']
         print(hex(offset))
         print(xse)
+        if sys.platform == "win32":
+            file_name = file_name.replace("/", "\\")
         if not xse:
             args = [command, file_name, hex(offset)]
         else:
-            args = [command, file_name+";"+hex(offset)[2:]]
+            args = [command, file_name+":"+hex(mapped.get_rom_addr(offset))[2:]]
         import subprocess
         subprocess.Popen(args)
 

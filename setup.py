@@ -29,9 +29,10 @@ data_files = [
           'data/icon*',
           'data/*.tbl',
           ]
-data_files_cxfreeze = ['bluespider/data/']
+data_files_cxfreeze = ['bluespider/data/', 'README.txt', 'imageformats']
 build_exe_options = {"packages": ["pkg_resources"],
-                     "include_files": data_files_cxfreeze}
+                     "include_files": data_files_cxfreeze,
+                     "includes": "PyQt4.QtCore"}
 
 setup(name='BlueSpider',
       version=version,
