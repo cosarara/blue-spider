@@ -40,30 +40,27 @@ def main():
     else:
         raise Exception("ROM code not found")
     if mode == 'p':
+        if len(sys.argv) == 3:
+            get_banks(rom_contents, rom_data, echo=True)
+            return
+        if sys.argv[3] in ("-h", "--help"):
+            print("Usage: p [bank [map [command]]]")
+            return
+        banks = get_banks(rom_contents, rom_data)
+        bank_n = int(sys.argv[3], 16)
         if len(sys.argv) == 4:
-            if sys.argv[3] in ("-h", "--help"):
-                print("Usage: p [bank [map [command]]]")
-            else:
-                banks = get_banks(rom_contents, rom_data)
-                bank_n = int(sys.argv[3], 16)
-                get_map_headers(rom_contents, bank_n, banks, echo=True)
-        elif len(sys.argv) == 5:
-            banks = get_banks(rom_contents, rom_data)
-            bank_n = int(sys.argv[3], 16)
-            map_header_ptrs = get_map_headers(rom_contents, bank_n, banks)
-            map_n = int(sys.argv[4], 16)
-            map_header_ptr = map_header_ptrs[map_n]
-            map = parse_map_header(rom_contents, map_header_ptr)
+            get_map_headers(rom_contents, bank_n, banks, echo=True)
+            return
+        map_header_ptrs = get_map_headers(rom_contents, bank_n, banks)
+        map_n = int(sys.argv[4], 16)
+        map_header_ptr = map_header_ptrs[map_n]
+        map = parse_map_header(rom_contents, map_header_ptr)
+        map_data_ptr = map['map_data_ptr']
+        map_data = parse_map_data(rom_contents, map_data_ptr)
+        if len(sys.argv) == 5:
             print_dict_hex(map)
+            print_dict_hex(map_data)
         elif len(sys.argv) == 6:
-            banks = get_banks(rom_contents, rom_data)
-            bank_n = int(sys.argv[3], 16)
-            map_header_ptrs = get_map_headers(rom_contents, bank_n, banks)
-            map_n = int(sys.argv[4], 16)
-            map_header_ptr = map_header_ptrs[map_n]
-            map = parse_map_header(rom_contents, map_header_ptr)
-            map_data_ptr = map['map_data_ptr']
-            map_data = parse_map_data(rom_contents, map_data_ptr)
             t1_ptr = map_data["global_tileset_ptr"]
             t2_ptr = map_data["local_tileset_ptr"]
             t1 = parse_tileset_header(rom_contents, t1_ptr)
@@ -76,9 +73,6 @@ def main():
             raddrat = read_rom_addr_at
             r = lambda rom, start, length : rom[start:start+length]
             eval(sys.argv[5]) # Yup! Let the user run whatever the fuck he wants
-        else:
-            get_banks(rom_contents, rom_data, echo=True)
-            sys.exit(0)
     elif mode == 'r' or mode == 'w':
         banks = get_banks(rom_contents, rom_data)
         bank_n = int(sys.argv[3])

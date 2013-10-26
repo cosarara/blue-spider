@@ -66,7 +66,7 @@ def map_to_text(mem, w, h):
     return text
 
 def print_dict_hex(d):
-    for key in d:
+    for key in sorted(d):
         print("%s: %s" % (key, hex(d[key])))
 
 

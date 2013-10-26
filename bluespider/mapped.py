@@ -315,11 +315,11 @@ def get_pal_colors(rom_contents, pals_ptr, num=0):
         colors.append((r, g, b))
     return colors
 
-def build_img(data, im, palette, w):
+def build_imgdata(data, size, palette, w):
     if GRAYSCALE:
         palette = GRAYSCALE
     tiles_per_line = w
-    imw, imh = im.size
+    imw, imh = size
     imdata = [0]*imw*imh
     for pos in range(len(data)):
         tile = pos // (8*4) # At 2 pixels per byte, we have 8*8/2 bytes per tile
@@ -332,6 +332,10 @@ def build_img(data, im, palette, w):
         color2 = palette[color2]
         imdata[x+y*imw] = color1
         imdata[x+y*imw+1] = color2
+    return imdata
+
+def build_img(data, im, palette, w):
+    imdata = build_imgdata(data, im.size, palette, w)
     im.putdata(imdata)
     return im
 
@@ -341,7 +345,7 @@ def build_tileset_img(data, im, palette):
 def build_sprite_img(data, im, palette=grayscale_pal2):
     return build_img(data, im, palette, 2)
 
-def get_tileset_img(rom_contents, tileset_header, pal):
+def get_tileset_imgdata(rom_contents, tileset_header, pal):
     tileset_img_ptr = tileset_header["tileset_image_ptr"]
     tileset_img_ptr = get_rom_addr(tileset_img_ptr)
     tiles_per_line = 16
@@ -360,13 +364,12 @@ def get_tileset_img(rom_contents, tileset_header, pal):
         rows = len(data)*2//(8*8)//tiles_per_line
     w = tiles_per_line*8
     h = rows*8
-    im = Image.new("RGB", (w, h))
-    #im_list = [im.copy() for i in range(12)]
-    build_tileset_img(data, im, pal)
+    return build_imgdata(data, (w, h), pal, 16), w, h
 
-    #import random
-    #im.save("asdf2/%s-%s.png" % (tileset_img_ptr, random.randint(0, 100)), "PNG")
-    #return im_list[0]
+def get_tileset_img(rom_contents, tileset_header, pal):
+    data, w, h = get_tileset_imgdata(rom_contents, tileset_header, pal)
+    im = Image.new("RGB", (w, h))
+    im.putdata(data)
     return im
 
 
@@ -630,19 +633,55 @@ def get_ow_sprites(rom_memory, game=axve):
             rom_memory, header["palette_num"], game
             ))
         pal = get_pal_colors(rom_memory, pal_ptr)
-        #print(i, hex(img_ptr))
-        #print("------")
-        #from pprint import pprint
-        #pprint(img_ptr)
-        #pprint(pal_ptr)
-        #pprint(header)
-        #pprint(header2)
         data = rom_memory[img_ptr:img_ptr+0x100] # XXX
         im = Image.new("RGB", (16, 32)) # XXX
         im = build_sprite_img(data, im, pal)
         sprite_imgs.append(im)
     return sprite_imgs
 
+def get_pals(rc, game, pals1_ptr, pals2_ptr):
+    pals = []
+    if game == 'RS' or game == 'EM':
+        num_of_pals1 = 6
+        num_of_pals2 = 7
+    else:
+        num_of_pals1 = 7
+        num_of_pals2 = 6
+    for pal_n in range(num_of_pals1):
+        palette = get_pal_colors(rc, pals1_ptr, pal_n)
+        pals.append(palette)
+    for pal_n in range(num_of_pals2):
+        palette = get_pal_colors(rc, pals2_ptr,
+                pal_n+num_of_pals1)
+        pals.append(palette)
+    return pals
 
+# This listcomp takes 0.127 seconds in my slow atom, which accumulates
+# to 3.3 sec. total for every map load. Numpy, C, whatever?
+color = lambda c, data : [c[i] if i in c else (0, 0, 0) for i in data]
+def load_tilesets(rc, game, t1_header, t2_header, pals):
+    imgs = []
+    palette = grayscale_pal
+    t1data, w, h1 = get_tileset_imgdata(rc, t1_header, palette)
+    t2data, _, h2 = get_tileset_imgdata(rc, t2_header, palette)
+    img1 = Image.new("RGB", (w, h1))
+    img2 = Image.new("RGB", (w, h2))
+    big_img = Image.new("RGB", (w, h1+h2))
+    pos1 = (0, 0, w, h1)
+    pos2 = (0, h1, w, h1+h2)
+    for pal in pals:
+        c = {}
+        for i in range(16):
+            c[palette[i]] = pal[i]
+        colored1 = color(c, t1data)
+        img1.putdata(colored1)
+        colored2 = color(c, t2data)
+        img2.putdata(colored2)
+        colored_img = big_img.copy()
+        colored_img.paste(img1, pos1)
+        colored_img.paste(img2, pos2)
+        imgs.append(colored_img)
+
+    return imgs
 
 
