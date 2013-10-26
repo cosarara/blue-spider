@@ -40,7 +40,7 @@ def main():
     else:
         raise Exception("ROM code not found")
     if mode == 'p':
-        if len(sys.argv) < 3:
+        if len(sys.argv) == 3:
             get_banks(rom_contents, rom_data, echo=True)
             return
         if sys.argv[3] in ("-h", "--help"):
