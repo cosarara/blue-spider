@@ -315,11 +315,11 @@ def get_pal_colors(rom_contents, pals_ptr, num=0):
         colors.append((r, g, b))
     return colors
 
-def build_img(data, im, palette, w):
+def build_imgdata(data, size, palette, w):
     if GRAYSCALE:
         palette = GRAYSCALE
     tiles_per_line = w
-    imw, imh = im.size
+    imw, imh = size
     imdata = [0]*imw*imh
     for pos in range(len(data)):
         tile = pos // (8*4) # At 2 pixels per byte, we have 8*8/2 bytes per tile
@@ -332,6 +332,10 @@ def build_img(data, im, palette, w):
         color2 = palette[color2]
         imdata[x+y*imw] = color1
         imdata[x+y*imw+1] = color2
+    return imdata
+
+def build_img(data, im, palette, w):
+    imdata = build_imgdata(data, im.size, palette, w)
     im.putdata(imdata)
     return im
 
@@ -341,7 +345,7 @@ def build_tileset_img(data, im, palette):
 def build_sprite_img(data, im, palette=grayscale_pal2):
     return build_img(data, im, palette, 2)
 
-def get_tileset_img(rom_contents, tileset_header, pal):
+def get_tileset_imgdata(rom_contents, tileset_header, pal):
     tileset_img_ptr = tileset_header["tileset_image_ptr"]
     tileset_img_ptr = get_rom_addr(tileset_img_ptr)
     tiles_per_line = 16
@@ -360,13 +364,12 @@ def get_tileset_img(rom_contents, tileset_header, pal):
         rows = len(data)*2//(8*8)//tiles_per_line
     w = tiles_per_line*8
     h = rows*8
-    im = Image.new("RGB", (w, h))
-    #im_list = [im.copy() for i in range(12)]
-    build_tileset_img(data, im, pal)
+    return build_imgdata(data, (w, h), pal, 16), w, h
 
-    #import random
-    #im.save("asdf2/%s-%s.png" % (tileset_img_ptr, random.randint(0, 100)), "PNG")
-    #return im_list[0]
+def get_tileset_img(rom_contents, tileset_header, pal):
+    data, w, h = get_tileset_imgdata(rom_contents, tileset_header, pal)
+    im = Image.new("RGB", (w, h))
+    im.putdata(data)
     return im
 
 
@@ -643,6 +646,49 @@ def get_ow_sprites(rom_memory, game=axve):
         sprite_imgs.append(im)
     return sprite_imgs
 
+def get_pals(rc, game, pals1_ptr, pals2_ptr):
+    pals = []
+    if game == 'RS' or game == 'EM':
+        num_of_pals1 = 6
+        num_of_pals2 = 7
+    else:
+        num_of_pals1 = 7
+        num_of_pals2 = 6
+    for pal_n in range(num_of_pals1):
+        palette = get_pal_colors(rc, pals1_ptr, pal_n)
+        pals.append(palette)
+    for pal_n in range(num_of_pals2):
+        palette = get_pal_colors(rc, pals2_ptr,
+                pal_n+num_of_pals1)
+        pals.append(palette)
+    return pals
 
+def load_tilesets(rc, game, t1_header, t2_header, t1_imgs, pals, do_not_load_1):
+    imgs = []
+    palette = grayscale_pal
+    t1_img = get_tileset_img(rc, t1_header, palette)
+    t2_img = get_tileset_img(rc, t2_header, palette)
+    w = t1_img.size[0]
+    h = t1_img.size[1] + t2_img.size[1]
+    big_img = Image.new("RGB", (w, h))
+    pos = (0, 0, t1_img.size[0], t1_img.size[1])
+    big_img.paste(t1_img, pos)
+    x = 0
+    y = t1_img.size[1]
+    x2 = x + t2_img.size[0]
+    y2 = y + t2_img.size[1]
+    pos = (x, y, x2, y2)
+    big_img.paste(t2_img, pos)
+    uncoloured_img_data = big_img.getdata()
+    for pal in pals:
+        c = {}
+        for i in range(16):
+            c[palette[i]] = pal[i]
+        coloured_img_data = [c[i] for i in uncoloured_img_data]
+        coloured_img = big_img.copy()
+        coloured_img.putdata(coloured_img_data)
+        imgs.append(coloured_img)
+
+    return imgs
 
 

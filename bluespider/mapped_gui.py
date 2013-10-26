@@ -207,7 +207,7 @@ class Window(QtGui.QMainWindow):
                     QtGui.QStandardItem("%s - %s" % (i, label))
                     )
 
-    def load_tilesets(self, t1_header, t2_header, t1_imgs=None):
+    def get_tilesets(self, t1_header, t2_header, t1_imgs=None):
         do_not_load_1 = False
         if self.t1_header == t1_header:
             if self.t2_header == t2_header and t1_imgs:
@@ -222,67 +222,25 @@ class Window(QtGui.QMainWindow):
         else:
             self.blocks_imgs = []
             t1_imgs = None
+
         pals1_ptr = mapped.get_rom_addr(t1_header["palettes_ptr"])
         pals2_ptr = mapped.get_rom_addr(t2_header["palettes_ptr"])
-        imgs = []
-        pals = []
-        if self.game == 'RS' or self.game == 'EM':
-            num_of_pals1 = 6
-            num_of_pals2 = 7
-        else:
-            num_of_pals1 = 7
-            num_of_pals2 = 6
-        for pal_n in range(num_of_pals1):
-            palette = mapped.get_pal_colors(self.rom_contents, pals1_ptr, pal_n)
-            pals.append(palette)
-        for pal_n in range(num_of_pals2):
-            palette = mapped.get_pal_colors(self.rom_contents, pals2_ptr,
-                    pal_n+num_of_pals1)
-            pals.append(palette)
-        palette = mapped.grayscale_pal
-        new_t1_imgs = []
-        try:
-            t1_img = t1_imgs[pal_n]
-        except Exception:
-            t1_img = mapped.get_tileset_img(self.rom_contents, t1_header, palette)
-            new_t1_imgs.append(t1_img)
-        t2_img = mapped.get_tileset_img(self.rom_contents, t2_header, palette)
-        w = t1_img.size[0]
-        h = t1_img.size[1] + t2_img.size[1]
-        big_img = Image.new("RGB", (w, h))
-        pos = (0, 0, t1_img.size[0], t1_img.size[1])
-        big_img.paste(t1_img, pos)
-        x = 0
-        y = t1_img.size[1]
-        x2 = x + t2_img.size[0]
-        y2 = y + t2_img.size[1]
-        pos = (x, y, x2, y2)
-        big_img.paste(t2_img, pos)
-        for pal in pals:
-            c = {}
-            for i in range(16):
-                c[palette[i]] = pal[i]
-            coloured_img = big_img.copy()
-            coloured_img_data = coloured_img.getdata()
-            coloured_img_data = [c[i] for i in coloured_img_data]
-            coloured_img.putdata(coloured_img_data)
-            imgs.append(coloured_img)
-
-        #if len(imgs) == 1:
-        #    imgs *= 13
-
+        pals = mapped.get_pals(self.rom_contents, self.game, pals1_ptr, pals2_ptr)
+        # Half of the time this function runs is spent here
+        imgs = mapped.load_tilesets(self.rom_contents, self.game,
+                    t1_header, t2_header, t1_imgs, pals, do_not_load_1)
         if do_not_load_1:
             to_load = (t2_header,)
         else:
             to_load = (t1_header, t2_header)
         for tileset_header in to_load:
             block_data_mem = mapped.get_block_data(self.rom_contents,
-                                                   tileset_header, self.game)
+                    tileset_header, self.game)
+            # Half of the time this function runs is spent here
             blocks_imgs = mapped.build_block_imgs(block_data_mem, imgs, pals)
             self.blocks_imgs += blocks_imgs
 
-        #return new_t1_imgs or t1_imgs
-        return new_t1_imgs or t1_imgs
+        return imgs
 
 
     def draw_palette(self):
@@ -456,7 +414,7 @@ class Window(QtGui.QMainWindow):
                 map_data_header['local_tileset_ptr'],
                 self.game
                 )
-        self.t1_imgs = self.load_tilesets(tileset_header, tileset2_header,
+        self.t1_imgs = self.get_tilesets(tileset_header, tileset2_header,
                 self.t1_imgs)
         self.t1_header = tileset_header
         self.t2_header = tileset2_header
