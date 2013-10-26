@@ -633,13 +633,6 @@ def get_ow_sprites(rom_memory, game=axve):
             rom_memory, header["palette_num"], game
             ))
         pal = get_pal_colors(rom_memory, pal_ptr)
-        #print(i, hex(img_ptr))
-        #print("------")
-        #from pprint import pprint
-        #pprint(img_ptr)
-        #pprint(pal_ptr)
-        #pprint(header)
-        #pprint(header2)
         data = rom_memory[img_ptr:img_ptr+0x100] # XXX
         im = Image.new("RGB", (16, 32)) # XXX
         im = build_sprite_img(data, im, pal)
@@ -663,31 +656,31 @@ def get_pals(rc, game, pals1_ptr, pals2_ptr):
         pals.append(palette)
     return pals
 
-def load_tilesets(rc, game, t1_header, t2_header, t1_imgs, pals, do_not_load_1):
+# This listcomp takes 0.127 seconds in my slow atom, which accumulates
+# to 3.3 sec. total for every map load. Numpy, C, whatever?
+color = lambda c, data : [c[i] if i in c else (0, 0, 0) for i in data]
+def load_tilesets(rc, game, t1_header, t2_header, pals):
     imgs = []
     palette = grayscale_pal
-    t1_img = get_tileset_img(rc, t1_header, palette)
-    t2_img = get_tileset_img(rc, t2_header, palette)
-    w = t1_img.size[0]
-    h = t1_img.size[1] + t2_img.size[1]
-    big_img = Image.new("RGB", (w, h))
-    pos = (0, 0, t1_img.size[0], t1_img.size[1])
-    big_img.paste(t1_img, pos)
-    x = 0
-    y = t1_img.size[1]
-    x2 = x + t2_img.size[0]
-    y2 = y + t2_img.size[1]
-    pos = (x, y, x2, y2)
-    big_img.paste(t2_img, pos)
-    uncoloured_img_data = big_img.getdata()
+    t1data, w, h1 = get_tileset_imgdata(rc, t1_header, palette)
+    t2data, _, h2 = get_tileset_imgdata(rc, t2_header, palette)
+    img1 = Image.new("RGB", (w, h1))
+    img2 = Image.new("RGB", (w, h2))
+    big_img = Image.new("RGB", (w, h1+h2))
+    pos1 = (0, 0, w, h1)
+    pos2 = (0, h1, w, h1+h2)
     for pal in pals:
         c = {}
         for i in range(16):
             c[palette[i]] = pal[i]
-        coloured_img_data = [c[i] for i in uncoloured_img_data]
-        coloured_img = big_img.copy()
-        coloured_img.putdata(coloured_img_data)
-        imgs.append(coloured_img)
+        colored1 = color(c, t1data)
+        img1.putdata(colored1)
+        colored2 = color(c, t2data)
+        img2.putdata(colored2)
+        colored_img = big_img.copy()
+        colored_img.paste(img1, pos1)
+        colored_img.paste(img2, pos2)
+        imgs.append(colored_img)
 
     return imgs
 

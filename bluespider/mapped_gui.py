@@ -228,7 +228,7 @@ class Window(QtGui.QMainWindow):
         pals = mapped.get_pals(self.rom_contents, self.game, pals1_ptr, pals2_ptr)
         # Half of the time this function runs is spent here
         imgs = mapped.load_tilesets(self.rom_contents, self.game,
-                    t1_header, t2_header, t1_imgs, pals, do_not_load_1)
+                    t1_header, t2_header, pals)
         if do_not_load_1:
             to_load = (t2_header,)
         else:
