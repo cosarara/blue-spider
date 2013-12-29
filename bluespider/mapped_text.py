@@ -68,8 +68,9 @@ def main():
             t2 = parse_tileset_header(rom_contents, t2_ptr)
             # Some aliases and stuff
             p = print
-            ph = lambda x : print(hexbytes(x))
-            rc = rom_contents
+            ph = lambda x : print(hex(x))
+            phb = lambda x : print(hexbytes(x))
+            rc = bytearray(rom_contents)
             p32b = print32bytes
             raddrat = read_rom_addr_at
             r = lambda rom, start, length : rom[start:start+length]
@@ -87,13 +88,8 @@ def main():
         w = map_data['w']
         h = map_data['h']
         if mode == 'r':
-            #tileset1_data = parse_tileset_header(rom_contents, map_data['global_tileset_ptr'])
-            #block_data_ptr = tileset1_data['block_data_ptr']
-            #print('tileset1 block data ptr is ', hex(block_data_ptr))
-            #print(hex(tilemap_address))
             tilemap_address = mapped.get_rom_addr(tilemap_address)
             mapmem = rom_contents[tilemap_address:]
-            #print(mapmem[:100])
             text_map = map_to_text(mapmem, w, h)
             print(text_map)
         if mode == 'w':
