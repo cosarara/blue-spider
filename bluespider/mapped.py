@@ -690,7 +690,9 @@ def load_tilesets(rc, game, t1_header, t2_header, pals):
 def add_banks(rom_memory, banks_ptr, old_len, new_len):
     # The bank table is just a link of offsets terminated by (long) 0x2
     old_ptr = read_rom_addr_at(rom_memory, banks_ptr)
+    # The +4 is for the 02 00 00 00 at the end
     new_size = new_len * 4 + 4
+    old_size = old_len * 4 + 4
     new_ptr = find_free_space(rom_memory, new_size)
     try:
         new_ptr = find_free_space(rom_memory, new_size)
@@ -701,5 +703,6 @@ def add_banks(rom_memory, banks_ptr, old_len, new_len):
             + b'\0\0\0\x08'*new
             + b'\x02\0\0\0')
     rom_memory[new_ptr:new_ptr+new_size] = mem
+    rom_memory[old_ptr:old_ptr+old_size] = b'\xFF'*old_size
     return new_ptr
 
