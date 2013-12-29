@@ -173,10 +173,11 @@ def write_data_structure(rom_contents, struct, data, offset=None):
         if name in data and name != "self":
             get_write_function(size)(rom_contents, offset+pos, data[name])
 
-def new_data_structure(struct, data):
-    size = size_of(struct)
-    mem = bytearray(size)
-    write_data_structure(mem, struct, data)
+#def new_data_structure(struct, data):
+#    # TODO
+#    size = size_of(struct)
+#    mem = bytearray(size)
+#    write_data_structure(mem, struct, data)
 
 def parse_map_header(rom_contents, map_h):
     struct = structures.map_header
@@ -218,15 +219,20 @@ def parse_events(rom_contents, events_header):
     signpost_events = []
     # We make this thingy to loop nicely
     parsing_functions = (
-            (parse_person_event, "n_of_people", "person_events_ptr", person_events, 24),
-            (parse_warp_event, "n_of_warps", "warp_events_ptr", warp_events, 8),
-            (parse_trigger_event, "n_of_triggers", "trigger_events_ptr", trigger_events, 16),
-            (parse_signpost_event, "n_of_signposts", "signpost_events_ptr", signpost_events, 12)
+            (parse_person_event, "n_of_people", "person_events_ptr",
+                person_events, 24),
+            (parse_warp_event, "n_of_warps", "warp_events_ptr",
+                warp_events, 8),
+            (parse_trigger_event, "n_of_triggers", "trigger_events_ptr",
+                trigger_events, 16),
+            (parse_signpost_event, "n_of_signposts", "signpost_events_ptr",
+                signpost_events, 12)
         )
     for fun, num_key, start_ptr_key, list, event_size in parsing_functions:
         num = events_header[num_key]
         for event in range(num):
-            ptr = get_rom_addr(events_header[start_ptr_key]) + event_size * event
+            ptr = get_rom_addr(events_header[start_ptr_key])
+            ptr += event_size * event
             event_data = fun(rom_contents, ptr)
             list.append(event_data)
     return person_events, warp_events, trigger_events, signpost_events
@@ -395,7 +401,8 @@ def build_block_imgs(blocks_mem, imgs, palettes):
      every subtile is 2 bytes
      1st byte and 2nd bytes last (two?) bit(s) is the index in the tile img
      2nd byte's first 4 bits is the color palette index
-     2nd byte's final 4 bits is the flip information... and something else, I guess
+     2nd byte's final 4 bits is the flip information... and something else,
+     I guess
          0b0100 = x flip
      '''
     # TODO: Optimize. A lot.
@@ -418,8 +425,8 @@ def build_block_imgs(blocks_mem, imgs, palettes):
             layer_mem = block_mem[layer*8:layer*8+8]
             for part in range(4):
                 d = part*2
-                byte1=layer_mem[d]
-                byte2=layer_mem[d+1]
+                byte1 = layer_mem[d]
+                byte2 = layer_mem[d+1]
                 tile_num = byte1 | ((byte2 & 0b11) << 8)
                 palette_num = byte2 >> 4
                 palette = GRAYSCALE or palettes[palette_num]
@@ -439,7 +446,8 @@ def build_block_imgs(blocks_mem, imgs, palettes):
                 t = palette[0]
                 if layer:
                     img_data = tuple(part_img.getdata())
-                    #mask_data = tuple(map(lambda p : (0 if p == t else 255), img_data))
+                    #mask_data = tuple(map(lambda p : (0 if p == t else 255),
+                    #                  img_data))
                     mask_data = [0 if i == t else 255 for i in img_data]
                     mask.putdata(mask_data)
                     block_img.paste(part_img, (x, y, x+8, y+8), mask)
@@ -567,7 +575,8 @@ def add_event(rom_memory, events_header, type):
         rom_memory[:] = backup
         raise Exception("Your ROM is full!")
     # New event will be zeroed, because it's better than being FF'ed.
-    rom_memory[new_offset:new_offset+new_size] = events_memory + b'\x00'*base_size
+    rom_memory[new_offset:new_offset+new_size] = (events_memory +
+            b'\x00' * base_size)
     events_header[ptr_key] = new_offset
     events_header[num_key] += 1
 
@@ -596,7 +605,8 @@ def get_map_labels(rom_memory, game=axve, type='RS'):
         # RS: [4 unknown bytes][ptr to label][4 unknown bytes][ptr to label]...
         # FR: [ptr to label][ptr to label]...
         ptr = get_rom_addr(read_ptr_at(rom_memory, labels_ptr+i*(4+add)+add))
-        mem = rom_memory[ptr:ptr+rom_memory[ptr:].find(b'\xff')].replace(b'\xfc', b'')
+        end = ptr + rom_memory[ptr:].find(b'\xff')
+        mem = rom_memory[ptr:end].replace(b'\xfc', b'')
         label = text_translate.hex_to_ascii(mem).replace("  ", " ")
         labels.append(label)
     return labels
@@ -624,10 +634,12 @@ def get_ow_sprites(rom_memory, game=axve):
         if (header_fullptr & 0x8000000 != 0x8000000 and
             header_fullptr & 0x9000000 != 0x9000000):
             break
-        header_ptr = get_rom_addr(read_ptr_at(rom_memory, sprites_table_ptr+i*4))
+        header_ptr = get_rom_addr(
+                read_ptr_at(rom_memory, sprites_table_ptr+i*4))
         header = parse_data_structure(rom_memory, structures.sprite, header_ptr)
         header2_ptr = get_rom_addr(header['header2_ptr'])
-        header2 = parse_data_structure(rom_memory, structures.sprite2, header2_ptr)
+        header2 = parse_data_structure(rom_memory, structures.sprite2,
+                header2_ptr)
         img_ptr = get_rom_addr(header2['img_ptr'])
         pal_ptr = get_rom_addr(get_sprite_palette_ptr(
             rom_memory, header["palette_num"], game
@@ -658,10 +670,11 @@ def get_pals(rc, game, pals1_ptr, pals2_ptr):
 
 # This listcomp takes 0.127 seconds in my slow atom, which accumulates
 # to 3.3 sec. total for every map load. Numpy, C, whatever?
-color = lambda c, data : [c[i] if i in c else (0, 0, 0) for i in data]
+#color = lambda c, data : [c[i] if i in c else (0, 0, 0) for i in data]
 def load_tilesets(rc, game, t1_header, t2_header, pals):
     imgs = []
-    palette = grayscale_pal
+    #palette = grayscale_pal
+    palette = [i for i in range(16)]
     t1data, w, h1 = get_tileset_imgdata(rc, t1_header, palette)
     t2data, _, h2 = get_tileset_imgdata(rc, t2_header, palette)
     img1 = Image.new("RGB", (w, h1))
@@ -673,9 +686,11 @@ def load_tilesets(rc, game, t1_header, t2_header, pals):
         c = {}
         for i in range(16):
             c[palette[i]] = pal[i]
-        colored1 = color(c, t1data)
+        colored1 = [c[i] if i in c else (0, 0, 0) for i in t1data]
+        #color(c, t1data)
         img1.putdata(colored1)
-        colored2 = color(c, t2data)
+        colored2 = [c[i] if i in c else (0, 0, 0) for i in t2data]
+        #color(c, t2data)
         img2.putdata(colored2)
         colored_img = big_img.copy()
         colored_img.paste(img1, pos1)

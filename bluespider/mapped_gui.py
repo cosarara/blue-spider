@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# If I keep trying, this code will end up looking as messy as elite map's!
+
 import os
 import sys
 from PyQt4 import Qt, QtCore, QtGui
@@ -57,9 +59,23 @@ class Window(QtGui.QMainWindow):
 
         self.t1_header = None
         self.t1_imgs = None
+        self.t1_img_qt = None
         self.t2_header = None
 
+        self.map_data = None
+        self.events_header = None
+        self.spritePixMap = None
+        self.tilesetPixMap = None
+        self.eventPixMap = None
+        self.map_img_qt = None
+        self.mov_img_qt = None
+        self.event_img_qt = None
+        self.tilemap_ptr = None
+        self.map_n = None
+        self.map_img = None
+
         self.sprites = []
+        self.events = []
 
         self.ui.actionLoad_ROM.triggered.connect(self.load_rom_dialog)
         self.ui.actionSave.triggered.connect(self.write_to_file)
@@ -71,7 +87,8 @@ class Window(QtGui.QMainWindow):
         self.ui.s_edit_script.clicked.connect(self.launch_script_editor)
         self.ui.t_edit_script.clicked.connect(self.launch_script_editor)
 
-        self.ui.actionChoose_script_editor.triggered.connect(self.select_script_editor)
+        self.ui.actionChoose_script_editor.triggered.connect(
+                self.select_script_editor)
 
         self.ui.openInEmulatorButton.clicked.connect(self.open_warp_in_emulator)
         self.ui.warpGoToMapButton.clicked.connect(self.go_to_warp)
@@ -89,8 +106,10 @@ class Window(QtGui.QMainWindow):
 
         self.loaded_map = False
 
-        self.ui_event_connections = gui_connections.get_event_connections(self.ui)
-        self.update_header, self.save_header = gui_connections.make_header_connections(self)
+        self.ui_event_connections = gui_connections.get_event_connections(
+                self.ui)
+        self.update_header, self.save_header = (gui_connections.
+                make_header_connections(self))
 
         self.ui.addWarpButton.clicked.connect(self.add_warp)
         self.ui.remWarpButton.clicked.connect(self.rem_warp)
@@ -100,7 +119,7 @@ class Window(QtGui.QMainWindow):
         self.ui.remTriggerButton.clicked.connect(self.rem_trigger)
         self.ui.addSignpostButton.clicked.connect(self.add_signpost)
         self.ui.remSignpostButton.clicked.connect(self.rem_signpost)
-        
+
         self.reload_lock = 0
         redrawing_items = (
                 self.ui.w_x, self.ui.w_y,
@@ -151,7 +170,7 @@ class Window(QtGui.QMainWindow):
         self.tree_model.clear()
         self.banks = []
         if fn is None:
-            fn = QtGui.QFileDialog.getOpenFileName(self, 'Open ROM file', 
+            fn = QtGui.QFileDialog.getOpenFileName(self, 'Open ROM file',
                                                QtCore.QDir.homePath(),
                                                "GBA ROM (*.gba);;"
                                                "All files (*)")
@@ -187,13 +206,16 @@ class Window(QtGui.QMainWindow):
 
     def load_banks(self):
         self.banks = mapped.get_banks(self.rom_contents, self.rom_data)
-        map_labels = mapped.get_map_labels(self.rom_contents, self.rom_data, self.game)
+        map_labels = mapped.get_map_labels(self.rom_contents,
+                self.rom_data, self.game)
         for i, bank in enumerate(self.banks):
-            self.tree_model.appendRow(QtGui.QStandardItem(hex(i) + " - " + hex(bank)))
+            self.tree_model.appendRow(
+                    QtGui.QStandardItem(hex(i) + " - " + hex(bank)))
             self.load_maps(i, map_labels)
 
     def load_maps(self, bank_num, map_labels):
-        map_header_ptrs = mapped.get_map_headers(self.rom_contents, bank_num, self.banks)
+        map_header_ptrs = mapped.get_map_headers(self.rom_contents,
+                bank_num, self.banks)
 
         for i, ptr in enumerate(map_header_ptrs):
             map = mapped.parse_map_header(self.rom_contents, ptr)
@@ -225,7 +247,8 @@ class Window(QtGui.QMainWindow):
 
         pals1_ptr = mapped.get_rom_addr(t1_header["palettes_ptr"])
         pals2_ptr = mapped.get_rom_addr(t2_header["palettes_ptr"])
-        pals = mapped.get_pals(self.rom_contents, self.game, pals1_ptr, pals2_ptr)
+        pals = mapped.get_pals(self.rom_contents, self.game,
+                pals1_ptr, pals2_ptr)
         # Half of the time this function runs is spent here
         imgs = mapped.load_tilesets(self.rom_contents, self.game,
                     t1_header, t2_header, pals)
@@ -283,14 +306,17 @@ class Window(QtGui.QMainWindow):
         self.palette_scene.clear()
         self.perms_palette_scene.clear()
         self.palette_pixmap_qobject = qmapview.QMapPixmap(self.tilesetPixMap)
-        self.perms_palette_pixmap_qobject = qmapview.QMapPixmap(self.permsPalPixMap)
+        self.perms_palette_pixmap_qobject = qmapview.QMapPixmap(
+                self.permsPalPixMap)
         self.palette_scene.addItem(self.palette_pixmap_qobject)
         self.perms_palette_scene.addItem(self.perms_palette_pixmap_qobject)
         self.palette_scene.update()
         self.perms_palette_scene.update()
         self.palette_pixmap_qobject.clicked.connect(self.palette_clicked)
-        self.perms_palette_pixmap_qobject.clicked.connect(self.perms_palette_clicked)
-        #self.ui.palette.fitInView(self.palette_scene.sceneRect(), mode=QtCore.Qt.KeepAspectRatio)
+        self.perms_palette_pixmap_qobject.clicked.connect(
+                self.perms_palette_clicked)
+        #self.ui.palette.fitInView(self.palette_scene.sceneRect(),
+        #    mode=QtCore.Qt.KeepAspectRatio)
 
     def draw_map(self, map):
         #print(map)
@@ -312,7 +338,8 @@ class Window(QtGui.QMainWindow):
                 #print(tile_num, len(self.blocks_imgs))
                 map_img.paste(self.blocks_imgs[tile_num], pos)
                 mov_img.paste(self.blocks_imgs[tile_num], pos)
-                mov_img.paste(self.mov_perms_imgs[behavior], pos, self.mov_perms_imgs[behavior])
+                mov_img.paste(self.mov_perms_imgs[behavior], pos,
+                        self.mov_perms_imgs[behavior])
 
         self.map_img = map_img
         self.map_img_qt = ImageQt.ImageQt(map_img)
@@ -549,14 +576,16 @@ class Window(QtGui.QMainWindow):
 
     def map_clicked(self, event):
         #print(event)
-        tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event, self.mapPixMap)
+        tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event,
+                self.mapPixMap)
         print("clicked tile:", hex(tile_num))
         self.map[tile_y][tile_x][0] = self.selected_tile
         self.draw_map(self.map)
         self.draw_events(self.events)
 
     def mov_clicked(self, event):
-        tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event, self.movPixMap)
+        tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event,
+                self.movPixMap)
         print("clicked tile:", hex(tile_num))
         self.map[tile_y][tile_x][1] = self.selected_mov_tile
         self.draw_map(self.map)
@@ -566,7 +595,8 @@ class Window(QtGui.QMainWindow):
         #print(event)
         self.reload_lock = True
         self.save_event_to_memory()
-        event, event_x, event_y = self.get_event_from_mouseclick(event, self.eventPixMap)
+        event, event_x, event_y = self.get_event_from_mouseclick(event,
+                self.eventPixMap)
         if event == (None, None):
             return
         print("clicked event tile:", event)
@@ -579,12 +609,14 @@ class Window(QtGui.QMainWindow):
         self.reload_lock = False
 
     def palette_clicked(self, event):
-        tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event, self.tilesetPixMap)
+        tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event,
+                self.tilesetPixMap)
         print("selected tile:", hex(tile_num))
         self.selected_tile = tile_num
 
     def perms_palette_clicked(self, event):
-        tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event, self.permsPalPixMap)
+        tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event,
+                self.permsPalPixMap)
         print("selected tile:", hex(tile_num))
         self.selected_mov_tile = tile_num
 
@@ -618,7 +650,7 @@ class Window(QtGui.QMainWindow):
         self.write_rom()
 
     def save_as(self):
-        fn = QtGui.QFileDialog.getSaveFileName(self, 'Save ROM file', 
+        fn = QtGui.QFileDialog.getSaveFileName(self, 'Save ROM file',
                                                QtCore.QDir.homePath(),
                                                "GBA ROM (*.gba);;"
                                                "All files (*)")
@@ -670,7 +702,8 @@ class Window(QtGui.QMainWindow):
         #print(self.tree_model.item(bank))
         self.load_map(self.tree_model.item(bank).child(map))
 
-    def launch_script_editor(self, offset=None, file_name=None, command=None, xse=None):
+    def launch_script_editor(self, offset=None, file_name=None, command=None,
+            xse=None):
         if xse is None:
             xse = self.isxse
         if not command:
@@ -692,11 +725,12 @@ class Window(QtGui.QMainWindow):
         subprocess.Popen(args)
 
     def select_script_editor(self):
-        fn = QtGui.QFileDialog.getOpenFileName(self, 'Choose script editor executable', 
-                                               QtCore.QDir.homePath(),
-                                               "All files (*)")
+        fn = QtGui.QFileDialog.getOpenFileName(self,
+                'Choose script editor executable',
+                QtCore.QDir.homePath(),
+                "All files (*)")
         q = "Is it XSE?"
-        isxse = QtGui.QMessageBox.question(self, q, q, 
+        isxse = QtGui.QMessageBox.question(self, q, q,
                 QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
         if isxse == QtGui.QMessageBox.Yes:
             self.isxse = True
@@ -720,8 +754,10 @@ class Window(QtGui.QMainWindow):
             code = codebin.read()
         script = "load 1\n"
         script += "er 15 0x02f10000\n"
-        script += ''.join(['eb ' + hex(0x02f10000+i) + " " + hex(byte)[2:] + "\n"
-                           for i, byte in enumerate(code)])
+        script += ''.join(
+                ['eb ' + hex(0x02f10000+i) + " " +
+                    hex(byte)[2:] + "\n"
+                    for i, byte in enumerate(code)])
         script += """eb 0x02f30000 39
 eb 0x02f30001 %s
 eb 0x02f30002 %s

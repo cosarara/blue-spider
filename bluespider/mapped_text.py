@@ -9,9 +9,10 @@
 
 import sys
 from . import mapped
-from .mapped import bpre, axve
-from .mapped import get_banks, get_map_headers
-from .mapped import parse_map_header, parse_map_data
+from .mapped import bpre, axve, bpee
+from .mapped import get_banks, get_map_headers, hexbytes, print32bytes
+from .mapped import parse_map_header, parse_map_data, parse_tileset_header
+from .mapped import read_rom_addr_at
 from .map_printer import map_to_text, text_to_mem, print_dict_hex
 
 def main():
