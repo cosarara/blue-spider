@@ -61,7 +61,7 @@ def main():
         if len(sys.argv) == 5:
             print_dict_hex(map)
             print_dict_hex(map_data)
-        elif len(sys.argv) == 6:
+        elif len(sys.argv) >= 6:
             t1_ptr = map_data["global_tileset_ptr"]
             t2_ptr = map_data["local_tileset_ptr"]
             t1 = parse_tileset_header(rom_contents, t1_ptr)
@@ -74,7 +74,8 @@ def main():
             p32b = print32bytes
             raddrat = read_rom_addr_at
             r = lambda rom, start, length : rom[start:start+length]
-            eval(sys.argv[5]) # Yup! Let the user run whatever the fuck he wants
+            for c in sys.argv[5:]:
+                eval(c) # Yup! Let the user run whatever the fuck he wants
     elif mode == 'r' or mode == 'w':
         banks = get_banks(rom_contents, rom_data)
         bank_n = int(sys.argv[3])
