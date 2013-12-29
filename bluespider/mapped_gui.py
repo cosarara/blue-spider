@@ -19,6 +19,11 @@ from . import mapped
 from . import structures
 from . import gui_connections
 
+debug_mode = False
+def debug(*args):
+    if debug_mode:
+        print(*args)
+
 class Window(QtGui.QMainWindow):
     def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
@@ -146,13 +151,11 @@ class Window(QtGui.QMainWindow):
     def redraw_events(self):
         if self.reload_lock:
             return
-        #self.draw_events()
         self.save_event_to_memory()
         self.load_map(self.current_index)
         index = ["person", "warp",
                 "trigger", "signpost"].index(self.selected_event_type)
         self.selected_event = self.events[index][self.event_n]
-        #print(self.events)
 
     def reload_person_img(self):
         if self.reload_lock:
@@ -319,7 +322,6 @@ class Window(QtGui.QMainWindow):
         #    mode=QtCore.Qt.KeepAspectRatio)
 
     def draw_map(self, map):
-        #print(map)
         w = len(map[0])
         h = len(map)
         map_img = Image.new("RGB", (w*16, h*16))
@@ -327,15 +329,11 @@ class Window(QtGui.QMainWindow):
         for row in range(h):
             for tile in range(w):
                 tile_num, behavior = map[row][tile]
-                #print("a", tile_num, behavior)
-
                 x = tile*16
                 y = row*16
                 x2 = x+16
                 y2 = y+16
                 pos = (x, y, x2, y2)
-
-                #print(tile_num, len(self.blocks_imgs))
                 map_img.paste(self.blocks_imgs[tile_num], pos)
                 mov_img.paste(self.blocks_imgs[tile_num], pos)
                 mov_img.paste(self.mov_perms_imgs[behavior], pos,
@@ -420,7 +418,7 @@ class Window(QtGui.QMainWindow):
             return
         map_n = qindex.row()
         self.map_n = map_n
-        print(bank_n, map_n)
+        debug(bank_n, map_n)
         maps = mapped.get_map_headers(self.rom_contents, bank_n, self.banks)
         map_h_ptr = mapped.get_rom_addr(maps[map_n])
         map_header = mapped.parse_map_header(self.rom_contents, map_h_ptr)
@@ -510,7 +508,7 @@ class Window(QtGui.QMainWindow):
             if event:
                 return type, event
         x, y = pos
-        print(x, y)
+        debug(x, y)
         return None, None
 
     def get_event_from_mouseclick(self, event, pixmap):
@@ -575,10 +573,9 @@ class Window(QtGui.QMainWindow):
             self.selected_event[data_element] = num
 
     def map_clicked(self, event):
-        #print(event)
         tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event,
                 self.mapPixMap)
-        print("clicked tile:", hex(tile_num))
+        debug("clicked tile:", hex(tile_num))
         self.map[tile_y][tile_x][0] = self.selected_tile
         self.draw_map(self.map)
         self.draw_events(self.events)
@@ -586,20 +583,19 @@ class Window(QtGui.QMainWindow):
     def mov_clicked(self, event):
         tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event,
                 self.movPixMap)
-        print("clicked tile:", hex(tile_num))
+        debug("clicked tile:", hex(tile_num))
         self.map[tile_y][tile_x][1] = self.selected_mov_tile
         self.draw_map(self.map)
         self.draw_events(self.events)
 
     def event_clicked(self, event):
-        #print(event)
         self.reload_lock = True
         self.save_event_to_memory()
         event, event_x, event_y = self.get_event_from_mouseclick(event,
                 self.eventPixMap)
         if event == (None, None):
             return
-        print("clicked event tile:", event)
+        debug("clicked event tile:", event)
         type, event = event
         #self.map[tile_y][tile_x][0] = self.selected_tile
         self.draw_events(self.events)
@@ -611,13 +607,13 @@ class Window(QtGui.QMainWindow):
     def palette_clicked(self, event):
         tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event,
                 self.tilesetPixMap)
-        print("selected tile:", hex(tile_num))
+        debug("selected tile:", hex(tile_num))
         self.selected_tile = tile_num
 
     def perms_palette_clicked(self, event):
         tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event,
                 self.permsPalPixMap)
-        print("selected tile:", hex(tile_num))
+        debug("selected tile:", hex(tile_num))
         self.selected_mov_tile = tile_num
 
     def save_events(self):
@@ -637,7 +633,6 @@ class Window(QtGui.QMainWindow):
     def save_map(self):
         self.save_header()
         new_map_mem = mapped.map_to_mem(self.map)
-        #print(self.map)
         pos = self.tilemap_ptr
         size = len(new_map_mem)
         self.rom_contents[pos:pos+size] = new_map_mem
@@ -656,9 +651,9 @@ class Window(QtGui.QMainWindow):
                                                "All files (*)")
 
         if not fn:
-            print("Nothing selected")
+            debug("Nothing selected")
             return
-        print(fn)
+        debug(fn)
         import shutil
         shutil.copyfile(self.rom_file_name, fn)
         self.rom_file_name = fn
@@ -698,8 +693,7 @@ class Window(QtGui.QMainWindow):
             bank = self.selected_event["bank_num"]
         if map is None:
             map = self.selected_event["map_num"]
-        print(bank, map)
-        #print(self.tree_model.item(bank))
+        debug(bank, map)
         self.load_map(self.tree_model.item(bank).child(map))
 
     def launch_script_editor(self, offset=None, file_name=None, command=None,
@@ -713,8 +707,8 @@ class Window(QtGui.QMainWindow):
         if not offset:
             self.save_event_to_memory()
             offset = self.selected_event['script_ptr']
-        print(hex(offset))
-        print(xse)
+        debug(hex(offset))
+        debug(xse)
         if sys.platform == "win32":
             file_name = file_name.replace("/", "\\")
         if not xse:
@@ -764,7 +758,7 @@ eb 0x02f30002 %s
 eb 0x02f30003 %s
 eb 0x02f30004 02
 t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
-        print(script)
+        debug(script)
         with open("script.txt", "w") as file:
             file.write(script)
         file_name = self.rom_file_name
@@ -773,7 +767,7 @@ t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
         else:
             command = './vbam.exe'
         import subprocess
-        print(command, "-c", "cfg", "-r", file_name)
+        debug(command, "-c", "cfg", "-r", file_name)
         #subprocess.Popen([command, "-c", "cfg", "--debug", "-r", file_name])
         subprocess.Popen([command, "-c", "cfg", "-r", file_name])
 
