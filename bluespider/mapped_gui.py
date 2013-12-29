@@ -85,6 +85,7 @@ class Window(QtGui.QMainWindow):
         self.ui.actionLoad_ROM.triggered.connect(self.load_rom_dialog)
         self.ui.actionSave.triggered.connect(self.write_to_file)
         self.ui.actionSave_As.triggered.connect(self.save_as)
+        self.ui.actionAdd_new_banks.triggered.connect(self.add_new_banks)
         self.ui.treeView.clicked.connect(self.load_map)
         self.ui.s_type.currentIndexChanged.connect(
                 self.update_signpost_stacked)
@@ -202,12 +203,13 @@ class Window(QtGui.QMainWindow):
 
     def write_rom(self):
         if not self.rom_file_name:
-            # TODO: ERROR, no ROM selected
+            QtGui.QMessageBox.critical(self, "ERROR!", "No ROM loaded!")
             return
         with open(self.rom_file_name, "wb") as rom_file:
             rom_file.write(self.rom_contents)
 
     def load_banks(self):
+        self.tree_model.clear()
         self.banks = mapped.get_banks(self.rom_contents, self.rom_data)
         map_labels = mapped.get_map_labels(self.rom_contents,
                 self.rom_data, self.game)
@@ -642,10 +644,11 @@ class Window(QtGui.QMainWindow):
         self.rom_contents[pos:pos+size] = new_map_mem
 
     def write_to_file(self):
-        with open(self.rom_file_name, "rb") as rom_file:
-            self.rom_contents = bytearray(rom_file.read())
-        self.save_map()
-        self.save_events()
+        #with open(self.rom_file_name, "rb") as rom_file:
+        #    self.rom_contents = bytearray(rom_file.read())
+        if self.loaded_map:
+            self.save_map()
+            self.save_events()
         self.write_rom()
 
     def save_as(self):
@@ -807,6 +810,19 @@ t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
                     "script_editor_is_xse": self.isxse}
         with open("settings.txt", "w") as settings_file:
             settings_file.write(str(settings))
+
+    def add_new_banks(self):
+        num, ok = QtGui.QInputDialog.getInt(self, 'How many?', # Title
+                                        "How many?", # Label
+                                        1, 1, 255) # Default, min, max
+        if not ok:
+            return
+        oldnum = len(self.banks)
+        ptr = mapped.add_banks(self.rom_contents, self.rom_data["MapHeaders"],
+                oldnum, oldnum+num)
+        mapped.write_rom_ptr_at(self.rom_contents,
+                self.rom_data["MapHeaders"], ptr)
+        self.load_banks()
 
     def closeEvent(self, event):
         self.save_settings()

@@ -102,6 +102,7 @@ def get_banks(rom_contents, rom_data=axve, echo=False):
     i = 0
     banks = []
     banks_base_off = read_rom_addr_at(rom_contents, rom_data['MapHeaders'])
+    if echo: print(hex(banks_base_off))
     while True:
         a = read_rom_addr_at(rom_contents, banks_base_off + i * 4)
         if a == -1:
@@ -114,8 +115,6 @@ def get_banks(rom_contents, rom_data=axve, echo=False):
     return banks
 
 def get_map_headers(rom_contents, n, banks, echo=False):
-    # TODO: I think we stop loading maps too late,
-    #       on the last bank
     if echo:
         print("Maps in bank {0}:".format(n))
     maps_addr = banks[n]
@@ -690,7 +689,7 @@ def load_tilesets(rc, game, t1_header, t2_header, pals):
 
 def add_banks(rom_memory, banks_ptr, old_len, new_len):
     # The bank table is just a link of offsets terminated by (long) 0x2
-    old_ptr = get_rom_addr(banks_ptr)
+    old_ptr = read_rom_addr_at(rom_memory, banks_ptr)
     new_size = new_len * 4 + 4
     new_ptr = find_free_space(rom_memory, new_size)
     try:
@@ -699,10 +698,8 @@ def add_banks(rom_memory, banks_ptr, old_len, new_len):
         raise Exception("Your ROM is full!")
     new = new_len-old_len
     mem = (rom_memory[old_ptr:old_ptr+old_len*4]
-            + b'\x08\0\0\0'*new
+            + b'\0\0\0\x08'*new
             + b'\x02\0\0\0')
-    print("********")
-    print(len(rom_memory[new_ptr:new_ptr+new_size]), len(mem))
     rom_memory[new_ptr:new_ptr+new_size] = mem
     return new_ptr
 
