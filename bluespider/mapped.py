@@ -170,7 +170,7 @@ def write_data_structure(rom_contents, struct, data, offset=None):
         offset = data["self"]
     for item in struct:
         name, size, pos = item
-        if name in data and name != "self":
+        if name in data and name not in ("self", "clear", "null"):
             get_write_function(size)(rom_contents, offset+pos, data[name])
 
 #def new_data_structure(struct, data):
@@ -548,25 +548,28 @@ def find_free_space(rom_memory, size, start_pos=None):
     new_offset = rom_memory[start_pos:].index(b'\xFF'*size) + start_pos
     return new_offset
 
+singular_name = {
+        "people": "person",
+        "warps": "warp",
+        "triggers": "trigger",
+        "signposts": "signpost",
+        }
+
 def add_event(rom_memory, events_header, type):
     # Everything should be saved to rom_memory before calling this function,
     # and re-read afterwards.
     # We'll move the memory and update the header, but events will remain
     # with old offsets, so they have to be re-read.
-    singular_name = {
-            "people": "person",
-            "warps": "warp",
-            "triggers": "trigger",
-            "signposts": "signpost",
-            }
+    stype = singular_name[type]
     num_key = 'n_of_' + type
-    ptr_key = singular_name[type] + "_events_ptr"
-    old_offset = events_header[ptr_key]
+    ptr_key = stype + "_events_ptr"
+    old_offset = get_rom_addr(events_header[ptr_key])
     backup = bytearray(rom_memory)
     num_of_events = events_header[num_key]
-    base_size = structures.size_of(structures.events[singular_name[type]])
+    base_size = structures.size_of(structures.events[stype])
     size = base_size * num_of_events
-    events_memory = rom_memory[old_offset:old_offset+size]
+    events_memory = bytes(rom_memory[old_offset:old_offset+size])
+    print(events_memory)
     rom_memory[old_offset:old_offset+size] = b'\xFF'*size
     new_size = size + base_size
     try:
@@ -577,19 +580,14 @@ def add_event(rom_memory, events_header, type):
     # New event will be zeroed, because it's better than being FF'ed.
     rom_memory[new_offset:new_offset+new_size] = (events_memory +
             b'\x00' * base_size)
-    events_header[ptr_key] = new_offset
+    events_header[ptr_key] = new_offset + 0x8000000
     events_header[num_key] += 1
 
 def rem_event(rom_memory, events_header, type):
-    singular_name = {
-            "people": "person",
-            "warps": "warp",
-            "triggers": "trigger",
-            "signposts": "signpost",
-            }
+    stype = singular_name[type]
     num_key = 'n_of_' + type
-    ptr_key = singular_name[type] + "_events_ptr"
-    base_size = structures.size_of(structures.events[singular_name[type]])
+    ptr_key = stype + "_events_ptr"
+    base_size = structures.size_of(structures.events[stype])
     offset = events_header[ptr_key]
     num_of_events = events_header[num_key]
     old_size = base_size * num_of_events

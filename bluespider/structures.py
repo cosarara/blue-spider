@@ -10,7 +10,7 @@ map_header = (
         ("is_a_cave", "byte", 21),
         ("weather", "byte", 22),
         ("map_type", "byte", 23),
-        # Unknown at 24-25
+        ("null", "short", 24), # Unknown at 24-25
         ("show_label", "byte", 26),
         ("battle_type", "byte", 27),
         )
@@ -30,7 +30,7 @@ map_data = (
 tileset_header_base = (
         ("is_compressed", "byte", 0),
         ("tileset_type", "byte", 1),
-        # 0000
+        ("null", "short", 2), # 0000
         ("tileset_image_ptr", "ptr", 4),
         ("palettes_ptr", "ptr", 8),
         ("block_data_ptr", "ptr", 12),
@@ -114,7 +114,7 @@ events = {
     }
 
 sprite = (
-        #("null", "short", 0), # FFFF
+        ("clear", "short", 0), # FFFF
         ("palette_num", "byte", 2),
         ("width", "short", 8),
         ("heigth", "short", 10),

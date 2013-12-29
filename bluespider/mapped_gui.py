@@ -381,7 +381,11 @@ class Window(QtGui.QMainWindow):
                 if not event: # Some events aren't parsed yet
                     continue
                 x = event['x']
+                if x == 0xFFFF:
+                    x = 0
                 y = event['y']
+                if y == 0xFFFF:
+                    y = 0
                 x = x*16
                 y = y*16
                 x2 = x+16
