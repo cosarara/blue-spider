@@ -101,11 +101,9 @@ def get_banks(rom_contents, rom_data=axve, echo=False):
         print("Banks:")
     i = 0
     banks = []
+    banks_base_off = read_rom_addr_at(rom_contents, rom_data['MapHeaders'])
     while True:
-        a = read_rom_addr_at(rom_contents, rom_data['MapHeaders']) + i * 4
-        a = read_rom_addr_at(rom_contents, a)
-        #a = read_rom_addr_at(rom_contents,
-        #        read_rom_addr_at(rom_contents, rom_data['MapHeaders']) + i * 4)
+        a = read_rom_addr_at(rom_contents, banks_base_off + i * 4)
         if a == -1:
             if echo: print("-1!")
             break
@@ -172,12 +170,6 @@ def write_data_structure(rom_contents, struct, data, offset=None):
         name, size, pos = item
         if name in data and name not in ("self", "clear", "null"):
             get_write_function(size)(rom_contents, offset+pos, data[name])
-
-#def new_data_structure(struct, data):
-#    # TODO
-#    size = size_of(struct)
-#    mem = bytearray(size)
-#    write_data_structure(mem, struct, data)
 
 def parse_map_header(rom_contents, map_h):
     struct = structures.map_header
@@ -254,7 +246,6 @@ def write_person_event(rom_contents, event, offset=None):
     struct = structures.person_event
     write_data_structure(rom_contents, struct, event, offset)
 
-# s/"\(.\{-}\)" : read_\(.\{-}\)_at(rom_contents, ptr[+]\?/("\1", "\2", /
 def parse_warp_event(rom_contents, ptr):
     struct = structures.warp_event
     return parse_data_structure(rom_contents, struct, ptr)
@@ -275,7 +266,6 @@ def parse_signpost_event(rom_contents, ptr):
     struct = structures.signpost_event
     event_header = parse_data_structure(rom_contents, struct, ptr)
     if event_header['type'] < 5:
-        #event_header["script_offset"] = read_ptr_at(rom_contents, ptr+8)
         struct = (("script_ptr", "ptr", 8),)
         event_header = dict(
                 list(event_header.items()) +
@@ -669,6 +659,7 @@ def get_pals(rc, game, pals1_ptr, pals2_ptr):
 # This listcomp takes 0.127 seconds in my slow atom, which accumulates
 # to 3.3 sec. total for every map load. Numpy, C, whatever?
 #color = lambda c, data : [c[i] if i in c else (0, 0, 0) for i in data]
+
 def load_tilesets(rc, game, t1_header, t2_header, pals):
     imgs = []
     #palette = grayscale_pal
@@ -697,4 +688,21 @@ def load_tilesets(rc, game, t1_header, t2_header, pals):
 
     return imgs
 
+def add_banks(rom_memory, banks_ptr, old_len, new_len):
+    # The bank table is just a link of offsets terminated by (long) 0x2
+    old_ptr = get_rom_addr(banks_ptr)
+    new_size = new_len * 4 + 4
+    new_ptr = find_free_space(rom_memory, new_size)
+    try:
+        new_ptr = find_free_space(rom_memory, new_size)
+    except ValueError:
+        raise Exception("Your ROM is full!")
+    new = new_len-old_len
+    mem = (rom_memory[old_ptr:old_ptr+old_len*4]
+            + b'\x08\0\0\0'*new
+            + b'\x02\0\0\0')
+    print("********")
+    print(len(rom_memory[new_ptr:new_ptr+new_size]), len(mem))
+    rom_memory[new_ptr:new_ptr+new_size] = mem
+    return new_ptr
 
