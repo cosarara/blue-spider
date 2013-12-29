@@ -1,4 +1,7 @@
 Copyright Jaume Delclòs Coll (aka cosarara97) 2012 
+appdirs.py has its copyright notice (by ActiveState Software Inc.)
+and license (MIT) in the file itself.
+The rest of the code is mine and under the GPLv3 or later (read LICENSE).
 
 Blue Spider Map editor
 ======================

@@ -778,24 +778,30 @@ t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
         subprocess.Popen([command, "-c", "cfg", "-r", file_name])
 
     def load_settings(self):
+        fn = "settings.txt"
+        import appdirs
+        path = appdirs.user_data_dir("bluespider", "cosarara97")
+        if not os.path.exists(path):
+            os.makedirs(path)
+        path = os.path.join(path, fn)
         try:
-            with open("settings.txt") as settings_file:
+            with open(path) as settings_file:
                 settings_text = settings_file.read()
-            import ast
-            settings = ast.literal_eval(settings_text)
-            if "script_editor" in settings:
-                self.script_editor_command = settings["script_editor"]
+        except FileNotFoundError:
+            return
+        import ast
+        settings = ast.literal_eval(settings_text)
+        if "script_editor" in settings:
+            self.script_editor_command = settings["script_editor"]
+        else:
+            self.script_editor_command = None
+        if "script_editor_is_xse" in settings:
+            self.isxse = settings["script_editor_is_xse"]
+        if "nocolor" in settings:
+            if settings["nocolor"] is True:
+                mapped.GRAYSCALE = mapped.grayscale_pal
             else:
-                self.script_editor_command = None
-            if "script_editor_is_xse" in settings:
-                self.isxse = settings["script_editor_is_xse"]
-            if "nocolor" in settings:
-                if settings["nocolor"] is True:
-                    mapped.GRAYSCALE = mapped.grayscale_pal
-                else:
-                    mapped.GRAYSCALE = settings["nocolor"]
-        except Exception as e:
-            print(e)
+                mapped.GRAYSCALE = settings["nocolor"]
 
     def save_settings(self):
         settings = {"script_editor": self.script_editor_command,
