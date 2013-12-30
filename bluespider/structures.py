@@ -122,7 +122,7 @@ sprite = (
         )
 
 sprite2 = (
-        ("img_ptr", "ptr", 0),
+        ("img_ptr", "ptr", 0), # Yes it makes no sense
         )
 
 

@@ -418,6 +418,8 @@ def build_block_imgs(blocks_mem, imgs, palettes):
                 byte2 = layer_mem[d+1]
                 tile_num = byte1 | ((byte2 & 0b11) << 8)
                 palette_num = byte2 >> 4
+                if palette_num > 13: # XXX
+                    palette_num = 0
                 palette = GRAYSCALE or palettes[palette_num]
                 img = imgs[palette_num]
                 flips = (byte2 & 0xC) >> 2
@@ -600,29 +602,26 @@ def get_map_labels(rom_memory, game=axve, type='RS'):
 
 
 def get_sprite_palette_ptr(rom_memory, pal_num, game=axve):
+    #base_offset = read_rom_addr_at(rom_memory, game["SpritePalettes"])
     base_offset = get_rom_addr(game["SpritePalettes"])
     i = 0
-    while True:
+    while i < 70:
         offset = base_offset + 8*i
         if read_byte_at(rom_memory, offset + 4) == pal_num:
             return read_ptr_at(rom_memory, offset)
         if read_byte_at(rom_memory, offset + 5) == 0:
             raise Exception("End of palettes, pal num %s not found" % pal_num)
-        if i > 20:
-            raise Exception("Security break")
         i += 1
+    raise Exception("Security break")
 
 def get_ow_sprites(rom_memory, game=axve):
     # get_pal_colors SpritePalettes
     sprites_table_ptr = get_rom_addr(game['Sprites'])
     sprite_imgs = []
-    for i in range(152): # XXX
-        header_fullptr = read_long_at(rom_memory, sprites_table_ptr+i*4)
-        if (header_fullptr & 0x8000000 != 0x8000000 and
-            header_fullptr & 0x9000000 != 0x9000000):
+    for i in range(152): # XXX: We need the real number of sprites
+        header_ptr = read_rom_addr_at(rom_memory, sprites_table_ptr+i*4)
+        if header_ptr == -1:
             break
-        header_ptr = get_rom_addr(
-                read_ptr_at(rom_memory, sprites_table_ptr+i*4))
         header = parse_data_structure(rom_memory, structures.sprite, header_ptr)
         header2_ptr = get_rom_addr(header['header2_ptr'])
         header2 = parse_data_structure(rom_memory, structures.sprite2,
