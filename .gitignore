@@ -2,6 +2,7 @@
 *.bak
 *.pyc
 *.pyo
+*.so
 __pycache__*
 map*.txt
 asdf*/

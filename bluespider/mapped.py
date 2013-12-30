@@ -654,10 +654,6 @@ def get_pals(rc, game, pals1_ptr, pals2_ptr):
         pals.append(palette)
     return pals
 
-# This listcomp takes 0.127 seconds in my slow atom, which accumulates
-# to 3.3 sec. total for every map load. Numpy, C, whatever?
-#color = lambda c, data : [c[i] if i in c else (0, 0, 0) for i in data]
-
 def load_tilesets(rc, game, t1_header, t2_header, pals):
     imgs = []
     #palette = grayscale_pal
@@ -669,15 +665,18 @@ def load_tilesets(rc, game, t1_header, t2_header, pals):
     big_img = Image.new("RGB", (w, h1+h2))
     pos1 = (0, 0, w, h1)
     pos2 = (0, h1, w, h1+h2)
-    for pal in pals:
-        c = {}
-        for i in range(16):
-            c[palette[i]] = pal[i]
-        colored1 = [c[i] if i in c else (0, 0, 0) for i in t1data]
-        #color(c, t1data)
+    try:
+        # We gain 2 seconds in a slow machine using the fast version
+        from .fast import color
+    except ImportError:
+        print("Using slow color function")
+        color = color_
+    col1data, col2data = color(pals, t1data, t2data)
+
+    for i in range(len(pals)):
+        colored1 = col1data[i]
+        colored2 = col2data[i]
         img1.putdata(colored1)
-        colored2 = [c[i] if i in c else (0, 0, 0) for i in t2data]
-        #color(c, t2data)
         img2.putdata(colored2)
         colored_img = big_img.copy()
         colored_img.paste(img1, pos1)
@@ -685,6 +684,21 @@ def load_tilesets(rc, game, t1_header, t2_header, pals):
         imgs.append(colored_img)
 
     return imgs
+
+def color_(pals, t1data, t2data):
+    # Fallback for fast.color
+    palette = [i for i in range(16)]
+    col1data = []
+    col2data = []
+    for pal in pals:
+        c = {}
+        for i in range(16):
+            c[i] = pal[i]
+        colored1 = [c[i] if i in c else (0, 0, 0) for i in t1data]
+        col1data.append(colored1)
+        colored2 = [c[i] if i in c else (0, 0, 0) for i in t2data]
+        col2data.append(colored2)
+    return col1data, col2data
 
 def add_banks(rom_memory, banks_ptr, old_len, new_len):
     # The bank table is just a link of offsets terminated by (long) 0x2

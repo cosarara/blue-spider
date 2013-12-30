@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# To build just cython in place:
+# python setup.py build_ext --inplace
 
 try:
     from cx_Freeze import setup, Executable
@@ -34,6 +36,7 @@ build_exe_options = {"packages": ["pkg_resources"],
                      "include_files": data_files_cxfreeze,
                      "includes": "PyQt4.QtCore"}
 
+from Cython.Build import cythonize
 setup(name='BlueSpider',
       version=version,
       description="Blue Spider map editor for the GBA pokémon games",
@@ -49,6 +52,7 @@ setup(name='BlueSpider',
           Executable("bluespider-qt", base=base),
           Executable("bluespider-cli", base=basecli),
           ],
+      ext_modules = cythonize(os.path.join("bluespider", "fast.pyx")),
       )
 
 
