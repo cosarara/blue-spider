@@ -24,6 +24,13 @@ def debug(*args):
     if debug_mode:
         print(*args)
 
+sfn = "settings.txt"
+import appdirs
+path = appdirs.user_data_dir("bluespider", "cosarara97")
+if not os.path.exists(path):
+    os.makedirs(path)
+settings_path = os.path.join(path, sfn)
+
 class Window(QtGui.QMainWindow):
     def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
@@ -98,6 +105,8 @@ class Window(QtGui.QMainWindow):
 
         self.ui.openInEmulatorButton.clicked.connect(self.open_warp_in_emulator)
         self.ui.warpGoToMapButton.clicked.connect(self.go_to_warp)
+
+        self.ui.addLevelScriptButton.clicked.connect(self.add_level_script)
 
         self.selected_tile = 0
         self.selected_mov_tile = 0
@@ -429,6 +438,7 @@ class Window(QtGui.QMainWindow):
         map_h_ptr = mapped.get_rom_addr(maps[map_n])
         map_header = mapped.parse_map_header(self.rom_contents, map_h_ptr)
         self.map_header = map_header
+        self.load_level_scripts()
         map_data_header = mapped.parse_map_data(
                 self.rom_contents, map_header['map_data_ptr'],
                 self.game
@@ -779,14 +789,8 @@ t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
         subprocess.Popen([command, "-c", "cfg", "-r", file_name])
 
     def load_settings(self):
-        fn = "settings.txt"
-        import appdirs
-        path = appdirs.user_data_dir("bluespider", "cosarara97")
-        if not os.path.exists(path):
-            os.makedirs(path)
-        path = os.path.join(path, fn)
         try:
-            with open(path) as settings_file:
+            with open(settings_path) as settings_file:
                 settings_text = settings_file.read()
         except FileNotFoundError:
             return
@@ -808,7 +812,7 @@ t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
         settings = {"script_editor": self.script_editor_command,
                     "nocolor": mapped.GRAYSCALE,
                     "script_editor_is_xse": self.isxse}
-        with open("settings.txt", "w") as settings_file:
+        with open(settings_path, "w") as settings_file:
             settings_file.write(str(settings))
 
     def add_new_banks(self):
@@ -827,6 +831,73 @@ t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
     def closeEvent(self, event):
         self.save_settings()
         event.accept()
+
+    def load_level_scripts(self):
+        struct = structures.lscript_entry
+        struct2 = structures.lscript_type_2
+        r = lambda p : mapped.parse_data_structure(self.rom_contents, struct, p)
+        r2 = lambda p : mapped.parse_data_structure(self.rom_contents, struct2, p)
+        p = self.map_header['level_script_ptr']
+        e = r(p)
+        layout = self.ui.lscriptsLayout
+        # Clear
+        for i in reversed(range(layout.count())):
+            li = layout.itemAt(i)
+            for j in reversed(range(li.count())):
+                li.itemAt(j).widget().setParent(None)
+            layout.removeItem(li)
+
+        while e['type'] != 0:
+            layout = QtGui.QHBoxLayout()
+            typeLabel = QtGui.QLabel("Type:")
+            ptrLabel = QtGui.QLabel("Pointer:")
+            ptr2Label = QtGui.QLabel("Pointer 2:")
+            flagLabel = QtGui.QLabel("Flag:")
+            valueLabel = QtGui.QLabel("Value:")
+            typeLineEdit = QtGui.QLineEdit()
+            ptrLineEdit = QtGui.QLineEdit()
+            ptr2LineEdit = QtGui.QLineEdit()
+            flagLineEdit = QtGui.QLineEdit()
+            valueLineEdit = QtGui.QLineEdit()
+            layout.addWidget(typeLabel)
+            layout.addWidget(typeLineEdit)
+            layout.addWidget(ptrLabel)
+            layout.addWidget(ptrLineEdit)
+            layout.addWidget(ptr2Label)
+            layout.addWidget(ptr2LineEdit)
+            layout.addWidget(flagLabel)
+            layout.addWidget(flagLineEdit)
+            layout.addWidget(valueLabel)
+            layout.addWidget(valueLineEdit)
+            self.ui.lscriptsLayout.addLayout(layout)
+            typeLineEdit.setText(str(e["type"]))
+            ptrLineEdit.setText(hex(e["script_header_ptr"]))
+            if e["type"] in (2, 4):
+                e2 = r2(e["script_header_ptr"])
+                ptr2LineEdit.setText(hex(e2["script_body_ptr"]))
+                flagLineEdit.setText(hex(e2["flag"]))
+                valueLineEdit.setText(hex(e2["value"]))
+                b = QtGui.QPushButton()
+                b.setText("Edit Script")
+                launchscripteditor = (lambda :
+                    self.launch_script_editor(offset=int(ptr2LineEdit.text(), 16))
+                    )
+                b.clicked.connect(launchscripteditor)
+                layout.addWidget(b)
+            else:
+                ptr2LineEdit.hide()
+                flagLineEdit.hide()
+                valueLineEdit.hide()
+                ptr2Label.hide()
+                flagLabel.hide()
+                valueLabel.hide()
+            p += structures.size_of(struct)
+            e = r(p)
+        #
+
+    def add_level_script(self):
+        print("+")
+        pass
 
 def main():
     app = QtGui.QApplication(sys.argv)

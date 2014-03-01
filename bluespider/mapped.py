@@ -587,7 +587,6 @@ def rem_event(rom_memory, events_header, type):
 
 def get_map_labels(rom_memory, game=axve, type='RS'):
     labels = []
-    #labels_ptr = read_ptr_at(rom_memory, game["MapLabels"])
     labels_ptr = get_rom_addr(game["MapLabels"])
     add = (type == 'RS' and 4) or (type == 'EM' and 4) or (type == 'FR' and 0)
     for i in range(0x59 if type=='RS' else 0x6D): # Magic!

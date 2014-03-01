@@ -125,6 +125,19 @@ sprite2 = (
         ("img_ptr", "ptr", 0), # Yes it makes no sense
         )
 
+lscript_entry = (
+        ("type", "byte", 0),
+        ("script_header_ptr", "ptr", 1),
+        )
+# List of entries ends in 0x00
+
+# type 2 or 4, doesn't matter
+lscript_type_2 = (
+        ("flag", "short", 0),
+        ("value", "short", 2),
+        ("script_body_ptr", "ptr", 4),
+        ("null", "short", 2), # 0000
+        )
 
 def to_dict(structure):
     d = {}

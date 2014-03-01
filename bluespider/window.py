@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'mapped.ui'
+# Form implementation generated from reading ui file '../mapped.ui'
 #
-# Created: Sun Dec 29 16:20:51 2013
+# Created: Sun Mar  2 00:49:26 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -931,6 +931,21 @@ class Ui_MainWindow(object):
         self.gridLayout_13.addLayout(self._18, 0, 2, 1, 1)
         self.gridLayout_6.addWidget(self.groupBox_2, 2, 0, 1, 1)
         self.tabWidget.addTab(self.HeaderTab, _fromUtf8(""))
+        self.tab = QtGui.QWidget()
+        self.tab.setObjectName(_fromUtf8("tab"))
+        self.gridLayout_9 = QtGui.QGridLayout(self.tab)
+        self.gridLayout_9.setObjectName(_fromUtf8("gridLayout_9"))
+        self.verticalLayout_3 = QtGui.QVBoxLayout()
+        self.verticalLayout_3.setObjectName(_fromUtf8("verticalLayout_3"))
+        self.lscriptsLayout = QtGui.QVBoxLayout()
+        self.lscriptsLayout.setObjectName(_fromUtf8("lscriptsLayout"))
+        self.verticalLayout_3.addLayout(self.lscriptsLayout)
+        self.addLevelScriptButton = QtGui.QPushButton(self.tab)
+        self.addLevelScriptButton.setEnabled(False)
+        self.addLevelScriptButton.setObjectName(_fromUtf8("addLevelScriptButton"))
+        self.verticalLayout_3.addWidget(self.addLevelScriptButton)
+        self.gridLayout_9.addLayout(self.verticalLayout_3, 0, 0, 1, 1)
+        self.tabWidget.addTab(self.tab, _fromUtf8(""))
         self.PalTab = QtGui.QWidget()
         self.PalTab.setEnabled(False)
         self.PalTab.setObjectName(_fromUtf8("PalTab"))
@@ -1311,6 +1326,8 @@ class Ui_MainWindow(object):
         self.label_97.setText(_translate("MainWindow", "Width", None))
         self.label_98.setText(_translate("MainWindow", "Height", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.HeaderTab), _translate("MainWindow", "Header", None))
+        self.addLevelScriptButton.setText(_translate("MainWindow", "+", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("MainWindow", "Level Scripts", None))
         self.groupBox_3.setTitle(_translate("MainWindow", "Properties", None))
         self.label_48.setText(_translate("MainWindow", "Horizontal Flip", None))
         self.label_49.setText(_translate("MainWindow", "Vertical Flip", None))
