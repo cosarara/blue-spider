@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+""" Blue Spider UI's code. In real need of refactoring, but seems to work. """
+
 # If I keep trying, this code will end up looking as messy as elite map's!
 
 import os
@@ -32,6 +34,7 @@ if not os.path.exists(path):
 settings_path = os.path.join(path, sfn)
 
 class Window(QtGui.QMainWindow):
+    """ This class is the mother of everything in the GUI """
     def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
         self.ui = Ui_MainWindow()
@@ -89,7 +92,8 @@ class Window(QtGui.QMainWindow):
         self.sprites = []
         self.events = []
 
-        self.ui.actionLoad_ROM.triggered.connect(self.load_rom_dialog)
+        # not directly load_rom because that would give Qt stuff as a parameter
+        self.ui.actionLoad_ROM.triggered.connect(lambda : self.load_rom())
         self.ui.actionSave.triggered.connect(self.write_to_file)
         self.ui.actionSave_As.triggered.connect(self.save_as)
         self.ui.actionAdd_new_banks.triggered.connect(self.add_new_banks)
@@ -143,13 +147,11 @@ class Window(QtGui.QMainWindow):
                 self.ui.s_x, self.ui.s_y)
         for item in redrawing_items:
             item.textChanged.connect(self.redraw_events)
-        #self.ui.sprite_num.textChanged.connect(self.reload_person_img)
         self.ui.sprite_num.valueChanged.connect(self.reload_person_img)
 
         self.current_index = None
         self.event_n = None
 
-        #self.script_editor_command = '../asc/git/asc_gui_qt.py'
         self.script_editor_command = ''
         self.isxse = False
         self.load_settings()
@@ -159,6 +161,7 @@ class Window(QtGui.QMainWindow):
 
 
     def redraw_events(self):
+        """ Called when some event's position is changed in the GUI """
         if self.reload_lock:
             return
         self.save_event_to_memory()
@@ -168,16 +171,15 @@ class Window(QtGui.QMainWindow):
         self.selected_event = self.events[index][self.event_n]
 
     def reload_person_img(self):
+        """ Called when the sprite num. is changed in the GUI """
         if self.reload_lock:
             return
         self.save_event_to_memory()
         self.update_event_editor()
 
 
-    def load_rom_dialog(self):
-        self.load_rom()
-
     def load_rom(self, fn=None):
+        """ If no filename is given, it'll prompt the user with a nice dialog """
         self.loaded_map = None
 
         self.tree_model.clear()
@@ -228,6 +230,7 @@ class Window(QtGui.QMainWindow):
             self.load_maps(i, map_labels)
 
     def load_maps(self, bank_num, map_labels):
+        """ Loads the map list """
         map_header_ptrs = mapped.get_map_headers(self.rom_contents,
                 bank_num, self.banks)
 
@@ -281,7 +284,7 @@ class Window(QtGui.QMainWindow):
 
 
     def draw_palette(self):
-        # The tile palette, not the color one
+        """ Draws the tile palette (not the colors but the selectable tiles) """
         blocks_imgs = self.blocks_imgs
         perms_imgs = self.mov_perms_imgs
         blocks_img_w = 16 * 8 # 8 tiles per row
@@ -329,8 +332,6 @@ class Window(QtGui.QMainWindow):
         self.palette_pixmap_qobject.clicked.connect(self.palette_clicked)
         self.perms_palette_pixmap_qobject.clicked.connect(
                 self.perms_palette_clicked)
-        #self.ui.palette.fitInView(self.palette_scene.sceneRect(),
-        #    mode=QtCore.Qt.KeepAspectRatio)
 
     def draw_map(self, map):
         w = len(map[0])
@@ -423,6 +424,8 @@ class Window(QtGui.QMainWindow):
         self.events = mapped.parse_events(self.rom_contents, events_header)
 
     def load_map(self, qindex):
+        """ Called when a map is selected, a warp is clicked or the map has
+            to be reloaded. """
         self.current_index = qindex
         if self.loaded_map:
             self.save_map()
@@ -518,7 +521,6 @@ class Window(QtGui.QMainWindow):
                 ("trigger", trigger_events),
                 ("signpost", signpost_events)
             )
-        # haha, reserved names
         for type, list in types:
             event = self.get_event_at_pos_from_list(pos, list)
             if event:
@@ -551,7 +553,6 @@ class Window(QtGui.QMainWindow):
             sprite_num = event['sprite_num']
             if sprite_num < len(self.sprites):
                 img = self.sprites[sprite_num]
-                #img.save("sprite.png", "PNG")
                 self.sprite_qimg = ImageQt.ImageQt(img)
                 self.sprite_scene.clear()
                 self.spritePixMap = QtGui.QPixmap.fromImage(self.sprite_qimg)
@@ -570,7 +571,7 @@ class Window(QtGui.QMainWindow):
 
 
     def save_event_to_memory(self):
-        '''take event info from UI and save it in the events object'''
+        """ take event info from UI and save it in self.selected_event """
         type = self.selected_event_type
         if not type or not self.selected_event:
             return
@@ -587,6 +588,21 @@ class Window(QtGui.QMainWindow):
             if size == "ptr" and num < 0x8000000:
                 num &= 0x8000000
             self.selected_event[data_element] = num
+
+    def save_events(self):
+        """ Save all events to rom_contents """
+        self.save_event_to_memory()
+        person_events, warp_events, trigger_events, signpost_events = self.events
+        types = (
+                ("person", person_events),
+                ("warp", warp_events),
+                ("trigger", trigger_events),
+                ("signpost", signpost_events)
+            )
+        for type, list in types:
+            for event in list:
+                mapped.write_event(self.rom_contents, event, type)
+        mapped.write_events_header(self.rom_contents, self.events_header)
 
     def map_clicked(self, event):
         tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event,
@@ -632,20 +648,6 @@ class Window(QtGui.QMainWindow):
         debug("selected tile:", hex(tile_num))
         self.selected_mov_tile = tile_num
 
-    def save_events(self):
-        self.save_event_to_memory()
-        person_events, warp_events, trigger_events, signpost_events = self.events
-        types = (
-                ("person", person_events),
-                ("warp", warp_events),
-                ("trigger", trigger_events),
-                ("signpost", signpost_events)
-            )
-        for type, list in types:
-            for event in list:
-                mapped.write_event(self.rom_contents, event, type)
-        mapped.write_events_header(self.rom_contents, self.events_header)
-
     def save_map(self):
         self.save_header()
         new_map_mem = mapped.map_to_mem(self.map)
@@ -654,8 +656,6 @@ class Window(QtGui.QMainWindow):
         self.rom_contents[pos:pos+size] = new_map_mem
 
     def write_to_file(self):
-        #with open(self.rom_file_name, "rb") as rom_file:
-        #    self.rom_contents = bytearray(rom_file.read())
         if self.loaded_map:
             self.save_map()
             self.save_events()
@@ -752,6 +752,7 @@ class Window(QtGui.QMainWindow):
         self.save_settings()
 
     def open_warp_in_emulator(self):
+        """ Never got it working outside linux """
         warp_num = self.event_n
         bank_num = self.bank_n
         map_num = self.map_n
@@ -779,7 +780,7 @@ t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
         with open("script.txt", "w") as file:
             file.write(script)
         file_name = self.rom_file_name
-        if os.name == 'posix': # Dunno 'bout macs and BSDs, but linux is posix
+        if os.name == 'posix': # Dunno 'bout Macs and BSDs, but Linux is posix
             command = './vbam'
         else:
             command = './vbam.exe'
@@ -893,21 +894,21 @@ t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
                 valueLabel.hide()
             p += structures.size_of(struct)
             e = r(p)
-        #
 
     def add_level_script(self):
+        """ TODO """
         print("+")
         pass
 
 def main():
+    # FIXME: We sometimes get segfaults on exit
     app = QtGui.QApplication(sys.argv)
     win = Window()
     win.show()
-    r = app.exec_() # So yeah, I'm trying to make it not crash on exit
+    r = app.exec_()
     win.close()
     app.deleteLater()
     sys.exit(r)
-    #sys.exit(app.exec_())
 
 if __name__ == "__main__":
     main()
