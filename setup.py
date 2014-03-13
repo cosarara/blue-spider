@@ -2,7 +2,12 @@
 # To build just cython in place:
 # python setup.py build_ext --inplace
 
+import sys
+
 try:
+    if "--no-freeze" in sys.argv: # hack!
+        sys.argv.remove("--no-freeze")
+        fail()
     from cx_Freeze import setup, Executable
 except:
     print("Warning: cx_Freeze not found. Using distutils")
@@ -42,9 +47,10 @@ setup(name='BlueSpider',
       description="Blue Spider map editor for the GBA pokémon games",
       author="Jaume (cosarara97) Delclòs",
       author_email="cosarara97@gmail.com",
-      url="https://gitorious.org/blue-spider-map-editor",
+      url="https://github.com/cosarara97/blue-spider",
       packages=['bluespider'],
       package_data={'bluespider': data_files},
+      py_modules = ['appdirs'],
       scripts=['bluespider-qt', 'bluespider-cli'],
       requires=['sip', 'PyQt4', 'PIL'],
       options = {"build_exe": build_exe_options},
