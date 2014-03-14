@@ -629,7 +629,6 @@ class Window(QtGui.QMainWindow):
             return
         debug("clicked event tile:", event)
         type, event = event
-        #self.map[tile_y][tile_x][0] = self.selected_tile
         self.draw_events(self.events)
         self.selected_event = event
         self.selected_event_type = type
