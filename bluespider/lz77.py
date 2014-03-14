@@ -4,52 +4,44 @@ block_size = 8
 
 def decompress(compressed_data):
     '''Decompresses lz77-compressed images in GBA ROMs.
-       Ported from NLZ-Advance (copyright Nintenlord)
+       Algorithm originally ported from NLZ-Advance code
+       (which has copyright by Nintenlord)
        compressed data must be either a bytes() or a bytearray()'''
     size = to_int(compressed_data[1:4])
-    #compressed_data = bytes(compressed_data)
     decompressed_data = bytearray(size)
     if compressed_data[0] != 0x10:
-        # NLZ-Advance said so! lol
         raise Exception('Not valid lz77 data')
     decomp_pos = 0
     comp_pos = 4
     while decomp_pos < size:
+        # Every bit of this byte maps to one of the eight following blocks
+        # if the bit is 1, that block is compressed
         is_compressed = compressed_data[comp_pos]
         comp_pos += 1
         for block_i in range(block_size):
-            #print("\t" + hex(comp_pos))
             if is_compressed & 0x80:
                 amount_to_copy = 3 + (compressed_data[comp_pos]>>4)
-                to_copy_from = 1 + ((compressed_data[comp_pos] & 0xF) << 8)
-                comp_pos += 1
-                to_copy_from += compressed_data[comp_pos]
-                comp_pos += 1
+                to_copy_from = (1 +
+                                ((compressed_data[comp_pos] & 0xF) << 8) +
+                                compressed_data[comp_pos + 1])
                 if to_copy_from > size:
                     raise Exception('Not valid lz77 data')
-                #print('--------------')
-                #print('copying {0} bytes from {1}'.format(amount_to_copy, to_copy_from))
                 for i in range(amount_to_copy):
-                    #*((target + positionUncomp - u) - copyPosition + (u % copyPosition));
-                    #print(hex(decomp_pos), hex(decomp_pos-i-to_copy_from+(i % to_copy_from)))
-                    decompressed_data[decomp_pos] = decompressed_data[decomp_pos-i-to_copy_from+(i % to_copy_from)]
-                    #decompressed_data[decomp_pos] = decompressed_data[decomp_pos-(to_copy_from+i)]
+                    decompressed_data[decomp_pos] = decompressed_data[
+                            decomp_pos - i - to_copy_from + (i % to_copy_from)
+                            ]
                     decomp_pos += 1
+                comp_pos += 2
 
             else:
-                # Warning: This is an ungly hack!
-                # I don't always find this last byte, but when I find it,
-                # I don't know how to handle it.
-                if decomp_pos < size:
-                    decompressed_data[decomp_pos] = compressed_data[comp_pos]
+                if decomp_pos >= size:
+                    break
+                decompressed_data[decomp_pos] = compressed_data[comp_pos]
                 decomp_pos += 1
                 comp_pos += 1
             if decomp_pos > size:
                 break
             is_compressed <<= 1
-            #if decomp_pos > 385:
-            #    decomp_pos = size
-            #    break
     return decompressed_data
 
 
