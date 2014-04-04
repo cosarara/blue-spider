@@ -586,7 +586,7 @@ class Window(QtGui.QMainWindow):
             if not mapped.fits(num, size):
                 raise Exception(data_element + " too big")
             if size == "ptr" and num < 0x8000000:
-                num &= 0x8000000
+                num |= 0x8000000
             self.selected_event[data_element] = num
 
     def save_events(self):
