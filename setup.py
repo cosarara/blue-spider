@@ -41,7 +41,12 @@ build_exe_options = {"packages": ["pkg_resources"],
                      "include_files": data_files_cxfreeze,
                      "includes": "PyQt4.QtCore"}
 
-from Cython.Build import cythonize
+try:
+    from Cython.Build import cythonize
+    ext_modules = cythonize(os.path.join("bluespider", "fast.pyx")),
+except ImportError:
+    ext_modules = None
+
 setup(name='BlueSpider',
       version=version,
       description="Blue Spider map editor for the GBA pokémon games",
@@ -53,12 +58,12 @@ setup(name='BlueSpider',
       py_modules = ['appdirs'],
       scripts=['bluespider-qt', 'bluespider-cli'],
       requires=['sip', 'PyQt4', 'PIL'],
-      options = {"build_exe": build_exe_options},
-      executables = [
+      options={"build_exe": build_exe_options},
+      executables=[
           Executable("bluespider-qt", base=base),
           Executable("bluespider-cli", base=basecli),
           ],
-      ext_modules = cythonize(os.path.join("bluespider", "fast.pyx")),
+      ext_modules=ext_modules
       )
 
 
