@@ -31,5 +31,8 @@ Building:
 If creating a package on linux, you'll probably not want
 to use cx_freeze. If you have it installed you'll have to
 pass the option --no-freeze to setup.py.
+
 On windows you'll probably want to, so just "setup.py build".
+In that case, before building, you must copy the imageformats directory
+from the Qt distribution to this directory.
 
