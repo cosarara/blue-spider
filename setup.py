@@ -39,7 +39,8 @@ data_files = [
 data_files_cxfreeze = ['bluespider/data/', 'README.txt', 'imageformats']
 build_exe_options = {"packages": ["pkg_resources"],
                      "include_files": data_files_cxfreeze,
-                     "includes": "PyQt4.QtCore"}
+                     "includes": "PyQt4.QtCore",
+                     "icon": "utils/bluespider.ico"}
 
 try:
     from Cython.Build import cythonize
