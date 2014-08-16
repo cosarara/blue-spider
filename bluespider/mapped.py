@@ -95,6 +95,22 @@ write_short_at = (lambda rom, addr, num :
 write_byte_at = (lambda rom, addr, num :
         write_n_bytes(rom, addr, 1, num.to_bytes(1, "little")))
 
+def get_rom_data(rom_code):
+    if rom_code == b'AXVE':
+        rom_data = axve
+        game = 'RS'
+    elif rom_code == b'BPRE':
+        rom_data = bpre
+        game = 'FR'
+    elif rom_code == b'BPEE':
+        rom_data = bpee
+        game = 'EM'
+    else:
+        raise Exception("ROM code not found")
+    return rom_data, game
+
+def get_rom_code(rom_contents):
+    return rom_contents[0xAC:0xAC+4]
 
 def get_banks(rom_contents, rom_data=axve, echo=False):
     if echo:

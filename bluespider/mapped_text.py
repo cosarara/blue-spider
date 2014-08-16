@@ -28,18 +28,10 @@ def main():
     #"axve.gba"
     with open(file_name, "rb") as rom_file:
         rom_contents = rom_file.read()
-    rom_code = rom_contents[0xAC:0xAC+4]
-    if rom_code == b'AXVE':
-        rom_data = axve
-        game = 'RS'
-    elif rom_code == b'BPRE':
-        rom_data = bpre
-        game = 'FR'
-    elif rom_code == b'BPEE':
-        rom_data = bpee
-        game = 'EM'
-    else:
-        raise Exception("ROM code not found")
+
+    rom_code = get_rom_code(rom_contents)
+    rom_data, game = get_rom_data(rom_code)
+
     if mode == 'p':
         if len(sys.argv) == 3:
             get_banks(rom_contents, rom_data, echo=True)
@@ -67,7 +59,9 @@ def main():
             t1 = parse_tileset_header(rom_contents, t1_ptr)
             t2 = parse_tileset_header(rom_contents, t2_ptr)
             # Some aliases and stuff
+            from pprint import pprint
             p = print
+            pp = pprint
             ph = lambda x : print(hex(x))
             phb = lambda x : print(hexbytes(x))
             rc = bytearray(rom_contents)
