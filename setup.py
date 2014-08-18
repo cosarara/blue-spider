@@ -44,9 +44,10 @@ build_exe_options = {"packages": ["pkg_resources"],
 
 try:
     from Cython.Build import cythonize
-    ext_modules = cythonize(os.path.join("bluespider", "fast.pyx")),
+    ext_modules = cythonize(os.path.join("bluespider", "fast.pyx"))
 except ImportError:
-    ext_modules = None
+    print("Couldn't cythonize")
+    ext_modules = []
 
 setup(name='BlueSpider',
       version=version,
