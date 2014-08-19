@@ -183,7 +183,8 @@ def write_data_structure(rom_contents, struct, data, offset=None):
         offset = data["self"]
     for item in struct:
         name, size, pos = item
-        if name in data and name not in ("self", "clear", "null"):
+        # ("self", "clear", "null"):
+        if name in data and name not in ("self",):
             get_write_function(size)(rom_contents, offset+pos, data[name])
 
 def parse_map_header(rom_contents, map_h):
@@ -702,13 +703,8 @@ def load_tilesets(rc, game, t1_header, t2_header, pals):
 
 def color_(pals, t1data, t2data):
     # Fallback for fast.color
-    col1data = []
-    col2data = []
-    for c in pals:
-        colored1 = [c[i] for i in t1data]
-        col1data.append(colored1)
-        colored2 = [c[i] for i in t2data]
-        col2data.append(colored2)
+    col1data = [[c[i] for i in t1data] for c in pals]
+    col2data = [[c[i] for i in t2data] for c in pals]
     return col1data, col2data
 
 def add_banks(rom_memory, banks_ptr, old_len, new_len):
