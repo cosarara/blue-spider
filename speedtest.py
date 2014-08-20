@@ -6,7 +6,7 @@ from bluespider import mapped, mapped_gui
 import sys
 import time
 
-PROFILE = False
+PROFILE = True
 
 print("imported things")
 

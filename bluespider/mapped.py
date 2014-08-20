@@ -327,7 +327,7 @@ def get_pal_colors(rom_contents, pals_ptr, num=0):
         colors.append((r, g, b))
     return colors
 
-def build_imgdata(data, size, palette, w):
+def build_imgdata_(data, size, palette, w):
     if GRAYSCALE:
         palette = GRAYSCALE
     tiles_per_line = w
@@ -345,6 +345,12 @@ def build_imgdata(data, size, palette, w):
         imdata[x+y*imw] = color1
         imdata[x+y*imw+1] = color2
     return imdata
+
+try:
+    from .fast import build_imgdata
+except ImportError:
+    print("Using slow build_imgdata function")
+    build_imgdata = build_imgdata_
 
 def build_img(data, im, palette, w):
     imdata = build_imgdata(data, im.size, palette, w)
@@ -400,7 +406,7 @@ def get_block_data(rom_contents, tileset_header, game='RS'):
     mem = rom_contents[block_data_ptr:block_data_ptr+length]
     return mem
 
-def build_block_imgs(blocks_mem, imgs, palettes):
+def build_block_imgs_(blocks_mem, imgs, palettes):
     ''' Build images from the block information and tilesets.
      Every block is 16 bytes, and holds down and up parts for a tile,
      composed of 4 subtiles
@@ -464,6 +470,12 @@ def build_block_imgs(blocks_mem, imgs, palettes):
 
         block_imgs.append(block_img)
     return block_imgs
+
+try:
+    from .fast import build_block_imgs
+except ImportError:
+    print("Using slow build_block_imgs function")
+    build_block_imgs = build_block_imgs_
 
 def get_imgs(path=["data", "mov_perms"], num=0x40, usepackagedata=True):
     ''' load png images to show in GUI '''
