@@ -434,7 +434,7 @@ def build_block_imgs(blocks_mem, imgs, palettes):
                 byte2 = layer_mem[d+1]
                 tile_num = byte1 | ((byte2 & 0b11) << 8)
                 palette_num = byte2 >> 4
-                if palette_num > 13: # XXX
+                if palette_num >= 13: # XXX
                     palette_num = 0
                 palette = GRAYSCALE or palettes[palette_num]
                 img = imgs[palette_num]
