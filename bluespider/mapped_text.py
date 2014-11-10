@@ -12,7 +12,7 @@ from . import mapped
 from .mapped import bpre, axve, bpee
 from .mapped import get_banks, get_map_headers, hexbytes, print32bytes
 from .mapped import parse_map_header, parse_map_data, parse_tileset_header
-from .mapped import read_rom_addr_at
+from .mapped import read_rom_addr_at, get_rom_code, get_rom_data
 from .map_printer import map_to_text, text_to_mem, print_dict_hex
 
 def main():
@@ -82,8 +82,8 @@ def main():
         tilemap_address = map_data['tilemap_ptr']
         w = map_data['w']
         h = map_data['h']
+        tilemap_address = mapped.get_rom_addr(tilemap_address)
         if mode == 'r':
-            tilemap_address = mapped.get_rom_addr(tilemap_address)
             mapmem = rom_contents[tilemap_address:]
             text_map = map_to_text(mapmem, w, h)
             print(text_map)
