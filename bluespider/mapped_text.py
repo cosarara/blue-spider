@@ -15,6 +15,8 @@ from .mapped import parse_map_header, parse_map_data, parse_tileset_header
 from .mapped import read_rom_addr_at, get_rom_code, get_rom_data
 from .map_printer import map_to_text, text_to_mem, print_dict_hex
 
+# TODO: Use a proper arg-parsing library and clean this shit
+
 def main():
     if ((len(sys.argv) < 3) or (sys.argv[2] == "r" and len(sys.argv) < 5)
         or (sys.argv[2] == "w" and len(sys.argv) < 6)):
@@ -98,18 +100,10 @@ def main():
             print(new_map)
             rom_contents[tilemap_address:
                          tilemap_address+len(new_map)] = new_map
-            with open(file_name+'.new.gba', "wb") as rom_file:
+            with open(file_name, "wb") as rom_file:
                 rom_file.write(rom_contents)
-
 
 
 if __name__ == '__main__':
     main()
-
-
-
-
-
-
-
 
