@@ -6,8 +6,8 @@ import sys
 
 try:
     if not "--freeze" in sys.argv: # hack!
-        sys.argv.remove("--freeze")
         fail()
+    sys.argv.remove("--freeze")
     from cx_Freeze import setup, Executable
 except:
     print("Warning: cx_Freeze not found. Using distutils")
