@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '../mapped.ui'
+# Form implementation generated from reading ui file 'mapped.ui'
 #
-# Created: Wed Mar  5 23:04:56 2014
-#      by: PyQt4 UI code generator 4.10.3
+# Created: Thu Jan 29 23:09:52 2015
+#      by: PyQt4 UI code generator 4.11.3
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -128,7 +128,7 @@ class Ui_MainWindow(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName(_fromUtf8("scrollArea"))
         self.scrollAreaWidgetContents = QtGui.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 372, 715))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 372, 721))
         self.scrollAreaWidgetContents.setObjectName(_fromUtf8("scrollAreaWidgetContents"))
         self.verticalLayout_2 = QtGui.QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_2.setObjectName(_fromUtf8("verticalLayout_2"))
@@ -470,10 +470,6 @@ class Ui_MainWindow(object):
         self.label_23 = QtGui.QLabel(self.personEditor)
         self.label_23.setObjectName(_fromUtf8("label_23"))
         self.formLayout.setWidget(11, QtGui.QFormLayout.LabelRole, self.label_23)
-        self.is_a_trainer = QtGui.QCheckBox(self.personEditor)
-        self.is_a_trainer.setText(_fromUtf8(""))
-        self.is_a_trainer.setObjectName(_fromUtf8("is_a_trainer"))
-        self.formLayout.setWidget(11, QtGui.QFormLayout.FieldRole, self.is_a_trainer)
         self.label_24 = QtGui.QLabel(self.personEditor)
         self.label_24.setObjectName(_fromUtf8("label_24"))
         self.formLayout.setWidget(12, QtGui.QFormLayout.LabelRole, self.label_24)
@@ -544,6 +540,9 @@ class Ui_MainWindow(object):
         self.sprite_num.setPrefix(_fromUtf8(""))
         self.sprite_num.setObjectName(_fromUtf8("sprite_num"))
         self.formLayout.setWidget(2, QtGui.QFormLayout.FieldRole, self.sprite_num)
+        self.is_a_trainer = QtGui.QLineEdit(self.personEditor)
+        self.is_a_trainer.setObjectName(_fromUtf8("is_a_trainer"))
+        self.formLayout.setWidget(11, QtGui.QFormLayout.FieldRole, self.is_a_trainer)
         self.eventsStackedWidget.addWidget(self.personEditor)
         self.triggerEditor = QtGui.QWidget()
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)

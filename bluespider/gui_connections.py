@@ -108,11 +108,7 @@ def get_event_connections(ui):
                     combo_update(ui.p_mov_type.setCurrentIndex),
                     "mov_type"
                 ),
-                (
-                    bool_read(ui.is_a_trainer.isChecked),
-                    bool_update(ui.is_a_trainer.setChecked),
-                    "is_a_trainer"
-                ),
+                text_element("is_a_trainer", ui.is_a_trainer),
             ),
         'warp': (
                 text_element("x", ui.w_x),
