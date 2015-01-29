@@ -40,6 +40,7 @@ class Window(QtGui.QMainWindow):
         self.ui = Ui_MainWindow()
 
         self.ui.setupUi(self)
+        # CX_Freeze
         if getattr(sys, 'frozen', False):
             iconpath = os.path.join(
                     os.path.dirname(sys.executable),
@@ -97,7 +98,7 @@ class Window(QtGui.QMainWindow):
         self.ui.actionSave.triggered.connect(self.write_to_file)
         self.ui.actionSave_As.triggered.connect(self.save_as)
         self.ui.actionAdd_new_banks.triggered.connect(self.add_new_banks)
-        self.ui.treeView.clicked.connect(self.load_map)
+        self.ui.treeView.clicked.connect(self.load_map_qindex)
         self.ui.s_type.currentIndexChanged.connect(
                 self.update_signpost_stacked)
         self.ui.p_edit_script.clicked.connect(self.launch_script_editor)
@@ -113,6 +114,7 @@ class Window(QtGui.QMainWindow):
         self.ui.addLevelScriptButton.clicked.connect(self.add_level_script)
 
         self.selected_tile = 0
+        self.hovered_tile = None
         self.selected_mov_tile = 0
         self.selected_event = None
         self.selected_event_type = None
@@ -158,14 +160,15 @@ class Window(QtGui.QMainWindow):
 
         if len(sys.argv) >= 2:
             self.load_rom(sys.argv[1])
-
+        if len(sys.argv) >= 4:
+            self.load_map(int(sys.argv[2]), int(sys.argv[3]))
 
     def redraw_events(self):
         """ Called when some event's position is changed in the GUI """
         if self.reload_lock:
             return
         self.save_event_to_memory()
-        self.load_map(self.current_index)
+        self.load_map_qindex(self.current_index)
         index = ["person", "warp",
                 "trigger", "signpost"].index(self.selected_event_type)
         self.selected_event = self.events[index][self.event_n]
@@ -287,15 +290,15 @@ class Window(QtGui.QMainWindow):
         """ Draws the tile palette (not the colors but the selectable tiles) """
         blocks_imgs = self.blocks_imgs
         perms_imgs = self.mov_perms_imgs
-        blocks_img_w = 16 * 8 # 8 tiles per row
-        perms_img_w = blocks_img_w
-        blocks_img_h = (len(blocks_imgs) * 16) // 8
+        self.blocks_img_w = 16 * 8 # 8 tiles per row
+        perms_img_w = self.blocks_img_w
+        self.blocks_img_h = (len(blocks_imgs) * 16) // 8
         perms_img_h = (len(perms_imgs) * 16) // 8
-        blocks_img = Image.new("RGB", (blocks_img_w, blocks_img_h))
+        blocks_img = Image.new("RGB", (self.blocks_img_w, self.blocks_img_h))
         perms_img = Image.new("RGB", (perms_img_w, perms_img_h))
         i = 0
-        for row in range(blocks_img_h // 16):
-            for col in range(blocks_img_w // 16):
+        for row in range(self.blocks_img_h // 16):
+            for col in range(self.blocks_img_w // 16):
                 x = col*16
                 y = row*16
                 x2 = x+16
@@ -318,8 +321,14 @@ class Window(QtGui.QMainWindow):
         self.t1_img_qt = ImageQt.ImageQt(blocks_img)
         self.perms_pal_img_qt = ImageQt.ImageQt(perms_img)
 
+        # Palette is not draw yet at this point, draw palette has to be called too
+
+    def print_palette(self, quick=False):
+        if not quick:
+            self.draw_palette()
         self.tilesetPixMap = QtGui.QPixmap.fromImage(self.t1_img_qt)
         self.permsPalPixMap = QtGui.QPixmap.fromImage(self.perms_pal_img_qt)
+
         self.palette_scene.clear()
         self.perms_palette_scene.clear()
         self.palette_pixmap_qobject = qmapview.QMapPixmap(self.tilesetPixMap)
@@ -332,6 +341,16 @@ class Window(QtGui.QMainWindow):
         self.palette_pixmap_qobject.clicked.connect(self.palette_clicked)
         self.perms_palette_pixmap_qobject.clicked.connect(
                 self.perms_palette_clicked)
+
+        square_painter = QtGui.QPainter(self.tilesetPixMap)
+        square_painter.setPen(QtCore.Qt.red)
+        p = self.selected_tile
+        h = self.blocks_img_h // 16
+        w = self.blocks_img_w // 16
+        x = (p%w)*16
+        y = (p//w)*16
+        square_painter.drawRect(x, y, 16, 16)
+        square_painter.end()
 
     def draw_map(self, map):
         w = len(map[0])
@@ -346,14 +365,20 @@ class Window(QtGui.QMainWindow):
                 x2 = x+16
                 y2 = y+16
                 pos = (x, y, x2, y2)
-                map_img.paste(self.blocks_imgs[tile_num], pos)
-                mov_img.paste(self.blocks_imgs[tile_num], pos)
-                mov_img.paste(self.mov_perms_imgs[behavior], pos,
-                        self.mov_perms_imgs[behavior])
+                if tile_num < len(self.blocks_imgs):
+                    map_img.paste(self.blocks_imgs[tile_num], pos)
+                    mov_img.paste(self.blocks_imgs[tile_num], pos)
+                if behavior < len(self.mov_perms_imgs):
+                    mov_img.paste(self.mov_perms_imgs[behavior], pos,
+                                  self.mov_perms_imgs[behavior])
 
         self.map_img = map_img
         self.map_img_qt = ImageQt.ImageQt(map_img)
         self.mov_img_qt = ImageQt.ImageQt(mov_img)
+
+    def print_map(self, map, quick=False):
+        if not quick:
+            self.draw_map(map)
         self.mapPixMap = QtGui.QPixmap.fromImage(self.map_img_qt)
         self.movPixMap = QtGui.QPixmap.fromImage(self.mov_img_qt)
         self.map_scene.clear()
@@ -367,6 +392,17 @@ class Window(QtGui.QMainWindow):
 
         self.map_pixmap_qobject.clicked.connect(self.map_clicked)
         self.mov_pixmap_qobject.clicked.connect(self.mov_clicked)
+
+        if self.hovered_tile is not None:
+            square_painter = QtGui.QPainter(self.tilesetPixMap)
+            square_painter.setPen(QtCore.Qt.red)
+            p = self.selected_tile
+            h = self.blocks_img_h // 16
+            w = self.blocks_img_w // 16
+            x = (p%w)*16
+            y = (p//w)*16
+            square_painter.drawRect(x, y, 16, 16)
+            square_painter.end()
 
     def draw_events(self, events=None):
         if events is None:
@@ -423,20 +459,26 @@ class Window(QtGui.QMainWindow):
         self.ui.num_of_signposts.setText(str(events_header['n_of_signposts']))
         self.events = mapped.parse_events(self.rom_contents, events_header)
 
-    def load_map(self, qindex):
-        """ Called when a map is selected, a warp is clicked or the map has
-            to be reloaded. """
+    def load_map_qindex(self, qindex):
         self.current_index = qindex
-        if self.loaded_map:
-            self.save_map()
-            self.save_events()
         bank_n = qindex.parent().row()
-        self.bank_n = bank_n
         if bank_n == -1:
             return
         map_n = qindex.row()
+        self.load_map(bank_n, map_n)
+
+    def load_map(self, bank_n, map_n):
+        """ Called when a map is selected, a warp is clicked or the map has
+            to be reloaded. """
+        self.ui.statusbar.showMessage("Loading map...")
+        if self.loaded_map:
+            self.save_map()
+            self.save_events()
+
+        self.bank_n = bank_n
         self.map_n = map_n
         debug(bank_n, map_n)
+
         maps = mapped.get_map_headers(self.rom_contents, bank_n, self.banks)
         map_h_ptr = mapped.get_rom_addr(maps[map_n])
         map_header = mapped.parse_map_header(self.rom_contents, map_h_ptr)
@@ -458,8 +500,13 @@ class Window(QtGui.QMainWindow):
                 map_data_header['local_tileset_ptr'],
                 self.game
                 )
-        self.t1_imgs = self.get_tilesets(tileset_header, tileset2_header,
-                self.t1_imgs)
+        try:
+            self.t1_imgs = self.get_tilesets(tileset_header, tileset2_header,
+                    self.t1_imgs)
+        except:
+            self.ui.statusbar.showMessage("Error loading tilesets")
+            raise
+
         self.t1_header = tileset_header
         self.t2_header = tileset2_header
 
@@ -479,15 +526,20 @@ class Window(QtGui.QMainWindow):
         tilemap_ptr = mapped.get_rom_addr(tilemap_ptr)
         self.tilemap_ptr = tilemap_ptr
         map_mem = self.rom_contents[tilemap_ptr:tilemap_ptr+map_size]
+        if map_data_header['h'] + map_data_header['w'] > 20000:
+            self.ui.statusbar.showMessage("Map bugged (too big)")
+            raise Exception("Bad map: h & w way too big")
         self.map = mapped.parse_map_mem(map_mem, map_data_header['h'],
                 map_data_header['w'])
 
-        self.draw_map(self.map)
-        self.draw_palette()
+        self.print_map(self.map)
+        self.print_palette()
         self.draw_events(self.events)
         self.loaded_map = True
 
         self.update_header()
+
+        self.ui.statusbar.showMessage("Map loaded")
 
 
     def get_tile_num_from_mouseclick(self, event, pixmap):
@@ -609,7 +661,7 @@ class Window(QtGui.QMainWindow):
                 self.mapPixMap)
         debug("clicked tile:", hex(tile_num))
         self.map[tile_y][tile_x][0] = self.selected_tile
-        self.draw_map(self.map)
+        self.print_map(self.map)
         self.draw_events(self.events)
 
     def mov_clicked(self, event):
@@ -617,7 +669,7 @@ class Window(QtGui.QMainWindow):
                 self.movPixMap)
         debug("clicked tile:", hex(tile_num))
         self.map[tile_y][tile_x][1] = self.selected_mov_tile
-        self.draw_map(self.map)
+        self.print_map(self.map)
         self.draw_events(self.events)
 
     def event_clicked(self, event):
@@ -640,6 +692,7 @@ class Window(QtGui.QMainWindow):
                 self.tilesetPixMap)
         debug("selected tile:", hex(tile_num))
         self.selected_tile = tile_num
+        self.print_palette(quick=True)
 
     def perms_palette_clicked(self, event):
         tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event,
@@ -710,7 +763,7 @@ class Window(QtGui.QMainWindow):
         if map is None:
             map = self.selected_event["map_num"]
         debug(bank, map)
-        self.load_map(self.tree_model.item(bank).child(map))
+        self.load_map(bank, map)
 
     def launch_script_editor(self, offset=None, file_name=None, command=None,
             xse=None):
@@ -902,7 +955,14 @@ t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
 def main():
     # FIXME: We sometimes get segfaults on exit
     app = QtGui.QApplication(sys.argv)
-    win = Window()
+    try:
+        win = Window()
+    except:
+        app.deleteLater()
+        raise
+    if len(sys.argv) >= 5: # Running as a test
+        app.deleteLater()
+        sys.exit(0)
     win.show()
     r = app.exec_()
     win.close()
