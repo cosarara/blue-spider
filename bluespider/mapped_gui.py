@@ -141,6 +141,8 @@ class Window(QtGui.QMainWindow):
         self.ui.addSignpostButton.clicked.connect(self.add_signpost)
         self.ui.remSignpostButton.clicked.connect(self.rem_signpost)
 
+        self.ui.rmEventButton.clicked.connect(self.rem_this_event)
+
         self.reload_lock = 0
         redrawing_items = (
                 self.ui.w_x, self.ui.w_y,
@@ -150,8 +152,11 @@ class Window(QtGui.QMainWindow):
         for item in redrawing_items:
             item.textChanged.connect(self.redraw_events)
         self.ui.sprite_num.valueChanged.connect(self.reload_person_img)
+        self.ui.eventSpinBox.valueChanged.connect(self.event_spinbox_changed)
+        self.ui.eventSelectorCombo.currentIndexChanged.connect(
+            self.update_event_spinbox_max_value)
 
-        self.current_index = None
+        self.current_index = None # Tree selector index
         self.event_n = None
 
         self.script_editor_command = ''
@@ -183,10 +188,6 @@ class Window(QtGui.QMainWindow):
 
     def load_rom(self, fn=None):
         """ If no filename is given, it'll prompt the user with a nice dialog """
-        self.loaded_map = None
-
-        self.tree_model.clear()
-        self.banks = []
         if fn is None:
             fn = QtGui.QFileDialog.getOpenFileName(self, 'Open ROM file',
                                                QtCore.QDir.homePath(),
@@ -194,6 +195,12 @@ class Window(QtGui.QMainWindow):
                                                "All files (*)")
         if not fn:
             return
+
+        self.loaded_map = None
+
+        self.tree_model.clear()
+        self.banks = []
+
         with open(fn, "rb") as rom_file:
             self.rom_contents = rom_file.read()
 
@@ -535,6 +542,7 @@ class Window(QtGui.QMainWindow):
         self.print_map(self.map)
         self.print_palette()
         self.draw_events(self.events)
+        self.event_spinbox_changed()
         self.loaded_map = True
 
         self.update_header()
@@ -595,10 +603,14 @@ class Window(QtGui.QMainWindow):
         return event, tile_x, tile_y
 
     def update_event_editor(self, event=None, type=None):
-        if not type:
+        if type is None:
             type = self.selected_event_type
-        if not event:
+        if event is None:
             event = self.selected_event
+
+        if event is None: # There is NO self.selected_event
+            self.ui.eventsStackedWidget.setCurrentIndex(0)
+            return
 
         if type == "person":
             self.ui.eventsStackedWidget.setCurrentIndex(2)
@@ -621,7 +633,6 @@ class Window(QtGui.QMainWindow):
             read_function, update_function, data_element = connection
             update_function(event[data_element])
 
-
     def save_event_to_memory(self):
         """ take event info from UI and save it in self.selected_event """
         type = self.selected_event_type
@@ -643,19 +654,11 @@ class Window(QtGui.QMainWindow):
                 num |= 0x8000000
             self.selected_event[data_element] = num
 
-    def save_events(self):
+    def save_events(self, skip_ui=False):
         """ Save all events to rom_contents """
-        self.save_event_to_memory()
-        person_events, warp_events, trigger_events, signpost_events = self.events
-        types = (
-                ("person", person_events),
-                ("warp", warp_events),
-                ("trigger", trigger_events),
-                ("signpost", signpost_events)
-            )
-        for type, list in types:
-            for event in list:
-                mapped.write_event(self.rom_contents, event, type)
+        if not skip_ui: # used when removing the selected event
+            self.save_event_to_memory()
+        mapped.write_events(self.rom_contents, self.events_header, self.events)
         mapped.write_events_header(self.rom_contents, self.events_header)
 
     def map_clicked(self, event):
@@ -674,10 +677,10 @@ class Window(QtGui.QMainWindow):
         self.print_map(self.map)
         self.draw_events(self.events)
 
-    def event_clicked(self, event):
+    def event_clicked(self, qtevent):
         self.reload_lock = True
         self.save_event_to_memory()
-        event, event_x, event_y = self.get_event_from_mouseclick(event,
+        event, event_x, event_y = self.get_event_from_mouseclick(qtevent,
                 self.eventPixMap)
         if event == (None, None):
             return
@@ -686,7 +689,18 @@ class Window(QtGui.QMainWindow):
         self.draw_events(self.events)
         self.selected_event = event
         self.selected_event_type = type
+
         self.update_event_editor(event, type)
+
+        square_painter = QtGui.QPainter(self.eventPixMap)
+        square_painter.setPen(QtCore.Qt.red)
+        square_painter.drawRect(event_x*16, event_y*16, 16, 16)
+        square_painter.end()
+
+        event_type_i = ("person", "warp", "trigger", "signpost").index(type)
+        self.ui.eventSelectorCombo.setCurrentIndex(event_type_i)
+        self.ui.eventSpinBox.setValue(self.events[event_type_i].index(event))
+
         self.reload_lock = False
 
     def palette_clicked(self, event):
@@ -742,6 +756,7 @@ class Window(QtGui.QMainWindow):
         mapped.write_events_header(self.rom_contents, self.events_header)
         self.load_events()
         self.draw_events(self.events)
+        self.update_event_spinbox_max_value()
 
     def rem_event(self, type):
         self.save_events()
@@ -749,15 +764,86 @@ class Window(QtGui.QMainWindow):
         mapped.write_events_header(self.rom_contents, self.events_header)
         self.load_events()
         self.draw_events(self.events)
+        if self.selected_event not in self.events:
+            self.selected_event = None
+            self.selected_event_type = None
+            self.update_event_editor()
+            self.update_event_spinbox_max_value()
 
-    add_warp = lambda self : self.add_event("warps")
-    rem_warp = lambda self : self.rem_event("warps")
-    add_person = lambda self : self.add_event("people")
-    rem_person = lambda self : self.rem_event("people")
-    add_trigger = lambda self : self.add_event("triggers")
-    rem_trigger = lambda self : self.rem_event("triggers")
-    add_signpost = lambda self : self.add_event("signposts")
-    rem_signpost = lambda self : self.rem_event("signposts")
+    def rem_this_event(self):
+        # We remove it from the runtime list, save to ROM and delete
+        # the last (bad) event in the ROM
+        this_event = self.selected_event
+        type = self.selected_event_type
+
+        self.selected_event = None
+        self.selected_event_type = None
+
+        for typed_events in self.events:
+            try:
+                typed_events.remove(this_event)
+            except ValueError:
+                pass
+        self.save_events(skip_ui=True)
+        mapped.rem_event(self.rom_contents, self.events_header, type)
+        mapped.write_events_header(self.rom_contents, self.events_header)
+
+        self.load_events()
+        self.draw_events(self.events)
+        self.update_event_editor()
+
+    add_warp = lambda self : self.add_event("warp")
+    rem_warp = lambda self : self.rem_event("warp")
+    add_person = lambda self : self.add_event("person")
+    rem_person = lambda self : self.rem_event("person")
+    add_trigger = lambda self : self.add_event("trigger")
+    rem_trigger = lambda self : self.rem_event("trigger")
+    add_signpost = lambda self : self.add_event("signpost")
+    rem_signpost = lambda self : self.rem_event("signpost")
+
+    def event_spinbox_changed(self, dont_recurse_pls=False):
+        if not dont_recurse_pls:
+            self.update_event_spinbox_max_value()
+        combo = self.ui.eventSelectorCombo
+        spin = self.ui.eventSpinBox
+
+        self.reload_lock = True
+        self.save_event_to_memory()
+        event_type_i = combo.currentIndex()
+        if len(self.events[event_type_i]) == 0:
+            self.ui.eventsStackedWidget.setCurrentIndex(0)
+            return
+        events = self.events[event_type_i]
+        try:
+            event = events[int(spin.value())]
+        except IndexError:
+            event = events[0]
+        event_x, event_y = event["x"], event["y"]
+        debug("selected event tile:", event)
+        self.draw_events(self.events)
+        self.selected_event = event
+        type = ("person", "warp", "trigger", "signpost")[event_type_i]
+        self.selected_event_type = type
+        self.update_event_editor()
+
+        square_painter = QtGui.QPainter(self.eventPixMap)
+        square_painter.setPen(QtCore.Qt.red)
+        square_painter.drawRect(event_x*16, event_y*16, 16, 16)
+        square_painter.end()
+
+        self.reload_lock = False
+
+    def update_event_spinbox_max_value(self):
+        combo = self.ui.eventSelectorCombo
+        spin = self.ui.eventSpinBox
+        type_i = combo.currentIndex()
+        max = len(self.events[type_i])-1 # -1 cause index 0
+        if max == -1:
+            spin.setEnabled(False)
+        else:
+            spin.setEnabled(True)
+            spin.setMaximum(max)
+        self.event_spinbox_changed(True)
 
     def go_to_warp(self, _, bank=None, map=None):
         if bank is None:

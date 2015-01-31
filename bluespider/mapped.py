@@ -244,6 +244,25 @@ def parse_events(rom_contents, events_header):
             list.append(event_data)
     return person_events, warp_events, trigger_events, signpost_events
 
+def write_events(rom_contents, events_header, events):
+    person_events, warp_events, trigger_events, signpost_events = events
+    parsing_functions = (
+            (write_person_event, "n_of_people", "person_events_ptr",
+                person_events, 24),
+            (write_warp_event, "n_of_warps", "warp_events_ptr",
+                warp_events, 8),
+            (write_trigger_event, "n_of_triggers", "trigger_events_ptr",
+                trigger_events, 16),
+            (write_signpost_event, "n_of_signposts", "signpost_events_ptr",
+                signpost_events, 12)
+        )
+    for fun, num_key, start_ptr_key, list, event_size in parsing_functions:
+        num = events_header[num_key]
+        for n, event in enumerate(list):
+            ptr = get_rom_addr(events_header[start_ptr_key])
+            ptr += event_size * n
+            fun(rom_contents, event, ptr)
+
 def write_event(rom_contents, event, type, offset=None):
     writing_functions = {
             "person" : write_person_event,
@@ -562,18 +581,24 @@ singular_name = {
         "signposts": "signpost",
         }
 
+def get_event_data_for_type(type):
+    return {
+        "person": ("n_of_people", "person_events_ptr"),
+        "warp": ("n_of_warps", "warp_events_ptr"),
+        "trigger": ("n_of_triggers", "trigger_events_ptr"),
+        "signpost": ("n_of_signposts", "signpost_events_ptr"),
+    }[type]
+
 def add_event(rom_memory, events_header, type):
     # Everything should be saved to rom_memory before calling this function,
     # and re-read afterwards.
     # We'll move the memory and update the header, but events will remain
     # with old offsets, so they have to be re-read.
-    stype = singular_name[type]
-    num_key = 'n_of_' + type
-    ptr_key = stype + "_events_ptr"
+    num_key, ptr_key = get_event_data_for_type(type)
     old_offset = get_rom_addr(events_header[ptr_key])
     backup = bytearray(rom_memory)
     num_of_events = events_header[num_key]
-    base_size = structures.size_of(structures.events[stype])
+    base_size = structures.size_of(structures.events[type])
     size = base_size * num_of_events
     events_memory = bytes(rom_memory[old_offset:old_offset+size])
     print(events_memory)
@@ -591,10 +616,8 @@ def add_event(rom_memory, events_header, type):
     events_header[num_key] += 1
 
 def rem_event(rom_memory, events_header, type):
-    stype = singular_name[type]
-    num_key = 'n_of_' + type
-    ptr_key = stype + "_events_ptr"
-    base_size = structures.size_of(structures.events[stype])
+    num_key, ptr_key = get_event_data_for_type(type)
+    base_size = structures.size_of(structures.events[type])
     offset = events_header[ptr_key]
     num_of_events = events_header[num_key]
     old_size = base_size * num_of_events
