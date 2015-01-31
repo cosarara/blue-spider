@@ -1,3 +1,6 @@
+import ast
+
+num_read = lambda x: (lambda : ast.literal_eval(x()) if x() else None)
 
 hex_update = lambda x : (lambda n : x(hex(n)))
 hex_read = lambda x : (lambda : int(x(), 16))
@@ -8,7 +11,8 @@ combo_read = lambda x : (lambda : int(x()))
 
 text_element = lambda name, obj : (
                 (
-                    hex_read(obj.text),
+                    #hex_read(obj.text),
+                    num_read(obj.text),
                     hex_update(obj.setText),
                     name 
                 )

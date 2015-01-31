@@ -630,6 +630,8 @@ class Window(QtGui.QMainWindow):
         for connection in self.ui_event_connections[type]:
             read_function, update_function, data_element = connection
             num = read_function()
+            if num == None:
+                return
             structure = structures.to_dict(structures.events[type])
             if data_element in structure:
                 size = structure[data_element][0]
