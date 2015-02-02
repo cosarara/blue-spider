@@ -203,6 +203,7 @@ class Window(QtGui.QMainWindow):
 
         with open(fn, "rb") as rom_file:
             self.rom_contents = rom_file.read()
+        self.original_rom_contents = bytes(self.rom_contents)
 
         self.rom_contents = bytearray(self.rom_contents)
         self.rom_file_name = fn
@@ -223,11 +224,31 @@ class Window(QtGui.QMainWindow):
         self.sprites = mapped.get_ow_sprites(self.rom_contents, self.rom_data)
 
     def write_rom(self):
+        self.ui.statusbar.showMessage("Saving...")
         if not self.rom_file_name:
             QtGui.QMessageBox.critical(self, "ERROR!", "No ROM loaded!")
             return
+        try:
+            with open(self.rom_file_name, "rb") as rom_file:
+                actual_rom_contents = bytearray(rom_file.read())
+        except FileNotFoundError:
+            with open(self.rom_file_name, "wb") as rom_file:
+                rom_file.write(rom_contents)
+            return
+
+        self.ui.statusbar.showMessage("Saving... Diffing/Patching...")
+        if self.rom_contents == self.original_rom_contents:
+            self.ui.statusbar.showMessage("Nothing to save")
+            return
+
+        for i in range(len(self.rom_contents)):
+            if self.rom_contents[i] != self.original_rom_contents[i]:
+                actual_rom_contents[i] = self.rom_contents[i]
+
+        self.ui.statusbar.showMessage("Saving... Writing...")
         with open(self.rom_file_name, "wb") as rom_file:
-            rom_file.write(self.rom_contents)
+            rom_file.write(actual_rom_contents)
+        self.ui.statusbar.showMessage("Saved {}".format(self.rom_file_name))
 
     def load_banks(self):
         self.tree_model.clear()
