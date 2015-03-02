@@ -59,8 +59,3 @@ def print_dict_hex(d):
     for key in sorted(d):
         print("%s: %s" % (key, hex(d[key])))
 
-
-
-
-
-

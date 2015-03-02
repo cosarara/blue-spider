@@ -64,12 +64,12 @@ def main():
             from pprint import pprint
             p = print
             pp = pprint
-            ph = lambda x : print(hex(x))
-            phb = lambda x : print(hexbytes(x))
+            ph = lambda x: print(hex(x))
+            phb = lambda x: print(hexbytes(x))
             rc = bytearray(rom_contents)
             p32b = print32bytes
             raddrat = read_rom_addr_at
-            r = lambda rom, start, length : rom[start:start+length]
+            r = lambda rom, start, length: rom[start:start+length]
             for c in sys.argv[5:]:
                 eval(c) # Yup! Let the user run whatever the fuck he wants
     elif mode == 'r' or mode == 'w':

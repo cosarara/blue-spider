@@ -1,5 +1,5 @@
 
-to_int = lambda x : int.from_bytes(x, "little")
+to_int = lambda x: int.from_bytes(x, "little")
 block_size = 8
 
 def decompress(compressed_data):
@@ -32,8 +32,8 @@ def decompress(compressed_data):
                     if decomp_pos >= size:
                         break
                     decompressed_data[decomp_pos] = decompressed_data[
-                            tmp_start - to_copy_from + i
-                            ]
+                        tmp_start - to_copy_from + i
+                    ]
                     decomp_pos += 1
                 comp_pos += 2
 

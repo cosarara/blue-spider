@@ -4,10 +4,10 @@ import os, sys
 try:
     import Image
     import ImageQt
-except:
+except ImportError:
     try:
         from PIL import Image, ImageQt
-    except:
+    except ImportError:
         print("Warning: Couldn't import PIL")
 
 from . import lz77
@@ -48,10 +48,10 @@ def hexbytes(s):
     b = b.rstrip(" ")
     return b
 
-print32bytes = lambda x, rom_contents : print(hexbytes(rom_contents[x:x+32]))
+print32bytes = lambda x, rom_contents: print(hexbytes(rom_contents[x:x+32]))
 
-to_int = lambda x : int.from_bytes(x, "little")
-get_addr = lambda x : int.from_bytes(x, "little") #& 0xFFFFFF
+to_int = lambda x: int.from_bytes(x, "little")
+get_addr = lambda x: int.from_bytes(x, "little") #& 0xFFFFFF
 
 def get_rom_addr(x):
     if x >= 0x8000000:
@@ -72,28 +72,28 @@ def read_n_bytes(rom, addr, n):
         raise Exception("you are trying to read -1")
     return rom[addr:addr+n]
 
-read_long_at = lambda rom, addr : to_int(read_n_bytes(rom, addr, 4))
+read_long_at = lambda rom, addr: to_int(read_n_bytes(rom, addr, 4))
 read_ptr_at = read_long_at
-read_rom_addr_at = lambda rom, addr : get_rom_addr(
+read_rom_addr_at = lambda rom, addr: get_rom_addr(
     check_rom_addr(read_long_at(rom, addr))
     )
-read_short_at = lambda rom, addr : to_int(read_n_bytes(rom, addr, 2))
-read_byte_at = lambda rom, addr : to_int(read_n_bytes(rom, addr, 1))
+read_short_at = lambda rom, addr: to_int(read_n_bytes(rom, addr, 2))
+read_byte_at = lambda rom, addr: to_int(read_n_bytes(rom, addr, 1))
 
 def write_n_bytes(rom, addr, n, data):
     if len(data) != n:
         raise Exception("data is not the same size as n!")
     rom[addr:addr+n] = data
 
-write_long_at = (lambda rom, addr, num :
-        write_n_bytes(rom, addr, 4, num.to_bytes(4, "little")))
-write_rom_ptr_at = (lambda rom, addr, num :
-        write_long_at(rom, addr, (num + 0x8000000 if num < 0x1000000 and
-                                                     num != 0 else num)))
-write_short_at = (lambda rom, addr, num :
-        write_n_bytes(rom, addr, 2, num.to_bytes(2, "little")))
-write_byte_at = (lambda rom, addr, num :
-        write_n_bytes(rom, addr, 1, num.to_bytes(1, "little")))
+write_long_at = (lambda rom, addr, num:
+                 write_n_bytes(rom, addr, 4, num.to_bytes(4, "little")))
+write_rom_ptr_at = (lambda rom, addr, num:
+                    write_long_at(rom, addr, (num + 0x8000000 if num < 0x1000000 and
+                                              num != 0 else num)))
+write_short_at = (lambda rom, addr, num:
+                  write_n_bytes(rom, addr, 2, num.to_bytes(2, "little")))
+write_byte_at = (lambda rom, addr, num:
+                 write_n_bytes(rom, addr, 1, num.to_bytes(1, "little")))
 
 def get_rom_data(rom_code):
     if rom_code == b'AXVE':
@@ -118,11 +118,13 @@ def get_banks(rom_contents, rom_data=axve, echo=False):
     i = 0
     banks = []
     banks_base_off = read_rom_addr_at(rom_contents, rom_data['MapHeaders'])
-    if echo: print(hex(banks_base_off))
+    if echo:
+        print(hex(banks_base_off))
     while True:
         a = read_rom_addr_at(rom_contents, banks_base_off + i * 4)
         if a == -1:
-            if echo: print("-1!")
+            if echo:
+                print("-1!")
             break
         if echo:
             print(hex(i) + "\t" + hex(a))
@@ -154,19 +156,19 @@ def get_map_headers(rom_contents, n, banks, echo=False):
         i += 1
     return maps
 
-get_read_function = lambda size : {
-            "byte": read_byte_at,
-            "short": read_short_at,
-            "ptr": read_ptr_at,
-            "long": read_long_at
-        }[size]
+get_read_function = lambda size: {
+    "byte": read_byte_at,
+    "short": read_short_at,
+    "ptr": read_ptr_at,
+    "long": read_long_at
+}[size]
 
-get_write_function = lambda size : {
-            "byte": write_byte_at,
-            "short": write_short_at,
-            "ptr": write_rom_ptr_at,
-            "long": write_long_at
-        }[size]
+get_write_function = lambda size: {
+    "byte": write_byte_at,
+    "short": write_short_at,
+    "ptr": write_rom_ptr_at,
+    "long": write_long_at
+}[size]
 
 def parse_data_structure(rom_contents, struct, offset):
     data = {}
@@ -213,11 +215,11 @@ def write_events_header(rom_contents, data):
     struct = structures.events_header
     return write_data_structure(rom_contents, struct, data)
 
-write_map_header = lambda rom_contents, data : write_data_structure(
-        rom_contents, structures.map_header, data)
+write_map_header = lambda rom_contents, data: write_data_structure(
+    rom_contents, structures.map_header, data)
 
-write_map_data_header = lambda rom_contents, data : write_data_structure(
-        rom_contents, structures.map_data, data)
+write_map_data_header = lambda rom_contents, data: write_data_structure(
+    rom_contents, structures.map_data, data)
 
 def parse_events(rom_contents, events_header):
     person_events = []
@@ -226,15 +228,15 @@ def parse_events(rom_contents, events_header):
     signpost_events = []
     # We make this thingy to loop nicely
     parsing_functions = (
-            (parse_person_event, "n_of_people", "person_events_ptr",
-                person_events, 24),
-            (parse_warp_event, "n_of_warps", "warp_events_ptr",
-                warp_events, 8),
-            (parse_trigger_event, "n_of_triggers", "trigger_events_ptr",
-                trigger_events, 16),
-            (parse_signpost_event, "n_of_signposts", "signpost_events_ptr",
-                signpost_events, 12)
-        )
+        (parse_person_event, "n_of_people", "person_events_ptr",
+         person_events, 24),
+        (parse_warp_event, "n_of_warps", "warp_events_ptr",
+         warp_events, 8),
+        (parse_trigger_event, "n_of_triggers", "trigger_events_ptr",
+         trigger_events, 16),
+        (parse_signpost_event, "n_of_signposts", "signpost_events_ptr",
+         signpost_events, 12)
+    )
     for fun, num_key, start_ptr_key, list, event_size in parsing_functions:
         num = events_header[num_key]
         for event in range(num):
@@ -247,17 +249,12 @@ def parse_events(rom_contents, events_header):
 def write_events(rom_contents, events_header, events):
     person_events, warp_events, trigger_events, signpost_events = events
     parsing_functions = (
-            (write_person_event, "n_of_people", "person_events_ptr",
-                person_events, 24),
-            (write_warp_event, "n_of_warps", "warp_events_ptr",
-                warp_events, 8),
-            (write_trigger_event, "n_of_triggers", "trigger_events_ptr",
-                trigger_events, 16),
-            (write_signpost_event, "n_of_signposts", "signpost_events_ptr",
-                signpost_events, 12)
-        )
-    for fun, num_key, start_ptr_key, list, event_size in parsing_functions:
-        num = events_header[num_key]
+        (write_person_event, "person_events_ptr", person_events, 24),
+        (write_warp_event, "warp_events_ptr", warp_events, 8),
+        (write_trigger_event, "trigger_events_ptr", trigger_events, 16),
+        (write_signpost_event, "signpost_events_ptr", signpost_events, 12)
+    )
+    for fun, start_ptr_key, list, event_size in parsing_functions:
         for n, event in enumerate(list):
             ptr = get_rom_addr(events_header[start_ptr_key])
             ptr += event_size * n
@@ -265,11 +262,11 @@ def write_events(rom_contents, events_header, events):
 
 def write_event(rom_contents, event, type, offset=None):
     writing_functions = {
-            "person" : write_person_event,
-            "warp" : write_warp_event,
-            "trigger" : write_trigger_event,
-            "signpost" : write_signpost_event,
-        }
+        "person" : write_person_event,
+        "warp" : write_warp_event,
+        "trigger" : write_trigger_event,
+        "signpost" : write_signpost_event,
+    }
     writing_functions[type](rom_contents, event, offset)
 
 def parse_person_event(rom_contents, ptr):
@@ -302,9 +299,9 @@ def parse_signpost_event(rom_contents, ptr):
     if event_header['type'] < 5:
         struct = (("script_ptr", "ptr", 8),)
         event_header = dict(
-                list(event_header.items()) +
-                list(parse_data_structure(rom_contents, struct, ptr).items())
-                )
+            list(event_header.items()) +
+            list(parse_data_structure(rom_contents, struct, ptr).items())
+        )
         event_header["item_number"] = 0
         event_header["hidden_item_id"] = 0
         event_header["ammount"] = 0
@@ -315,9 +312,9 @@ def parse_signpost_event(rom_contents, ptr):
             ("ammount", "byte", 11),
         )
         event_header = dict(
-                list(event_header.items()) +
-                list(parse_data_structure(rom_contents, struct, ptr).items())
-                )
+            list(event_header.items()) +
+            list(parse_data_structure(rom_contents, struct, ptr).items())
+        )
         event_header["script_ptr"] = 0
     return event_header
 
@@ -381,8 +378,8 @@ def get_tileset_imgdata(rom_contents, tileset_header, pal):
     tiles_per_line = 16
     if tileset_header["is_compressed"]:
         decompressed_data = lz77.decompress(rom_contents[
-                tileset_img_ptr:tileset_img_ptr+0x8000
-            ])
+            tileset_img_ptr:tileset_img_ptr+0x8000
+        ])
         data = decompressed_data
     else:
         # FIXME: Where do I cut this?
@@ -418,6 +415,28 @@ def get_block_data(rom_contents, tileset_header, game='RS'):
     mem = rom_contents[block_data_ptr:block_data_ptr+length]
     return mem
 
+def decode_block_part(part, layer_mem, palettes, imgs):
+    TILES_PER_LINE = 16
+
+    offset = part*2
+    byte1 = layer_mem[offset]
+    byte2 = layer_mem[offset+1]
+    tile_num = byte1 | ((byte2 & 0b11) << 8)
+    x = (tile_num % TILES_PER_LINE) * 8
+    y = (tile_num // TILES_PER_LINE) * 8
+
+    palette_num = byte2 >> 4
+    if palette_num >= 13: # XXX
+        palette_num = 0
+    palette = GRAYSCALE or palettes[palette_num]
+    part_img = imgs[palette_num].crop((x, y, x+8, y+8))
+    flips = (byte2 & 0xC) >> 2
+    if flips & 1:
+        part_img = part_img.transpose(Image.FLIP_LEFT_RIGHT)
+    if flips & 2:
+        part_img = part_img.transpose(Image.FLIP_TOP_BOTTOM)
+    return part_img, palette
+
 def build_block_imgs(blocks_mem, imgs, palettes):
     ''' Build images from the block information and tilesets.
      Every block is 16 bytes, and holds down and up parts for a tile,
@@ -431,15 +450,14 @@ def build_block_imgs(blocks_mem, imgs, palettes):
      '''
     # TODO: Optimize. A lot.
     block_imgs = []
-    tiles_per_line = 16
     base_block_img = Image.new("RGB", (16, 16))
     mask = Image.new("L", (8, 8))
-    positions = {
-            0: (0,0),
-            1: (8,0),
-            2: (0,8),
-            3: (8,8)
-          }
+    POSITIONS = {
+        0: (0, 0),
+        1: (8, 0),
+        2: (0, 8),
+        3: (8, 8)
+    }
     for block in range(len(blocks_mem)//16):
         block_mem = blocks_mem[block*16:block*16+16]
         # Copying is faster than creating
@@ -448,31 +466,14 @@ def build_block_imgs(blocks_mem, imgs, palettes):
         for layer in range(2):
             layer_mem = block_mem[layer*8:layer*8+8]
             for part in range(4):
-                d = part*2
-                byte1 = layer_mem[d]
-                byte2 = layer_mem[d+1]
-                tile_num = byte1 | ((byte2 & 0b11) << 8)
-                palette_num = byte2 >> 4
-                if palette_num >= 13: # XXX
-                    palette_num = 0
-                palette = GRAYSCALE or palettes[palette_num]
-                img = imgs[palette_num]
-                flips = (byte2 & 0xC) >> 2
-                x = (tile_num % tiles_per_line) * 8
-                y = (tile_num // tiles_per_line) * 8
-                pos = (x, y, x+8, y+8)
-                part_img = img.crop(pos)
-                if flips & 1:
-                    part_img = part_img.transpose(Image.FLIP_LEFT_RIGHT)
-                if flips & 2:
-                    part_img = part_img.transpose(Image.FLIP_TOP_BOTTOM)
-                x, y = positions[part]
+                part_img, pal = decode_block_part(part, layer_mem, palettes, imgs)
+                x, y = POSITIONS[part]
                 # Transparency
                 #mask = Image.eval(part_img, lambda a: 255 if a else 0)
-                t = palette[0]
+                t = pal[0]
                 if layer:
                     img_data = tuple(part_img.getdata())
-                    #mask_data = tuple(map(lambda p : (0 if p == t else 255),
+                    #mask_data = tuple(map(lambdap : (0 if p == t else 255),
                     #                  img_data))
                     mask_data = [0 if i == t else 255 for i in img_data]
                     mask.putdata(mask_data)
@@ -506,10 +507,10 @@ def get_imgs(path=["data", "mov_perms"], num=0x40, usepackagedata=True):
                 imgs.append(null_image)
     else:
         import pkgutil
-        get = lambda x : pkgutil.get_data('bluespider', x)
+        get = lambda x: pkgutil.get_data('bluespider', x)
         import io
-        makeimg = lambda x : Image.open(io.BytesIO(x))
-        get_img = lambda x : makeimg(get(x))
+        makeimg = lambda x: Image.open(io.BytesIO(x))
+        get_img = lambda x: makeimg(get(x))
         base_path = os.path.join(*path)
         null_image = get_img(os.path.join(base_path, "N.png"))
         for img in img_names:
@@ -519,7 +520,7 @@ def get_imgs(path=["data", "mov_perms"], num=0x40, usepackagedata=True):
             except FileNotFoundError:
                 imgs.append(null_image)
             imgs[-1].putalpha(alpha)
-        
+
     return imgs
 
 
@@ -575,11 +576,11 @@ def find_free_space(rom_memory, size, start_pos=None):
     return new_offset
 
 singular_name = {
-        "people": "person",
-        "warps": "warp",
-        "triggers": "trigger",
-        "signposts": "signpost",
-        }
+    "people": "person",
+    "warps": "warp",
+    "triggers": "trigger",
+    "signposts": "signpost",
+}
 
 def get_event_data_for_type(type):
     return {
@@ -611,7 +612,7 @@ def add_event(rom_memory, events_header, type):
         raise Exception("Your ROM is full!")
     # New event will be zeroed, because it's better than being FF'ed.
     rom_memory[new_offset:new_offset+new_size] = (events_memory +
-            b'\x00' * base_size)
+                                                  b'\x00' * base_size)
     events_header[ptr_key] = new_offset + 0x8000000
     events_header[num_key] += 1
 
@@ -628,7 +629,7 @@ def get_map_labels(rom_memory, game=axve, type='RS'):
     labels = []
     labels_ptr = get_rom_addr(game["MapLabels"])
     add = (type == 'RS' and 4) or (type == 'EM' and 4) or (type == 'FR' and 0)
-    for i in range(0x59 if type=='RS' else 0x6D): # Magic!
+    for i in range(0x59 if type == 'RS' else 0x6D): # Magic!
         # RS: [4 unknown bytes][ptr to label][4 unknown bytes][ptr to label]...
         # FR: [ptr to label][ptr to label]...
         ptr = get_rom_addr(read_ptr_at(rom_memory, labels_ptr+i*(4+add)+add))
@@ -663,7 +664,7 @@ def get_ow_sprites(rom_memory, game=axve):
         header = parse_data_structure(rom_memory, structures.sprite, header_ptr)
         header2_ptr = get_rom_addr(header['header2_ptr'])
         header2 = parse_data_structure(rom_memory, structures.sprite2,
-                header2_ptr)
+                                       header2_ptr)
         img_ptr = get_rom_addr(header2['img_ptr'])
         pal_ptr = get_rom_addr(get_sprite_palette_ptr(
             rom_memory, header["palette_num"], game
@@ -688,7 +689,7 @@ def get_pals(rc, game, pals1_ptr, pals2_ptr):
         pals.append(palette)
     for pal_n in range(num_of_pals2):
         palette = get_pal_colors(rc, pals2_ptr,
-                pal_n+num_of_pals1)
+                                 pal_n+num_of_pals1)
         pals.append(palette)
     return pals
 
@@ -747,8 +748,8 @@ def add_banks(rom_memory, banks_ptr, old_len, new_len):
         raise Exception("Your ROM is full!")
     new = new_len-old_len
     mem = (rom_memory[old_ptr:old_ptr+old_len*4]
-            + b'\0\0\0\x08'*new
-            + b'\x02\0\0\0')
+           + b'\0\0\0\x08'*new
+           + b'\x02\0\0\0')
     rom_memory[new_ptr:new_ptr+new_size] = mem
     rom_memory[old_ptr:old_ptr+old_size] = b'\xFF'*old_size
     return new_ptr

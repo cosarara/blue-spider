@@ -6,11 +6,11 @@
 
 import os
 import sys
-from PyQt5 import Qt, QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtGui, QtWidgets
 try:
     import Image
     import ImageQt
-except:
+except ImportError:
     from PIL import Image, ImageQt
 
 import pkgutil
@@ -44,17 +44,16 @@ class Window(QtWidgets.QMainWindow):
         # CX_Freeze
         if getattr(sys, 'frozen', False):
             iconpath = os.path.join(
-                    os.path.dirname(sys.executable),
-                    "bluespider", "data", "icon.svg")
+                os.path.dirname(sys.executable),
+                "bluespider", "data", "icon.svg")
             pixmap = QtGui.QPixmap(iconpath)
         else:
             icon = pkgutil.get_data('bluespider',
-                    os.path.join('data', 'icon.svg'))
+                                    os.path.join('data', 'icon.svg'))
             pixmap = QtGui.QPixmap()
             pixmap.loadFromData(icon)
         icon = QtGui.QIcon()
-        icon.addPixmap(pixmap,
-                QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(pixmap, QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.setWindowIcon(icon)
 
         self.tree_model = QtGui.QStandardItemModel()
@@ -92,10 +91,10 @@ class Window(QtWidgets.QMainWindow):
         self.map_img = None
 
         self.sprites = []
-        self.events = []
+        self.events = [[], [], [], []]
 
         # not directly load_rom because that would give Qt stuff as a parameter
-        self.ui.actionLoad_ROM.triggered.connect(lambda : self.load_rom())
+        self.ui.actionLoad_ROM.triggered.connect(lambda: self.load_rom())
         self.ui.actionSave.triggered.connect(self.write_to_file)
         self.ui.actionSave_As.triggered.connect(self.save_as)
         self.ui.actionExport_Map.triggered.connect(self.export_map)
@@ -103,13 +102,13 @@ class Window(QtWidgets.QMainWindow):
         self.ui.actionAdd_new_banks.triggered.connect(self.add_new_banks)
         self.ui.treeView.clicked.connect(self.load_map_qindex)
         self.ui.s_type.currentIndexChanged.connect(
-                self.update_signpost_stacked)
+            self.update_signpost_stacked)
         self.ui.p_edit_script.clicked.connect(self.launch_script_editor)
         self.ui.s_edit_script.clicked.connect(self.launch_script_editor)
         self.ui.t_edit_script.clicked.connect(self.launch_script_editor)
 
         self.ui.actionChoose_script_editor.triggered.connect(
-                self.select_script_editor)
+            self.select_script_editor)
 
         self.ui.openInEmulatorButton.clicked.connect(self.open_warp_in_emulator)
         self.ui.warpGoToMapButton.clicked.connect(self.go_to_warp)
@@ -131,9 +130,9 @@ class Window(QtWidgets.QMainWindow):
         self.loaded_map = False
 
         self.ui_event_connections = gui_connections.get_event_connections(
-                self.ui)
+            self.ui)
         self.update_header, self.save_header = (gui_connections.
-                make_header_connections(self))
+                                                make_header_connections(self))
 
         self.ui.addWarpButton.clicked.connect(self.add_warp)
         self.ui.remWarpButton.clicked.connect(self.rem_warp)
@@ -148,10 +147,10 @@ class Window(QtWidgets.QMainWindow):
 
         self.reload_lock = 0
         redrawing_items = (
-                self.ui.w_x, self.ui.w_y,
-                self.ui.p_x, self.ui.p_y,
-                self.ui.t_x, self.ui.t_y,
-                self.ui.s_x, self.ui.s_y)
+            self.ui.w_x, self.ui.w_y,
+            self.ui.p_x, self.ui.p_y,
+            self.ui.t_x, self.ui.t_y,
+            self.ui.s_x, self.ui.s_y)
         for item in redrawing_items:
             item.textChanged.connect(self.redraw_events)
         self.ui.sprite_num.valueChanged.connect(self.reload_person_img)
@@ -178,7 +177,7 @@ class Window(QtWidgets.QMainWindow):
         self.save_event_to_memory()
         self.load_map_qindex(self.current_index)
         index = ["person", "warp",
-                "trigger", "signpost"].index(self.selected_event_type)
+                 "trigger", "signpost"].index(self.selected_event_type)
         self.selected_event = self.events[index][self.event_n]
 
     def reload_person_img(self):
@@ -257,16 +256,16 @@ class Window(QtWidgets.QMainWindow):
         self.tree_model.clear()
         self.banks = mapped.get_banks(self.rom_contents, self.rom_data)
         map_labels = mapped.get_map_labels(self.rom_contents,
-                self.rom_data, self.game)
+                                           self.rom_data, self.game)
         for i, bank in enumerate(self.banks):
             self.tree_model.appendRow(
-                    QtGui.QStandardItem(hex(i) + " - " + hex(bank)))
+                QtGui.QStandardItem(hex(i) + " - " + hex(bank)))
             self.load_maps(i, map_labels)
 
     def load_maps(self, bank_num, map_labels):
         """ Loads the map list """
         map_header_ptrs = mapped.get_map_headers(self.rom_contents,
-                bank_num, self.banks)
+                                                 bank_num, self.banks)
 
         for i, ptr in enumerate(map_header_ptrs):
             map = mapped.parse_map_header(self.rom_contents, ptr)
@@ -277,8 +276,7 @@ class Window(QtWidgets.QMainWindow):
                 continue
             label = map_labels[index]
             self.tree_model.item(bank_num).appendRow(
-                    QtGui.QStandardItem("%s - %s" % (i, label))
-                    )
+                QtGui.QStandardItem("%s - %s" % (i, label)))
 
     def get_tilesets(self, t1_header, t2_header, t1_imgs=None):
         do_not_load_1 = False
@@ -299,17 +297,17 @@ class Window(QtWidgets.QMainWindow):
         pals1_ptr = mapped.get_rom_addr(t1_header["palettes_ptr"])
         pals2_ptr = mapped.get_rom_addr(t2_header["palettes_ptr"])
         pals = mapped.get_pals(self.rom_contents, self.game,
-                pals1_ptr, pals2_ptr)
+                               pals1_ptr, pals2_ptr)
         # Half of the time this function runs is spent here
         imgs = mapped.load_tilesets(self.rom_contents, self.game,
-                    t1_header, t2_header, pals)
+                                    t1_header, t2_header, pals)
         if do_not_load_1:
             to_load = (t2_header,)
         else:
             to_load = (t1_header, t2_header)
         for tileset_header in to_load:
             block_data_mem = mapped.get_block_data(self.rom_contents,
-                    tileset_header, self.game)
+                                                   tileset_header, self.game)
             # Half of the time this function runs is spent here
             blocks_imgs = mapped.build_block_imgs(block_data_mem, imgs, pals)
             self.blocks_imgs += blocks_imgs
@@ -364,14 +362,14 @@ class Window(QtWidgets.QMainWindow):
         self.perms_palette_scene.clear()
         self.palette_pixmap_qobject = qmapview.QMapPixmap(self.tilesetPixMap)
         self.perms_palette_pixmap_qobject = qmapview.QMapPixmap(
-                self.permsPalPixMap)
+            self.permsPalPixMap)
         self.palette_scene.addItem(self.palette_pixmap_qobject)
         self.perms_palette_scene.addItem(self.perms_palette_pixmap_qobject)
         self.palette_scene.update()
         self.perms_palette_scene.update()
         self.palette_pixmap_qobject.clicked.connect(self.palette_clicked)
         self.perms_palette_pixmap_qobject.clicked.connect(
-                self.perms_palette_clicked)
+            self.perms_palette_clicked)
 
         square_painter = QtGui.QPainter(self.tilesetPixMap)
         square_painter.setPen(QtCore.Qt.red)
@@ -446,14 +444,13 @@ class Window(QtWidgets.QMainWindow):
             base = os.path.join(os.path.dirname(sys.executable), "bluespider")
             usepackagedata = False
         event_imgs = mapped.get_imgs([base, "data", "events"], 4,
-                usepackagedata)
+                                     usepackagedata)
         person_img, warp_img, trigger_img, signpost_img = event_imgs
         event_types = (
-                (person_events, person_img),
-                (warp_events, warp_img),
-                (trigger_events, trigger_img),
-                (signpost_events, signpost_img)
-            )
+            (person_events, person_img),
+            (warp_events, warp_img),
+            (trigger_events, trigger_img),
+            (signpost_events, signpost_img))
         for event_type in event_types:
             data, img = event_type
             for event in data:
@@ -482,7 +479,7 @@ class Window(QtWidgets.QMainWindow):
     def load_events(self):
         map_header = self.map_header
         events_header = mapped.parse_events_header(self.rom_contents,
-                map_header['event_data_ptr'])
+                                                   map_header['event_data_ptr'])
         self.events_header = events_header
         self.ui.num_of_warps.setText(str(events_header['n_of_warps']))
         self.ui.num_of_people.setText(str(events_header['n_of_people']))
@@ -516,24 +513,21 @@ class Window(QtWidgets.QMainWindow):
         self.map_header = map_header
         self.load_level_scripts()
         map_data_header = mapped.parse_map_data(
-                self.rom_contents, map_header['map_data_ptr'],
-                self.game
-                )
+            self.rom_contents, map_header['map_data_ptr'],
+            self.game)
         self.map_data = map_data_header
 
         tileset_header = mapped.parse_tileset_header(
-                self.rom_contents,
-                map_data_header['global_tileset_ptr'],
-                self.game
-                )
+            self.rom_contents,
+            map_data_header['global_tileset_ptr'],
+            self.game)
         tileset2_header = mapped.parse_tileset_header(
-                self.rom_contents,
-                map_data_header['local_tileset_ptr'],
-                self.game
-                )
+            self.rom_contents,
+            map_data_header['local_tileset_ptr'],
+            self.game)
         try:
             self.t1_imgs = self.get_tilesets(tileset_header, tileset2_header,
-                    self.t1_imgs)
+                                             self.t1_imgs)
         except:
             self.ui.statusbar.showMessage("Error loading tilesets")
             raise
@@ -547,7 +541,7 @@ class Window(QtWidgets.QMainWindow):
             base = os.path.join(os.path.dirname(sys.executable), "bluespider")
             usepackagedata = False
         self.mov_perms_imgs = mapped.get_imgs([base, "data", "mov_perms"],
-                0x40, usepackagedata)
+                                              0x40, usepackagedata)
 
         self.load_events()
 
@@ -561,7 +555,7 @@ class Window(QtWidgets.QMainWindow):
             self.ui.statusbar.showMessage("Map bugged (too big)")
             raise Exception("Bad map: h & w way too big")
         self.map = mapped.parse_map_mem(map_mem, map_data_header['h'],
-                map_data_header['w'])
+                                        map_data_header['w'])
 
         self.print_map(self.map)
         self.print_palette()
@@ -600,11 +594,10 @@ class Window(QtWidgets.QMainWindow):
     def get_event_at_pos(self, pos):
         person_events, warp_events, trigger_events, signpost_events = self.events
         types = (
-                ("person", person_events),
-                ("warp", warp_events),
-                ("trigger", trigger_events),
-                ("signpost", signpost_events)
-            )
+            ("person", person_events),
+            ("warp", warp_events),
+            ("trigger", trigger_events),
+            ("signpost", signpost_events))
         for type, list in types:
             event = self.get_event_at_pos_from_list(pos, list)
             if event:
@@ -686,16 +679,16 @@ class Window(QtWidgets.QMainWindow):
         mapped.write_events_header(self.rom_contents, self.events_header)
 
     def map_clicked(self, event):
-        tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event,
-                self.mapPixMap)
+        tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(
+            event, self.mapPixMap)
         debug("clicked tile:", hex(tile_num))
         self.map[tile_y][tile_x][0] = self.selected_tile
         self.print_map(self.map)
         self.draw_events(self.events)
 
     def mov_clicked(self, event):
-        tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event,
-                self.movPixMap)
+        tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(
+            event, self.movPixMap)
         debug("clicked tile:", hex(tile_num))
         self.map[tile_y][tile_x][1] = self.selected_mov_tile
         self.print_map(self.map)
@@ -704,8 +697,8 @@ class Window(QtWidgets.QMainWindow):
     def event_clicked(self, qtevent):
         self.reload_lock = True
         self.save_event_to_memory()
-        event, event_x, event_y = self.get_event_from_mouseclick(qtevent,
-                self.eventPixMap)
+        event, event_x, event_y = self.get_event_from_mouseclick(
+            qtevent, self.eventPixMap)
         if event == (None, None):
             return
         debug("clicked event tile:", event)
@@ -728,15 +721,15 @@ class Window(QtWidgets.QMainWindow):
         self.reload_lock = False
 
     def palette_clicked(self, event):
-        tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event,
-                self.tilesetPixMap)
+        tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(
+            event, self.tilesetPixMap)
         debug("selected tile:", hex(tile_num))
         self.selected_tile = tile_num
         self.print_palette(quick=True)
 
     def perms_palette_clicked(self, event):
-        tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(event,
-                self.permsPalPixMap)
+        tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(
+            event, self.permsPalPixMap)
         debug("selected tile:", hex(tile_num))
         self.selected_mov_tile = tile_num
 
@@ -846,14 +839,14 @@ class Window(QtWidgets.QMainWindow):
         self.draw_events(self.events)
         self.update_event_editor()
 
-    add_warp = lambda self : self.add_event("warp")
-    rem_warp = lambda self : self.rem_event("warp")
-    add_person = lambda self : self.add_event("person")
-    rem_person = lambda self : self.rem_event("person")
-    add_trigger = lambda self : self.add_event("trigger")
-    rem_trigger = lambda self : self.rem_event("trigger")
-    add_signpost = lambda self : self.add_event("signpost")
-    rem_signpost = lambda self : self.rem_event("signpost")
+    add_warp = lambda self: self.add_event("warp")
+    rem_warp = lambda self: self.rem_event("warp")
+    add_person = lambda self: self.add_event("person")
+    rem_person = lambda self: self.rem_event("person")
+    add_trigger = lambda self: self.add_event("trigger")
+    rem_trigger = lambda self: self.rem_event("trigger")
+    add_signpost = lambda self: self.add_event("signpost")
+    rem_signpost = lambda self: self.rem_event("signpost")
 
     def event_spinbox_changed(self, dont_recurse_pls=False):
         if not dont_recurse_pls:
@@ -908,7 +901,7 @@ class Window(QtWidgets.QMainWindow):
         self.load_map(bank, map)
 
     def launch_script_editor(self, offset=None, file_name=None, command=None,
-            xse=None):
+                             xse=None):
         if xse is None:
             xse = self.isxse
         if not command:
@@ -936,7 +929,8 @@ class Window(QtWidgets.QMainWindow):
                                                       "All files (*)")
         q = "Is it XSE?"
         isxse = QtWidgets.QMessageBox.question(self, q, q,
-                QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
+                                               QtWidgets.QMessageBox.Yes,
+                                               QtWidgets.QMessageBox.No)
         if isxse == QtWidgets.QMessageBox.Yes:
             self.isxse = True
         else:
@@ -961,15 +955,14 @@ class Window(QtWidgets.QMainWindow):
         script = "load 1\n"
         script += "er 15 0x02f10000\n"
         script += ''.join(
-                ['eb ' + hex(0x02f10000+i) + " " +
-                    hex(byte)[2:] + "\n"
-                    for i, byte in enumerate(code)])
-        script += """eb 0x02f30000 39
-eb 0x02f30001 %s
-eb 0x02f30002 %s
-eb 0x02f30003 %s
-eb 0x02f30004 02
-t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
+            ['eb ' + hex(0x02f10000+i) + " " +
+             hex(byte)[2:] + "\n"
+             for i, byte in enumerate(code)])
+        script += ("eb 0x02f30000 39" +
+                   "eb 0x02f30001 %s\n" % hex(bank_num)[2:] +
+                   "eb 0x02f30002 %s\n" % hex(map_num)[2:] +
+                   "eb 0x02f30003 %s\n" % hex(warp_num)[2:] +
+                   "eb 0x02f30004 02\n")
         debug(script)
         with open("script.txt", "w") as file:
             file.write(script)
@@ -1018,9 +1011,9 @@ t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
             return
         oldnum = len(self.banks)
         ptr = mapped.add_banks(self.rom_contents, self.rom_data["MapHeaders"],
-                oldnum, oldnum+num)
+                               oldnum, oldnum+num)
         mapped.write_rom_ptr_at(self.rom_contents,
-                self.rom_data["MapHeaders"], ptr)
+                                self.rom_data["MapHeaders"], ptr)
         self.load_banks()
 
     def closeEvent(self, event):
@@ -1030,8 +1023,8 @@ t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
     def load_level_scripts(self):
         struct = structures.lscript_entry
         struct2 = structures.lscript_type_2
-        r = lambda p : mapped.parse_data_structure(self.rom_contents, struct, p)
-        r2 = lambda p : mapped.parse_data_structure(self.rom_contents, struct2, p)
+        r = lambda p: mapped.parse_data_structure(self.rom_contents, struct, p)
+        r2 = lambda p: mapped.parse_data_structure(self.rom_contents, struct2, p)
         p = self.map_header['level_script_ptr']
         e = r(p)
         layout = self.ui.lscriptsLayout
@@ -1074,9 +1067,9 @@ t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
                 valueLineEdit.setText(hex(e2["value"]))
                 b = QtWidgets.QPushButton()
                 b.setText("Edit Script")
-                launchscripteditor = (lambda :
-                    self.launch_script_editor(offset=int(ptr2LineEdit.text(), 16))
-                    )
+                launchscripteditor = (
+                    lambda: self.launch_script_editor(offset=int(ptr2LineEdit.text(), 16))
+                )
                 b.clicked.connect(launchscripteditor)
                 layout.addWidget(b)
             else:
@@ -1092,7 +1085,6 @@ t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
     def add_level_script(self):
         """ TODO """
         print("+")
-        pass
 
 def main():
     # FIXME: We sometimes get segfaults on exit

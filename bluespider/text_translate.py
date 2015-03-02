@@ -32,7 +32,8 @@ try:
         table_str = data.decode("utf8").rstrip("\n")
 except Exception as e:
     print(e)
-    table_str='FF=$$'
+    table_str = 'FF=$$'
+
 table = table_str
 
 def read_table_encode(table_string=table_str):
@@ -59,8 +60,8 @@ def ascii_to_hex(astring, dictionary=read_table_encode(table_str)):
     while i < len(astring):
         character = astring[i]
         if character == "\\" and astring[i + 1] == "h":
-            if (astring[i + 2] in string.hexdigits and
-                astring[i + 3] in string.hexdigits):
+            if (astring[i+2] in string.hexdigits and
+                astring[i+3] in string.hexdigits):
                 trans_string += bytes((int(astring[i+2:i+4], 16),))
                 i += 3
         elif character in dictionary:
