@@ -6,7 +6,7 @@
 
 import os
 import sys
-from PyQt4 import Qt, QtCore, QtGui
+from PyQt5 import Qt, QtCore, QtGui, QtWidgets
 try:
     import Image
     import ImageQt
@@ -34,10 +34,10 @@ if not os.path.exists(path):
     os.makedirs(path)
 settings_path = os.path.join(path, sfn)
 
-class Window(QtGui.QMainWindow):
+class Window(QtWidgets.QMainWindow):
     """ This class is the mother of everything in the GUI """
     def __init__(self, parent=None):
-        QtGui.QWidget.__init__(self, parent)
+        QtWidgets.QMainWindow.__init__(self, parent)
         self.ui = Ui_MainWindow()
 
         self.ui.setupUi(self)
@@ -60,17 +60,17 @@ class Window(QtGui.QMainWindow):
         self.tree_model = QtGui.QStandardItemModel()
         self.ui.treeView.setModel(self.tree_model)
 
-        self.map_scene = QtGui.QGraphicsScene()
+        self.map_scene = QtWidgets.QGraphicsScene()
         self.ui.map.setScene(self.map_scene)
-        self.mov_scene = QtGui.QGraphicsScene()
+        self.mov_scene = QtWidgets.QGraphicsScene()
         self.ui.movPermissionsMap.setScene(self.mov_scene)
-        self.event_scene = QtGui.QGraphicsScene()
+        self.event_scene = QtWidgets.QGraphicsScene()
         self.ui.eventMap.setScene(self.event_scene)
-        self.palette_scene = QtGui.QGraphicsScene()
+        self.palette_scene = QtWidgets.QGraphicsScene()
         self.ui.palette.setScene(self.palette_scene)
-        self.perms_palette_scene = QtGui.QGraphicsScene()
+        self.perms_palette_scene = QtWidgets.QGraphicsScene()
         self.ui.MovPermissionsPalette.setScene(self.perms_palette_scene)
-        self.sprite_scene = QtGui.QGraphicsScene()
+        self.sprite_scene = QtWidgets.QGraphicsScene()
         self.sprite_scene.setSceneRect(QtCore.QRectF(0, 0, 16, 32))
         self.ui.spriteImg.setScene(self.sprite_scene)
 
@@ -192,10 +192,10 @@ class Window(QtGui.QMainWindow):
     def load_rom(self, fn=None):
         """ If no filename is given, it'll prompt the user with a nice dialog """
         if fn is None:
-            fn = QtGui.QFileDialog.getOpenFileName(self, 'Open ROM file',
-                                               QtCore.QDir.homePath(),
-                                               "GBA ROM (*.gba);;"
-                                               "All files (*)")
+            fn, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Open ROM file',
+                                                          QtCore.QDir.homePath(),
+                                                          "GBA ROM (*.gba);;"
+                                                          "All files (*)")
         if not fn:
             return
 
@@ -229,14 +229,14 @@ class Window(QtGui.QMainWindow):
     def write_rom(self):
         self.ui.statusbar.showMessage("Saving...")
         if not self.rom_file_name:
-            QtGui.QMessageBox.critical(self, "ERROR!", "No ROM loaded!")
+            QtWidgets.QMessageBox.critical(self, "ERROR!", "No ROM loaded!")
             return
         try:
             with open(self.rom_file_name, "rb") as rom_file:
                 actual_rom_contents = bytearray(rom_file.read())
         except FileNotFoundError:
             with open(self.rom_file_name, "wb") as rom_file:
-                rom_file.write(rom_contents)
+                rom_file.write(self.rom_contents)
             return
 
         self.ui.statusbar.showMessage("Saving... Diffing/Patching...")
@@ -748,10 +748,10 @@ class Window(QtGui.QMainWindow):
         self.rom_contents[pos:pos+size] = new_map_mem
 
     def export_map(self):
-        fn = QtGui.QFileDialog.getSaveFileName(self, 'Save map file',
-                                               QtCore.QDir.homePath(),
-                                               "Pokemon Map (*.pkmap);;"
-                                               "All files (*)")
+        fn, _ = QtWidgets.QFileDialog.getSaveFileName(self, 'Save map file',
+                                                      QtCore.QDir.homePath(),
+                                                      "Pokemon Map (*.pkmap);;"
+                                                      "All files (*)")
         self.ui.statusbar.showMessage("Exporting...")
         if not fn:
             return
@@ -764,10 +764,10 @@ class Window(QtGui.QMainWindow):
         self.ui.statusbar.showMessage("Saved {}".format(fn))
 
     def import_map(self):
-        fn = QtGui.QFileDialog.getOpenFileName(self, 'Load map file',
-                                               QtCore.QDir.homePath(),
-                                               "Pokemon Map (*.pkmap);;"
-                                               "All files (*)")
+        fn, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Load map file',
+                                                      QtCore.QDir.homePath(),
+                                                      "Pokemon Map (*.pkmap);;"
+                                                      "All files (*)")
         with open(fn, "r") as map_text_file:
             map_text = map_text_file.read()
         new_map = map_printer.text_to_mem(map_text)
@@ -784,10 +784,10 @@ class Window(QtGui.QMainWindow):
         self.write_rom()
 
     def save_as(self):
-        fn = QtGui.QFileDialog.getSaveFileName(self, 'Save ROM file',
-                                               QtCore.QDir.homePath(),
-                                               "GBA ROM (*.gba);;"
-                                               "All files (*)")
+        fn, _ = QtWidgets.QFileDialog.getSaveFileName(self, 'Save ROM file',
+                                                      QtCore.QDir.homePath(),
+                                                      "GBA ROM (*.gba);;"
+                                                      "All files (*)")
 
         if not fn:
             debug("Nothing selected")
@@ -930,14 +930,14 @@ class Window(QtGui.QMainWindow):
         subprocess.Popen(args)
 
     def select_script_editor(self):
-        fn = QtGui.QFileDialog.getOpenFileName(self,
-                'Choose script editor executable',
-                QtCore.QDir.homePath(),
-                "All files (*)")
+        fn, _ = QtWidgets.QFileDialog.getOpenFileName(self,
+                                                      'Choose script editor executable',
+                                                      QtCore.QDir.homePath(),
+                                                      "All files (*)")
         q = "Is it XSE?"
-        isxse = QtGui.QMessageBox.question(self, q, q,
-                QtGui.QMessageBox.Yes, QtGui.QMessageBox.No)
-        if isxse == QtGui.QMessageBox.Yes:
+        isxse = QtWidgets.QMessageBox.question(self, q, q,
+                QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
+        if isxse == QtWidgets.QMessageBox.Yes:
             self.isxse = True
         else:
             self.isxse = False
@@ -1011,9 +1011,9 @@ t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
             settings_file.write(str(settings))
 
     def add_new_banks(self):
-        num, ok = QtGui.QInputDialog.getInt(self, 'How many?', # Title
-                                        "How many?", # Label
-                                        1, 1, 255) # Default, min, max
+        num, ok = QtWidgets.QInputDialog.getInt(self, 'How many?', # Title
+                                                "How many?", # Label
+                                                1, 1, 255) # Default, min, max
         if not ok:
             return
         oldnum = len(self.banks)
@@ -1043,17 +1043,17 @@ t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
             layout.removeItem(li)
 
         while e['type'] != 0:
-            layout = QtGui.QHBoxLayout()
-            typeLabel = QtGui.QLabel("Type:")
-            ptrLabel = QtGui.QLabel("Pointer:")
-            ptr2Label = QtGui.QLabel("Pointer 2:")
-            flagLabel = QtGui.QLabel("Flag:")
-            valueLabel = QtGui.QLabel("Value:")
-            typeLineEdit = QtGui.QLineEdit()
-            ptrLineEdit = QtGui.QLineEdit()
-            ptr2LineEdit = QtGui.QLineEdit()
-            flagLineEdit = QtGui.QLineEdit()
-            valueLineEdit = QtGui.QLineEdit()
+            layout = QtWidgets.QHBoxLayout()
+            typeLabel = QtWidgets.QLabel("Type:")
+            ptrLabel = QtWidgets.QLabel("Pointer:")
+            ptr2Label = QtWidgets.QLabel("Pointer 2:")
+            flagLabel = QtWidgets.QLabel("Flag:")
+            valueLabel = QtWidgets.QLabel("Value:")
+            typeLineEdit = QtWidgets.QLineEdit()
+            ptrLineEdit = QtWidgets.QLineEdit()
+            ptr2LineEdit = QtWidgets.QLineEdit()
+            flagLineEdit = QtWidgets.QLineEdit()
+            valueLineEdit = QtWidgets.QLineEdit()
             layout.addWidget(typeLabel)
             layout.addWidget(typeLineEdit)
             layout.addWidget(ptrLabel)
@@ -1072,7 +1072,7 @@ t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
                 ptr2LineEdit.setText(hex(e2["script_body_ptr"]))
                 flagLineEdit.setText(hex(e2["flag"]))
                 valueLineEdit.setText(hex(e2["value"]))
-                b = QtGui.QPushButton()
+                b = QtWidgets.QPushButton()
                 b.setText("Edit Script")
                 launchscripteditor = (lambda :
                     self.launch_script_editor(offset=int(ptr2LineEdit.text(), 16))
@@ -1096,7 +1096,7 @@ t""" % (hex(bank_num)[2:], hex(map_num)[2:], hex(warp_num)[2:])
 
 def main():
     # FIXME: We sometimes get segfaults on exit
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     try:
         win = Window()
     except:
