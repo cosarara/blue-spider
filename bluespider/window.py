@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'mapped.ui'
 #
-# Created: Mon Feb  2 23:09:53 2015
+# Created: Fri Feb 20 19:30:01 2015
 #      by: PyQt4 UI code generator 4.11.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -814,7 +814,7 @@ class Ui_MainWindow(object):
         self.scrollArea_2.setWidgetResizable(True)
         self.scrollArea_2.setObjectName(_fromUtf8("scrollArea_2"))
         self.scrollAreaWidgetContents_2 = QtGui.QWidget()
-        self.scrollAreaWidgetContents_2.setGeometry(QtCore.QRect(0, -19, 875, 613))
+        self.scrollAreaWidgetContents_2.setGeometry(QtCore.QRect(0, 0, 363, 613))
         self.scrollAreaWidgetContents_2.setObjectName(_fromUtf8("scrollAreaWidgetContents_2"))
         self.verticalLayout_4 = QtGui.QVBoxLayout(self.scrollAreaWidgetContents_2)
         self.verticalLayout_4.setObjectName(_fromUtf8("verticalLayout_4"))
@@ -1138,9 +1138,15 @@ class Ui_MainWindow(object):
         self.actionSave_As.setObjectName(_fromUtf8("actionSave_As"))
         self.actionAdd_new_banks = QtGui.QAction(MainWindow)
         self.actionAdd_new_banks.setObjectName(_fromUtf8("actionAdd_new_banks"))
+        self.actionExport_Map = QtGui.QAction(MainWindow)
+        self.actionExport_Map.setObjectName(_fromUtf8("actionExport_Map"))
+        self.actionImport_Map = QtGui.QAction(MainWindow)
+        self.actionImport_Map.setObjectName(_fromUtf8("actionImport_Map"))
         self.menuFile.addAction(self.actionLoad_ROM)
         self.menuFile.addAction(self.actionSave)
         self.menuFile.addAction(self.actionSave_As)
+        self.menuFile.addAction(self.actionImport_Map)
+        self.menuFile.addAction(self.actionExport_Map)
         self.menuEdit.addAction(self.actionChoose_script_editor)
         self.menuTools.addAction(self.actionAdd_new_banks)
         self.menubar.addAction(self.menuFile.menuAction())
@@ -1479,4 +1485,6 @@ class Ui_MainWindow(object):
         self.actionChoose_script_editor.setText(_translate("MainWindow", "Select script editor", None))
         self.actionSave_As.setText(_translate("MainWindow", "Save As", None))
         self.actionAdd_new_banks.setText(_translate("MainWindow", "Add new banks", None))
+        self.actionExport_Map.setText(_translate("MainWindow", "Export Map", None))
+        self.actionImport_Map.setText(_translate("MainWindow", "Import Map", None))
 

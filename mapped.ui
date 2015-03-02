@@ -1816,8 +1816,8 @@
            <property name="geometry">
             <rect>
              <x>0</x>
-             <y>-19</y>
-             <width>875</width>
+             <y>0</y>
+             <width>363</width>
              <height>613</height>
             </rect>
            </property>
@@ -2446,6 +2446,8 @@
     <addaction name="actionLoad_ROM"/>
     <addaction name="actionSave"/>
     <addaction name="actionSave_As"/>
+    <addaction name="actionImport_Map"/>
+    <addaction name="actionExport_Map"/>
    </widget>
    <widget class="QMenu" name="menuEdit">
     <property name="title">
@@ -2487,6 +2489,16 @@
   <action name="actionAdd_new_banks">
    <property name="text">
     <string>Add new banks</string>
+   </property>
+  </action>
+  <action name="actionExport_Map">
+   <property name="text">
+    <string>Export Map</string>
+   </property>
+  </action>
+  <action name="actionImport_Map">
+   <property name="text">
+    <string>Import Map</string>
    </property>
   </action>
  </widget>

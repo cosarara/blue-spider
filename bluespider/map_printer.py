@@ -11,6 +11,7 @@ for n in range(700):
     chars += chr(n+300)
 
 def text_to_mem(text):
+    text = text.replace(" ", "")
     text_parts = text.split('---')
     text = text_parts[0]
     text2 = text_parts[1]
@@ -21,18 +22,14 @@ def text_to_mem(text):
     print(h, w)
     mem = bytearray(h*w*2)
     i = 0
-    for line_i, line in enumerate(lines):
-        line2 = lines2[line_i]
-        for char_i, char in enumerate(line):
-            char2 = line2[char_i]
-            if char == ' ':
-                continue
+    for line, line2 in zip(lines, lines2):
+        for char, char2 in zip(line, line2):
             num = chars.find(char)
             num2 = chars.find(char2)
 
             byte1 = (num & 0xFF)
             byte2 = ((num & 0b1100000000) >> 8) | (num2 << 2)
-            print(bin(byte2))
+            #print(bin(byte2))
             tile_bytes = bytes((byte1, byte2))
             mem[i:i+2] = tile_bytes
             i += 2

@@ -20,6 +20,7 @@ from . import qmapview
 from . import mapped
 from . import structures
 from . import gui_connections
+from . import map_printer
 
 debug_mode = False
 def debug(*args):
@@ -97,6 +98,8 @@ class Window(QtGui.QMainWindow):
         self.ui.actionLoad_ROM.triggered.connect(lambda : self.load_rom())
         self.ui.actionSave.triggered.connect(self.write_to_file)
         self.ui.actionSave_As.triggered.connect(self.save_as)
+        self.ui.actionExport_Map.triggered.connect(self.export_map)
+        self.ui.actionImport_Map.triggered.connect(self.import_map)
         self.ui.actionAdd_new_banks.triggered.connect(self.add_new_banks)
         self.ui.treeView.clicked.connect(self.load_map_qindex)
         self.ui.s_type.currentIndexChanged.connect(
@@ -743,6 +746,36 @@ class Window(QtGui.QMainWindow):
         pos = self.tilemap_ptr
         size = len(new_map_mem)
         self.rom_contents[pos:pos+size] = new_map_mem
+
+    def export_map(self):
+        fn = QtGui.QFileDialog.getSaveFileName(self, 'Save map file',
+                                               QtCore.QDir.homePath(),
+                                               "Pokemon Map (*.pkmap);;"
+                                               "All files (*)")
+        self.ui.statusbar.showMessage("Exporting...")
+        if not fn:
+            return
+        mapmem = self.rom_contents[self.tilemap_ptr:]
+        w, h = self.map_data["w"], self.map_data["h"]
+        text_map = map_printer.map_to_text(mapmem, w, h)
+        with open(fn, "wb") as file:
+            file.write(text_map.encode("utf8"))
+
+        self.ui.statusbar.showMessage("Saved {}".format(fn))
+
+    def import_map(self):
+        fn = QtGui.QFileDialog.getOpenFileName(self, 'Load map file',
+                                               QtCore.QDir.homePath(),
+                                               "Pokemon Map (*.pkmap);;"
+                                               "All files (*)")
+        with open(fn, "r") as map_text_file:
+            map_text = map_text_file.read()
+        new_map = map_printer.text_to_mem(map_text)
+        ptr = self.tilemap_ptr
+        self.rom_contents[ptr:ptr+len(new_map)] = new_map
+        self.loaded_map = False
+        self.load_map(self.bank_n, self.map_n)
+        self.ui.statusbar.showMessage("Loaded {}".format(fn))
 
     def write_to_file(self):
         if self.loaded_map:
