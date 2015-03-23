@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf8 -*-
 # python speedtest.py ~/RH/tmp/FR.gba 0x82d4bb4 0x82d4c44
 
 from PyQt4 import QtGui

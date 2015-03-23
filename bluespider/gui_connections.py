@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 import ast
 
 num_read = lambda x: (lambda: ast.literal_eval(x()) if x() else None)

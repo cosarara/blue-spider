@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# -*- coding: utf8 -*-
+
 # To build just cython in place:
 # python setup.py build_ext --inplace
 

@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 
 ''' Importing and exporting maps to utf8 '''
 
