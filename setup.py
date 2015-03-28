@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 # To build just cython in place:
 # python setup.py build_ext --inplace
@@ -46,9 +46,10 @@ build_exe_options = {"packages": ["pkg_resources"],
 
 try:
     from Cython.Build import cythonize
-    ext_modules = cythonize(os.path.join("bluespider", "fast.pyx")),
+    ext_modules = cythonize(os.path.join("bluespider", "fast.pyx"))
 except ImportError:
     ext_modules = None
+    print("WARNING: No cython")
 
 setup(name='BlueSpider',
       version=version,
