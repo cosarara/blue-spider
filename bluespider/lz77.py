@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 to_int = lambda x: int.from_bytes(x, "little")
 block_size = 8

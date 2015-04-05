@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 """ Blue Spider UI's code. In real need of refactoring, but seems to work. """
 

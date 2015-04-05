@@ -1,4 +1,4 @@
-# -*- coding: utf8 -*-
+# -*- coding: utf-8 -*-
 
 map_header = (
     ("map_data_ptr", "ptr", 0),
