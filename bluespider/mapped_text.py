@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf8 -*-
 
 # Docs
 # ====
@@ -12,8 +13,10 @@ from . import mapped
 from .mapped import bpre, axve, bpee
 from .mapped import get_banks, get_map_headers, hexbytes, print32bytes
 from .mapped import parse_map_header, parse_map_data, parse_tileset_header
-from .mapped import read_rom_addr_at
+from .mapped import read_rom_addr_at, get_rom_code, get_rom_data
 from .map_printer import map_to_text, text_to_mem, print_dict_hex
+
+# TODO: Use a proper arg-parsing library and clean this shit
 
 def main():
     if ((len(sys.argv) < 3) or (sys.argv[2] == "r" and len(sys.argv) < 5)
@@ -62,12 +65,12 @@ def main():
             from pprint import pprint
             p = print
             pp = pprint
-            ph = lambda x : print(hex(x))
-            phb = lambda x : print(hexbytes(x))
+            ph = lambda x: print(hex(x))
+            phb = lambda x: print(hexbytes(x))
             rc = bytearray(rom_contents)
             p32b = print32bytes
             raddrat = read_rom_addr_at
-            r = lambda rom, start, length : rom[start:start+length]
+            r = lambda rom, start, length: rom[start:start+length]
             for c in sys.argv[5:]:
                 eval(c) # Yup! Let the user run whatever the fuck he wants
     elif mode == 'r' or mode == 'w':
@@ -82,8 +85,8 @@ def main():
         tilemap_address = map_data['tilemap_ptr']
         w = map_data['w']
         h = map_data['h']
+        tilemap_address = mapped.get_rom_addr(tilemap_address)
         if mode == 'r':
-            tilemap_address = mapped.get_rom_addr(tilemap_address)
             mapmem = rom_contents[tilemap_address:]
             text_map = map_to_text(mapmem, w, h)
             print(text_map)
@@ -98,18 +101,10 @@ def main():
             print(new_map)
             rom_contents[tilemap_address:
                          tilemap_address+len(new_map)] = new_map
-            with open(file_name+'.new.gba', "wb") as rom_file:
+            with open(file_name, "wb") as rom_file:
                 rom_file.write(rom_contents)
-
 
 
 if __name__ == '__main__':
     main()
-
-
-
-
-
-
-
 

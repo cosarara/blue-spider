@@ -1,8 +1,9 @@
+# -*- coding: utf8 -*-
 
-from PyQt4 import Qt, QtCore, QtGui
+from PyQt5 import Qt, QtCore, QtGui, QtWidgets
 
-class QMapPixmap(QtGui.QGraphicsObject):
-    clicked = QtCore.pyqtSignal(QtGui.QGraphicsSceneMouseEvent)
+class QMapPixmap(QtWidgets.QGraphicsObject):
+    clicked = QtCore.pyqtSignal(QtWidgets.QGraphicsSceneMouseEvent)
 
     def __init__(self, pixmap):
         super(QMapPixmap, self).__init__()

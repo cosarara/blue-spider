@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 # To build just cython in place:
 # python setup.py build_ext --inplace
 
@@ -6,9 +8,9 @@ import sys
 import os
 
 try:
-    if "--no-freeze" in sys.argv: # hack!
-        sys.argv.remove("--no-freeze")
+    if not "--freeze" in sys.argv: # hack!
         fail()
+    sys.argv.remove("--freeze")
     from cx_Freeze import setup, Extension, Executable
 except:
     print("Warning: cx_Freeze not found. Using distutils")
