@@ -3,22 +3,20 @@
 # python setup.py build_ext --inplace
 
 import sys
+import os
 
 try:
     if "--no-freeze" in sys.argv: # hack!
         sys.argv.remove("--no-freeze")
         fail()
-    from cx_Freeze import setup, Executable
+    from cx_Freeze import setup, Extension, Executable
 except:
     print("Warning: cx_Freeze not found. Using distutils")
-    from distutils.core import setup
+    from distutils.core import setup, Extension
     # lol hack
     class Executable:
         def __init__(self, a, base):
             pass
-
-import sys
-import os
 
 try:
     with os.popen("git describe --always | sed 's|-|.|g'") as psfile:
@@ -48,6 +46,10 @@ try:
 except ImportError:
     print("Couldn't cythonize")
     ext_modules = []
+
+cmapped = Extension('cmapped',
+                    sources = ['mapped.cpp'])
+ext_modules += [cmapped]
 
 setup(name='BlueSpider',
       version=version,
