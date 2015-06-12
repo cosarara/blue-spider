@@ -48,7 +48,7 @@ try:
     from Cython.Build import cythonize
     ext_modules = cythonize(os.path.join("bluespider", "fast.pyx"))
 except ImportError:
-    ext_modules = None
+    ext_modules = []
     print("WARNING: No cython")
 
 setup(name='BlueSpider',
