@@ -343,7 +343,8 @@ def get_pal_colors(rom_contents, pals_ptr, num=0):
         colors.append((r, g, b))
     return colors
 
-def build_imgdata(data, size, palette, w):
+def build_imgdata_pal(data, size, palette, w):
+    ''' With pal '''
     if GRAYSCALE:
         palette = GRAYSCALE
     tiles_per_line = w
@@ -362,8 +363,26 @@ def build_imgdata(data, size, palette, w):
         imdata[x+y*imw+1] = color2
     return imdata
 
+def build_imgdata(data, size, w):
+    ''' With no pal '''
+    if GRAYSCALE:
+        palette = GRAYSCALE
+    tiles_per_line = w
+    imw, imh = size
+    imdata = [0]*imw*imh
+    for pos in range(len(data)):
+        tile = pos // (8*4) # At 2 pixels per byte, we have 8*8/2 bytes per tile
+        x = ((pos-(tile*8*4))%4)*2+((tile % tiles_per_line)*8)
+        y = (pos-(tile*8*4))//4 + (tile//tiles_per_line*8)
+
+        color2 = ((data[pos] >> 4) & 0xF)
+        color1 = data[pos] & 0xF
+        imdata[x+y*imw] = color1
+        imdata[x+y*imw+1] = color2
+    return imdata
+
 def build_img(data, im, palette, w):
-    imdata = build_imgdata(data, im.size, palette, w)
+    imdata = build_imgdata_pal(data, im.size, palette, w)
     im.putdata(imdata)
     return im
 
@@ -373,7 +392,7 @@ def build_tileset_img(data, im, palette):
 def build_sprite_img(data, im, palette=grayscale_pal2):
     return build_img(data, im, palette, 2)
 
-def get_tileset_imgdata(rom_contents, tileset_header, pal):
+def get_tileset_imgdata(rom_contents, tileset_header):
     tileset_img_ptr = tileset_header["tileset_image_ptr"]
     tileset_img_ptr = get_rom_addr(tileset_img_ptr)
     tiles_per_line = 16
@@ -392,14 +411,14 @@ def get_tileset_imgdata(rom_contents, tileset_header, pal):
         rows = len(data)*2//(8*8)//tiles_per_line
     w = tiles_per_line*8
     h = rows*8
-    return build_imgdata(data, (w, h), pal, 16), w, h
+    return build_imgdata(data, (w, h), 16), w, h
 
-def get_tileset_img(rom_contents, tileset_header, pal):
-    data, w, h = get_tileset_imgdata(rom_contents, tileset_header, pal)
-    im = Image.new("RGB", (w, h))
-    im.putdata(data)
-    return im
-
+#def get_tileset_img(rom_contents, tileset_header, pal):
+#    data, w, h = get_tileset_imgdata(rom_contents, tileset_header, pal)
+#    im = Image.new("RGB", (w, h))
+#    im.putdata(data)
+#    return im
+#
 
 def get_block_data(rom_contents, tileset_header, game='RS'):
     block_data_ptr = get_rom_addr(tileset_header['block_data_ptr'])
@@ -471,13 +490,8 @@ def build_block_imgs(blocks_mem, imgs, palettes):
                 x, y = POSITIONS[part]
                 # Transparency
                 #mask = Image.eval(part_img, lambda a: 255 if a else 0)
-                t = pal[0]
                 if layer:
-                    img_data = tuple(part_img.getdata())
-                    #mask_data = tuple(map(lambdap : (0 if p == t else 255),
-                    #                  img_data))
-                    mask_data = [0 if i == t else 255 for i in img_data]
-                    mask.putdata(mask_data)
+                    mask.putdata([0 if i == pal[0] else 255 for i in part_img.getdata()])
                     block_img.paste(part_img, (x, y, x+8, y+8), mask)
                 else:
                     block_img.paste(part_img, (x, y, x+8, y+8))
@@ -696,10 +710,8 @@ def get_pals(rc, game, pals1_ptr, pals2_ptr):
 
 def load_tilesets(rc, game, t1_header, t2_header, pals):
     imgs = []
-    #palette = grayscale_pal
-    palette = [i for i in range(16)]
-    t1data, w, h1 = get_tileset_imgdata(rc, t1_header, palette)
-    t2data, _, h2 = get_tileset_imgdata(rc, t2_header, palette)
+    t1data, w, h1 = get_tileset_imgdata(rc, t1_header)
+    t2data, _, h2 = get_tileset_imgdata(rc, t2_header)
     img1 = Image.new("RGB", (w, h1))
     img2 = Image.new("RGB", (w, h2))
     big_img = Image.new("RGB", (w, h1+h2))
