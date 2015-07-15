@@ -52,6 +52,7 @@ def hexbytes(s):
 print32bytes = lambda x, rom_contents: print(hexbytes(rom_contents[x:x+32]))
 
 to_int = lambda x: int.from_bytes(x, "little")
+to_signed = lambda x: int.from_bytes(x, "little", signed=True)
 get_addr = lambda x: int.from_bytes(x, "little") #& 0xFFFFFF
 
 def get_rom_addr(x):
@@ -74,6 +75,7 @@ def read_n_bytes(rom, addr, n):
     return rom[addr:addr+n]
 
 read_long_at = lambda rom, addr: to_int(read_n_bytes(rom, addr, 4))
+read_signed_at = lambda rom, addr: to_signed(read_n_bytes(rom, addr, 4))
 read_ptr_at = read_long_at
 read_rom_addr_at = lambda rom, addr: get_rom_addr(
     check_rom_addr(read_long_at(rom, addr))
@@ -161,7 +163,8 @@ get_read_function = lambda size: {
     "byte": read_byte_at,
     "short": read_short_at,
     "ptr": read_ptr_at,
-    "long": read_long_at
+    "long": read_long_at,
+    "signed": read_signed_at
 }[size]
 
 get_write_function = lambda size: {
@@ -196,6 +199,21 @@ def parse_map_header(rom_contents, map_h):
 def parse_map_data(rom_contents, map_data_ptr, game='RS'):
     struct = structures.map_data
     return parse_data_structure(rom_contents, struct, map_data_ptr)
+
+def parse_connections_header(rom_contents, connections_header_ptr):
+    struct = structures.connections_header
+    return parse_data_structure(rom_contents, struct, connections_header_ptr)
+
+def parse_connection_data(rom_contents, connections_header):
+    connections = []
+    struct = structures.connection_data
+    num = connections_header['n_of_connections']
+    for connection in range(num):
+        ptr = get_rom_addr(connections_header['connection_data_ptr'])
+        ptr += structures.size_of(struct) * connection
+        connection_data = parse_data_structure(rom_contents, struct, ptr)
+        connections.append(connection_data)
+    return connections
 
 def parse_tileset_header(rom_contents, tileset_header_ptr, game='RS'):
     struct_rs = structures.tileset_header_rs
@@ -575,7 +593,7 @@ def map_to_mem(map):
 
 
 def fits(num, size):
-    if size == "long" or size == "ptr":
+    if size == "long" or size == "signed" or size == "ptr":
         return num <= 0xFFFFFFFF
     #elif size == "ptr":
     #    return num <= 0xFFFFFF

@@ -28,6 +28,19 @@ map_data = (
     ("border_h", "byte", 25)
 )
 
+connections_header = (
+        ("n_of_connections", "long", 0),
+        ("connection_data_ptr", "ptr", 4)
+        )
+
+connection_data = (
+        ("direction", "long", 0),
+        ("offset", "signed", 4),
+        ("bank_num", "byte", 8),
+        ("map_num", "byte", 9),
+        ("null", "short", 10)
+        )
+
 tileset_header_base = (
     ("is_compressed", "byte", 0),
     ("tileset_type", "byte", 1),
@@ -151,7 +164,8 @@ bytes_in_size = {
     "byte": 1,
     "short": 2,
     "ptr": 4,
-    "long": 4
+    "long": 4,
+    "signed": 4
 }
 
 def size_of(structure):
