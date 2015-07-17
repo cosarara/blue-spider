@@ -151,6 +151,6 @@ def get_event_connections(ui):
             text_element("script_ptr", ui.s_script_offset),
             text_element("item_number", ui.s_item_id),
             text_element("hidden_item_id", ui.s_hidden_id),
-            text_element("ammount", ui.s_ammount),
+            text_element("amount", ui.s_amount),
         )
     }
