@@ -322,12 +322,12 @@ def parse_signpost_event(rom_contents, ptr):
         )
         event_header["item_number"] = 0
         event_header["hidden_item_id"] = 0
-        event_header["ammount"] = 0
+        event_header["amount"] = 0
     else:
         struct = (
             ("item_number", "u16", 8),
             ("hidden_item_id", "u8", 10),
-            ("ammount", "u8", 11),
+            ("amount", "u8", 11),
         )
         event_header = dict(
             list(event_header.items()) +
@@ -344,7 +344,7 @@ def write_signpost_event(rom_contents, event, offset=None):
         struct += (
             ("item_number", "u16", 8),
             ("hidden_item_id", "u8", 10),
-            ("ammount", "u8", 11),
+            ("amount", "u8", 11),
         )
     write_data_structure(rom_contents, struct, event, offset)
 
