@@ -665,7 +665,7 @@ class Window(QtWidgets.QMainWindow):
             if data_element in structure:
                 size = structure[data_element][0]
             else: # Bah, don't check it (it'll apply only to signposts)
-                size = "long"
+                size = "u32"
             if not mapped.fits(num, size):
                 raise Exception(data_element + " too big")
             if size == "ptr" and num < 0x8000000:

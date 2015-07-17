@@ -74,28 +74,27 @@ def read_n_bytes(rom, addr, n):
         raise Exception("you are trying to read -1")
     return rom[addr:addr+n]
 
-read_long_at = lambda rom, addr: to_int(read_n_bytes(rom, addr, 4))
-read_signed_at = lambda rom, addr: to_signed(read_n_bytes(rom, addr, 4))
-read_ptr_at = read_long_at
+read_u32_at = lambda rom, addr: to_int(read_n_bytes(rom, addr, 4))
+read_s32_at = lambda rom, addr: to_signed(read_n_bytes(rom, addr, 4))
+read_ptr_at = read_u32_at
 read_rom_addr_at = lambda rom, addr: get_rom_addr(
-    check_rom_addr(read_long_at(rom, addr))
-    )
-read_short_at = lambda rom, addr: to_int(read_n_bytes(rom, addr, 2))
-read_byte_at = lambda rom, addr: to_int(read_n_bytes(rom, addr, 1))
+    check_rom_addr(read_u32_at(rom, addr)))
+read_u16_at = lambda rom, addr: to_int(read_n_bytes(rom, addr, 2))
+read_u8_at = lambda rom, addr: to_int(read_n_bytes(rom, addr, 1))
 
 def write_n_bytes(rom, addr, n, data):
     if len(data) != n:
         raise Exception("data is not the same size as n!")
     rom[addr:addr+n] = data
 
-write_long_at = (lambda rom, addr, num:
+write_u32_at = (lambda rom, addr, num:
                  write_n_bytes(rom, addr, 4, num.to_bytes(4, "little")))
 write_rom_ptr_at = (lambda rom, addr, num:
-                    write_long_at(rom, addr, (num + 0x8000000 if num < 0x1000000 and
+                    write_u32_at(rom, addr, (num + 0x8000000 if num < 0x1000000 and
                                               num != 0 else num)))
-write_short_at = (lambda rom, addr, num:
+write_u16_at = (lambda rom, addr, num:
                   write_n_bytes(rom, addr, 2, num.to_bytes(2, "little")))
-write_byte_at = (lambda rom, addr, num:
+write_u8_at = (lambda rom, addr, num:
                  write_n_bytes(rom, addr, 1, num.to_bytes(1, "little")))
 
 def get_rom_data(rom_code):
@@ -160,18 +159,18 @@ def get_map_headers(rom_contents, n, banks, echo=False):
     return maps
 
 get_read_function = lambda size: {
-    "byte": read_byte_at,
-    "short": read_short_at,
+    "u8": read_u8_at,
+    "u16": read_u16_at,
     "ptr": read_ptr_at,
-    "long": read_long_at,
-    "signed": read_signed_at
+    "u32": read_u32_at,
+    "s32": read_s32_at
 }[size]
 
 get_write_function = lambda size: {
-    "byte": write_byte_at,
-    "short": write_short_at,
+    "u8": write_u8_at,
+    "u16": write_u16_at,
     "ptr": write_rom_ptr_at,
-    "long": write_long_at
+    "u32": write_u32_at
 }[size]
 
 def parse_data_structure(rom_contents, struct, offset):
@@ -326,9 +325,9 @@ def parse_signpost_event(rom_contents, ptr):
         event_header["ammount"] = 0
     else:
         struct = (
-            ("item_number", "short", 8),
-            ("hidden_item_id", "byte", 10),
-            ("ammount", "byte", 11),
+            ("item_number", "u16", 8),
+            ("hidden_item_id", "u8", 10),
+            ("ammount", "u8", 11),
         )
         event_header = dict(
             list(event_header.items()) +
@@ -343,9 +342,9 @@ def write_signpost_event(rom_contents, event, offset=None):
         struct += (("script_ptr", "ptr", 8),)
     else:
         struct += (
-            ("item_number", "short", 8),
-            ("hidden_item_id", "byte", 10),
-            ("ammount", "byte", 11),
+            ("item_number", "u16", 8),
+            ("hidden_item_id", "u8", 10),
+            ("ammount", "u8", 11),
         )
     write_data_structure(rom_contents, struct, event, offset)
 
@@ -593,13 +592,13 @@ def map_to_mem(map):
 
 
 def fits(num, size):
-    if size == "long" or size == "signed" or size == "ptr":
+    if size == "u32" or size == "s32" or size == "ptr":
         return num <= 0xFFFFFFFF
     #elif size == "ptr":
     #    return num <= 0xFFFFFF
-    elif size == "short":
+    elif size == "u16":
         return num <= 0xFFFF
-    elif size == "byte":
+    elif size == "u8":
         return num <= 0xFF
 
 def find_free_space(rom_memory, size, start_pos=None):
@@ -679,9 +678,9 @@ def get_sprite_palette_ptr(rom_memory, pal_num, game=axve):
     i = 0
     while i < 70:
         offset = base_offset + 8*i
-        if read_byte_at(rom_memory, offset + 4) == pal_num:
+        if read_u8_at(rom_memory, offset + 4) == pal_num:
             return read_ptr_at(rom_memory, offset)
-        if read_byte_at(rom_memory, offset + 5) == 0:
+        if read_u8_at(rom_memory, offset + 5) == 0:
             raise Exception("End of palettes, pal num %s not found" % pal_num)
         i += 1
     raise Exception("Security break")
@@ -767,7 +766,7 @@ def color_(pals, t1data, t2data):
     return col1data, col2data
 
 def add_banks(rom_memory, banks_ptr, old_len, new_len):
-    # The bank table is just a link of offsets terminated by (long) 0x2
+    # The bank table is just a link of offsets terminated by (u32) 0x2
     old_ptr = read_rom_addr_at(rom_memory, banks_ptr)
     # The +4 is for the 02 00 00 00 at the end
     new_size = new_len * 4 + 4
