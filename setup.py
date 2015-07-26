@@ -46,7 +46,7 @@ try:
     from Cython.Build import cythonize
     ext_modules = cythonize(os.path.join("bluespider", "fast.pyx"))
 except ImportError:
-    print("Couldn't cythonize")
+    print("Warning: Couldn't cythonize")
     ext_modules = []
 
 cmapped = Extension('cmapped',

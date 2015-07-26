@@ -86,9 +86,3 @@ if __name__ == "__main__":
         im.putpixel((x, y), color1)
         im.putpixel((x+1, y), color2)
     im.save("out.png", "PNG")
-
-
-
-
-
-

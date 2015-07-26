@@ -52,6 +52,7 @@ def hexbytes(s):
 print32bytes = lambda x, rom_contents: print(hexbytes(rom_contents[x:x+32]))
 
 to_int = lambda x: int.from_bytes(x, "little")
+to_signed = lambda x: int.from_bytes(x, "little", signed=True)
 get_addr = lambda x: int.from_bytes(x, "little") #& 0xFFFFFF
 
 def get_rom_addr(x):
@@ -73,27 +74,27 @@ def read_n_bytes(rom, addr, n):
         raise Exception("you are trying to read -1")
     return rom[addr:addr+n]
 
-read_long_at = lambda rom, addr: to_int(read_n_bytes(rom, addr, 4))
-read_ptr_at = read_long_at
+read_u32_at = lambda rom, addr: to_int(read_n_bytes(rom, addr, 4))
+read_s32_at = lambda rom, addr: to_signed(read_n_bytes(rom, addr, 4))
+read_ptr_at = read_u32_at
 read_rom_addr_at = lambda rom, addr: get_rom_addr(
-    check_rom_addr(read_long_at(rom, addr))
-    )
-read_short_at = lambda rom, addr: to_int(read_n_bytes(rom, addr, 2))
-read_byte_at = lambda rom, addr: to_int(read_n_bytes(rom, addr, 1))
+    check_rom_addr(read_u32_at(rom, addr)))
+read_u16_at = lambda rom, addr: to_int(read_n_bytes(rom, addr, 2))
+read_u8_at = lambda rom, addr: to_int(read_n_bytes(rom, addr, 1))
 
 def write_n_bytes(rom, addr, n, data):
     if len(data) != n:
         raise Exception("data is not the same size as n!")
     rom[addr:addr+n] = data
 
-write_long_at = (lambda rom, addr, num:
+write_u32_at = (lambda rom, addr, num:
                  write_n_bytes(rom, addr, 4, num.to_bytes(4, "little")))
 write_rom_ptr_at = (lambda rom, addr, num:
-                    write_long_at(rom, addr, (num + 0x8000000 if num < 0x1000000 and
+                    write_u32_at(rom, addr, (num + 0x8000000 if num < 0x1000000 and
                                               num != 0 else num)))
-write_short_at = (lambda rom, addr, num:
+write_u16_at = (lambda rom, addr, num:
                   write_n_bytes(rom, addr, 2, num.to_bytes(2, "little")))
-write_byte_at = (lambda rom, addr, num:
+write_u8_at = (lambda rom, addr, num:
                  write_n_bytes(rom, addr, 1, num.to_bytes(1, "little")))
 
 def get_rom_data(rom_code):
@@ -158,17 +159,18 @@ def get_map_headers(rom_contents, n, banks, echo=False):
     return maps
 
 get_read_function = lambda size: {
-    "byte": read_byte_at,
-    "short": read_short_at,
+    "u8": read_u8_at,
+    "u16": read_u16_at,
     "ptr": read_ptr_at,
-    "long": read_long_at
+    "u32": read_u32_at,
+    "s32": read_s32_at
 }[size]
 
 get_write_function = lambda size: {
-    "byte": write_byte_at,
-    "short": write_short_at,
+    "u8": write_u8_at,
+    "u16": write_u16_at,
     "ptr": write_rom_ptr_at,
-    "long": write_long_at
+    "u32": write_u32_at
 }[size]
 
 def parse_data_structure(rom_contents, struct, offset):
@@ -197,6 +199,21 @@ def parse_map_header(rom_contents, map_h):
 def parse_map_data(rom_contents, map_data_ptr, game='RS'):
     struct = structures.map_data
     return parse_data_structure(rom_contents, struct, map_data_ptr)
+
+def parse_connections_header(rom_contents, connections_header_ptr):
+    struct = structures.connections_header
+    return parse_data_structure(rom_contents, struct, connections_header_ptr)
+
+def parse_connection_data(rom_contents, connections_header):
+    connections = []
+    struct = structures.connection_data
+    num = connections_header['n_of_connections']
+    for connection in range(num):
+        ptr = get_rom_addr(connections_header['connection_data_ptr'])
+        ptr += structures.size_of(struct) * connection
+        connection_data = parse_data_structure(rom_contents, struct, ptr)
+        connections.append(connection_data)
+    return connections
 
 def parse_tileset_header(rom_contents, tileset_header_ptr, game='RS'):
     struct_rs = structures.tileset_header_rs
@@ -306,12 +323,12 @@ def parse_signpost_event(rom_contents, ptr):
         )
         event_header["item_number"] = 0
         event_header["hidden_item_id"] = 0
-        event_header["ammount"] = 0
+        event_header["amount"] = 0
     else:
         struct = (
-            ("item_number", "short", 8),
-            ("hidden_item_id", "byte", 10),
-            ("ammount", "byte", 11),
+            ("item_number", "u16", 8),
+            ("hidden_item_id", "u8", 10),
+            ("amount", "u8", 11),
         )
         event_header = dict(
             list(event_header.items()) +
@@ -326,9 +343,9 @@ def write_signpost_event(rom_contents, event, offset=None):
         struct += (("script_ptr", "ptr", 8),)
     else:
         struct += (
-            ("item_number", "short", 8),
-            ("hidden_item_id", "byte", 10),
-            ("ammount", "byte", 11),
+            ("item_number", "u16", 8),
+            ("hidden_item_id", "u8", 10),
+            ("amount", "u8", 11),
         )
     write_data_structure(rom_contents, struct, event, offset)
 
@@ -344,7 +361,8 @@ def get_pal_colors(rom_contents, pals_ptr, num=0):
         colors.append((r, g, b))
     return colors
 
-def build_imgdata_(data, size, palette, w):
+def build_imgdata_pal(data, size, palette, w):
+    ''' With pal '''
     if GRAYSCALE:
         palette = GRAYSCALE
     tiles_per_line = w
@@ -363,14 +381,26 @@ def build_imgdata_(data, size, palette, w):
         imdata[x+y*imw+1] = color2
     return imdata
 
-try:
-    from .fast import build_imgdata
-except ImportError:
-    print("Using slow build_imgdata function")
-    build_imgdata = build_imgdata_
+def build_imgdata(data, size, w):
+    ''' With no pal '''
+    if GRAYSCALE:
+        palette = GRAYSCALE
+    tiles_per_line = w
+    imw, imh = size
+    imdata = [0]*imw*imh
+    for pos in range(len(data)):
+        tile = pos // (8*4) # At 2 pixels per byte, we have 8*8/2 bytes per tile
+        x = ((pos-(tile*8*4))%4)*2+((tile % tiles_per_line)*8)
+        y = (pos-(tile*8*4))//4 + (tile//tiles_per_line*8)
+
+        color2 = ((data[pos] >> 4) & 0xF)
+        color1 = data[pos] & 0xF
+        imdata[x+y*imw] = color1
+        imdata[x+y*imw+1] = color2
+    return imdata
 
 def build_img(data, im, palette, w):
-    imdata = build_imgdata(data, im.size, palette, w)
+    imdata = build_imgdata_pal(data, im.size, palette, w)
     im.putdata(imdata)
     return im
 
@@ -380,7 +410,7 @@ def build_tileset_img(data, im, palette):
 def build_sprite_img(data, im, palette=grayscale_pal2):
     return build_img(data, im, palette, 2)
 
-def get_tileset_imgdata(rom_contents, tileset_header, pal):
+def get_tileset_imgdata(rom_contents, tileset_header):
     tileset_img_ptr = tileset_header["tileset_image_ptr"]
     tileset_img_ptr = get_rom_addr(tileset_img_ptr)
     tiles_per_line = 16
@@ -399,14 +429,14 @@ def get_tileset_imgdata(rom_contents, tileset_header, pal):
         rows = len(data)*2//(8*8)//tiles_per_line
     w = tiles_per_line*8
     h = rows*8
-    return build_imgdata(data, (w, h), pal, 16), w, h
+    return build_imgdata(data, (w, h), 16), w, h
 
-def get_tileset_img(rom_contents, tileset_header, pal):
-    data, w, h = get_tileset_imgdata(rom_contents, tileset_header, pal)
-    im = Image.new("RGB", (w, h))
-    im.putdata(data)
-    return im
-
+#def get_tileset_img(rom_contents, tileset_header, pal):
+#    data, w, h = get_tileset_imgdata(rom_contents, tileset_header, pal)
+#    im = Image.new("RGB", (w, h))
+#    im.putdata(data)
+#    return im
+#
 
 def get_block_data(rom_contents, tileset_header, game='RS'):
     block_data_ptr = get_rom_addr(tileset_header['block_data_ptr'])
@@ -478,13 +508,8 @@ def build_block_imgs_(blocks_mem, imgs, palettes):
                 x, y = POSITIONS[part]
                 # Transparency
                 #mask = Image.eval(part_img, lambda a: 255 if a else 0)
-                t = pal[0]
                 if layer:
-                    img_data = tuple(part_img.getdata())
-                    #mask_data = tuple(map(lambdap : (0 if p == t else 255),
-                    #                  img_data))
-                    mask_data = [0 if i == t else 255 for i in img_data]
-                    mask.putdata(mask_data)
+                    mask.putdata([0 if i == pal[0] else 255 for i in part_img.getdata()])
                     block_img.paste(part_img, (x, y, x+8, y+8), mask)
                 else:
                     block_img.paste(part_img, (x, y, x+8, y+8))
@@ -574,13 +599,13 @@ def map_to_mem(map):
 
 
 def fits(num, size):
-    if size == "long" or size == "ptr":
+    if size == "u32" or size == "s32" or size == "ptr":
         return num <= 0xFFFFFFFF
     #elif size == "ptr":
     #    return num <= 0xFFFFFF
-    elif size == "short":
+    elif size == "u16":
         return num <= 0xFFFF
-    elif size == "byte":
+    elif size == "u8":
         return num <= 0xFF
 
 def find_free_space(rom_memory, size, start_pos=None):
@@ -660,9 +685,9 @@ def get_sprite_palette_ptr(rom_memory, pal_num, game=axve):
     i = 0
     while i < 70:
         offset = base_offset + 8*i
-        if read_byte_at(rom_memory, offset + 4) == pal_num:
+        if read_u8_at(rom_memory, offset + 4) == pal_num:
             return read_ptr_at(rom_memory, offset)
-        if read_byte_at(rom_memory, offset + 5) == 0:
+        if read_u8_at(rom_memory, offset + 5) == 0:
             raise Exception("End of palettes, pal num %s not found" % pal_num)
         i += 1
     raise Exception("Security break")
@@ -709,10 +734,8 @@ def get_pals(rc, game, pals1_ptr, pals2_ptr):
 
 def load_tilesets(rc, game, t1_header, t2_header, pals):
     imgs = []
-    #palette = grayscale_pal
-    palette = [i for i in range(16)]
-    t1data, w, h1 = get_tileset_imgdata(rc, t1_header, palette)
-    t2data, _, h2 = get_tileset_imgdata(rc, t2_header, palette)
+    t1data, w, h1 = get_tileset_imgdata(rc, t1_header)
+    t2data, _, h2 = get_tileset_imgdata(rc, t2_header)
     img1 = Image.new("RGB", (w, h1))
     img2 = Image.new("RGB", (w, h2))
     big_img = Image.new("RGB", (w, h1+h2))
@@ -745,7 +768,7 @@ def color_(pals, t1data, t2data):
     return col1data, col2data
 
 def add_banks(rom_memory, banks_ptr, old_len, new_len):
-    # The bank table is just a link of offsets terminated by (long) 0x2
+    # The bank table is just a link of offsets terminated by (u32) 0x2
     old_ptr = read_rom_addr_at(rom_memory, banks_ptr)
     # The +4 is for the 02 00 00 00 at the end
     new_size = new_len * 4 + 4

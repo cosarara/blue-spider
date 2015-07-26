@@ -37,7 +37,7 @@ settings_path = os.path.join(path, sfn)
 
 class Window(QtWidgets.QMainWindow):
     """ This class is the mother of everything in the GUI """
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, no_argv=False):
         QtWidgets.QMainWindow.__init__(self, parent)
         self.ui = Ui_MainWindow()
 
@@ -166,9 +166,9 @@ class Window(QtWidgets.QMainWindow):
         self.isxse = False
         self.load_settings()
 
-        if len(sys.argv) >= 2:
+        if len(sys.argv) >= 2 and not no_argv:
             self.load_rom(sys.argv[1])
-        if len(sys.argv) >= 4:
+        if len(sys.argv) >= 4 and not no_argv:
             self.load_map(int(sys.argv[2]), int(sys.argv[3]))
 
     def redraw_events(self):
@@ -284,13 +284,13 @@ class Window(QtWidgets.QMainWindow):
         if self.t1_header == t1_header:
             if self.t2_header == t2_header and t1_imgs:
                 return t1_imgs
-            else:
-                if self.game == 'RS' or self.game == 'EM':
-                    num_of_blocks = 512
-                else:
-                    num_of_blocks = 640
-                self.blocks_imgs = self.blocks_imgs[:num_of_blocks]
-                do_not_load_1 = True
+
+            num_of_blocks = 640
+            if self.game == 'RS' or self.game == 'EM':
+                num_of_blocks = 512
+            self.blocks_imgs = self.blocks_imgs[:num_of_blocks]
+            do_not_load_1 = True
+
         else:
             self.blocks_imgs = []
             t1_imgs = None
@@ -665,7 +665,7 @@ class Window(QtWidgets.QMainWindow):
             if data_element in structure:
                 size = structure[data_element][0]
             else: # Bah, don't check it (it'll apply only to signposts)
-                size = "long"
+                size = "u32"
             if not mapped.fits(num, size):
                 raise Exception(data_element + " too big")
             if size == "ptr" and num < 0x8000000:
