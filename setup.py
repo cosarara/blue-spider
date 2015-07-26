@@ -49,9 +49,9 @@ except ImportError:
     print("Warning: Couldn't cythonize")
     ext_modules = []
 
-cmapped = Extension('cmapped',
-                    sources = ['mapped.cpp'])
-ext_modules += [cmapped]
+#cmapped = Extension('cmapped',
+#                    sources = ['mapped.cpp'])
+#ext_modules += [cmapped]
 
 setup(name='BlueSpider',
       version=version,
