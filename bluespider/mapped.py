@@ -425,10 +425,10 @@ def get_tileset_imgdata(rom_contents, tileset_header):
     else:
         rows = len(data)*2//(8*8)//tiles_per_line
     w = tiles_per_line*8
-    h = 0x100
-    if get_rom_code(rom_contents) == b'BPRE':
-        h = 0x140
-    #h = rows*8
+    #h = 0x100
+    #if get_rom_code(rom_contents) == b'BPRE':
+    #    h = 0x140
+    h = rows*8
     return build_imgdata(data, (w, h), 16), w, h
 
 def get_tileset_img(rom_contents, tileset_header):

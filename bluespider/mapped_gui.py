@@ -864,8 +864,10 @@ class Window(QtWidgets.QMainWindow):
         events = self.events[event_type_i]
         try:
             event = events[int(spin.value())]
+            self.event_n = int(spin.value())
         except IndexError:
             event = events[0]
+            self.event_n = 0
         event_x, event_y = event["x"], event["y"]
         debug("selected event tile:", event)
         self.draw_events(self.events)
