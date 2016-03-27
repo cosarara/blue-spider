@@ -61,7 +61,7 @@ def ascii_to_hex(astring, dictionary=read_table_encode(table_str)):
         character = astring[i]
         if character == "\\" and astring[i + 1] == "h":
             if (astring[i+2] in string.hexdigits and
-                astring[i+3] in string.hexdigits):
+                    astring[i+3] in string.hexdigits):
                 trans_string += bytes((int(astring[i+2:i+4], 16),))
                 i += 3
         elif character in dictionary:

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from PyQt5 import Qt, QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 
 class QMapPixmap(QtWidgets.QGraphicsObject):
     clicked = QtCore.pyqtSignal(QtWidgets.QGraphicsSceneMouseEvent)
@@ -17,6 +17,4 @@ class QMapPixmap(QtWidgets.QGraphicsObject):
 
     def paint(self, painter, option, widget):
         painter.drawPixmap(QtCore.QPoint(0, 0), self.pixmap)
-
-
 

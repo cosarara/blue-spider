@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# pylint: disable=unused-variable,unused-import
+
 # Docs
 # ====
 # http://datacrystal.romhacking.net/wiki/Pok%C3%A9mon_3rd_Generation#Maps
@@ -10,6 +12,7 @@
 
 import sys
 from . import mapped
+from . import structures
 from .mapped import bpre, axve, bpee
 from .mapped import get_banks, get_map_headers, hexbytes, print32bytes
 from .mapped import parse_map_header, parse_map_data, parse_tileset_header
@@ -20,7 +23,7 @@ from .map_printer import map_to_text, text_to_mem, print_dict_hex
 
 def main():
     if ((len(sys.argv) < 3) or (sys.argv[2] == "r" and len(sys.argv) < 5)
-        or (sys.argv[2] == "w" and len(sys.argv) < 6)):
+            or (sys.argv[2] == "w" and len(sys.argv) < 6)):
 
         print("usage: ./mapped_text.py <rom_filename> <r|w|p> "
               "<bank> <map> [file]")

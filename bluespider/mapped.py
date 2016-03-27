@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 
 import binascii
-import os, sys
+import os
 try:
     import Image
-    import ImageQt
 except ImportError:
     try:
-        from PIL import Image, ImageQt
+        from PIL import Image
     except ImportError:
         print("Warning: Couldn't import PIL")
 
 from . import lz77
 from . import structures
+from . import structure_utils
 from . import text_translate
 
 axve = {
@@ -88,14 +88,14 @@ def write_n_bytes(rom, addr, n, data):
     rom[addr:addr+n] = data
 
 write_u32_at = (lambda rom, addr, num:
-                 write_n_bytes(rom, addr, 4, num.to_bytes(4, "little")))
+                write_n_bytes(rom, addr, 4, num.to_bytes(4, "little")))
 write_rom_ptr_at = (lambda rom, addr, num:
                     write_u32_at(rom, addr, (num + 0x8000000 if num < 0x1000000 and
-                                              num != 0 else num)))
+                                             num != 0 else num)))
 write_u16_at = (lambda rom, addr, num:
-                  write_n_bytes(rom, addr, 2, num.to_bytes(2, "little")))
+                write_n_bytes(rom, addr, 2, num.to_bytes(2, "little")))
 write_u8_at = (lambda rom, addr, num:
-                 write_n_bytes(rom, addr, 1, num.to_bytes(1, "little")))
+               write_n_bytes(rom, addr, 1, num.to_bytes(1, "little")))
 
 def get_rom_data(rom_code):
     if rom_code == b'AXVE':
@@ -210,7 +210,7 @@ def parse_connection_data(rom_contents, connections_header):
     num = connections_header['n_of_connections']
     for connection in range(num):
         ptr = get_rom_addr(connections_header['connection_data_ptr'])
-        ptr += structures.size_of(struct) * connection
+        ptr += structure_utils.size_of(struct) * connection
         connection_data = parse_data_structure(rom_contents, struct, ptr)
         connections.append(connection_data)
     return connections
@@ -383,8 +383,6 @@ def build_imgdata_pal(data, size, palette, w):
 
 def build_imgdata(data, size, w):
     ''' With no pal '''
-    if GRAYSCALE:
-        palette = GRAYSCALE
     tiles_per_line = w
     imw, imh = size
     imdata = [0]*imw*imh
@@ -638,7 +636,7 @@ def add_event(rom_memory, events_header, type):
     old_offset = get_rom_addr(events_header[ptr_key])
     backup = bytearray(rom_memory)
     num_of_events = events_header[num_key]
-    base_size = structures.size_of(structures.events[type])
+    base_size = structure_utils.size_of(structures.events[type])
     size = base_size * num_of_events
     events_memory = bytes(rom_memory[old_offset:old_offset+size])
     print(events_memory)
@@ -657,14 +655,14 @@ def add_event(rom_memory, events_header, type):
 
 def rem_event(rom_memory, events_header, type):
     num_key, ptr_key = get_event_data_for_type(type)
-    base_size = structures.size_of(structures.events[type])
+    base_size = structure_utils.size_of(structures.events[type])
     offset = events_header[ptr_key]
     num_of_events = events_header[num_key]
     old_size = base_size * num_of_events
     rom_memory[offset+old_size:offset+old_size+base_size] = b'\xFF'*base_size
     events_header[num_key] -= 1
 
-def get_map_labels(rom_memory, game=axve, type='RS'):
+def get_map_labels(rom_memory, game, type):
     labels = []
     labels_ptr = get_rom_addr(game["MapLabels"])
     add = (type == 'RS' and 4) or (type == 'EM' and 4) or (type == 'FR' and 0)
@@ -679,7 +677,7 @@ def get_map_labels(rom_memory, game=axve, type='RS'):
     return labels
 
 
-def get_sprite_palette_ptr(rom_memory, pal_num, game=axve):
+def get_sprite_palette_ptr(rom_memory, pal_num, game):
     #base_offset = read_rom_addr_at(rom_memory, game["SpritePalettes"])
     base_offset = get_rom_addr(game["SpritePalettes"])
     i = 0
@@ -692,7 +690,7 @@ def get_sprite_palette_ptr(rom_memory, pal_num, game=axve):
         i += 1
     raise Exception("Security break")
 
-def get_ow_sprites(rom_memory, game=axve):
+def get_ow_sprites(rom_memory, game):
     # get_pal_colors SpritePalettes
     sprites_table_ptr = get_rom_addr(game['Sprites'])
     sprite_imgs = []

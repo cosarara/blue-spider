@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 import ast
 
+from . import structures
+from . import structure_utils
+from . import mapped
+
 num_read = lambda x: (lambda: ast.literal_eval(x()) if x() else None)
 
 hex_update = lambda x: (lambda n: x(hex(n)))
@@ -18,9 +22,6 @@ text_element = lambda name, obj: (
         name
     )
 )
-
-from . import structures
-from . import mapped
 
 def make_header_connections(self):
     ui = self.ui
@@ -57,19 +58,19 @@ def make_header_connections(self):
             )
         }
     def update():
-        for t, d in ((structures.map_header, self.map_header),
-                     (structures.map_data, self.map_data)):
+        for t, d in ((structures.map_header, self.map_data.header),
+                     (structures.map_data, self.map_data.data_header)):
             for connection in conns[t]:
                 read_function, update_function, data_element = connection
                 update_function(d[data_element])
 
     def save_to_mem():
-        for t, d in ((structures.map_header, self.map_header),
-                     (structures.map_data, self.map_data)):
+        for t, d in ((structures.map_header, self.map_data.header),
+                     (structures.map_data, self.map_data.data_header)):
             for connection in conns[t]:
                 read_function, update_function, data_element = connection
                 num = read_function()
-                structure = structures.to_dict(t)
+                structure = structure_utils.to_dict(t)
                 if data_element in structure:
                     size = structure[data_element][0]
                 else: # Bah, don't check it (it'll apply only to signposts)
@@ -80,8 +81,8 @@ def make_header_connections(self):
                     num &= 0x8000000
                 d[data_element] = num
 
-        mapped.write_map_header(self.rom_contents, self.map_header)
-        mapped.write_map_data_header(self.rom_contents, self.map_data)
+        mapped.write_map_header(self.game.rom_contents, self.map_data.header)
+        mapped.write_map_data_header(self.game.rom_contents, self.map_data.data_header)
     return update, save_to_mem
 
 
