@@ -185,6 +185,9 @@ class Window(QtWidgets.QMainWindow):
 
         self.current_index = None # Tree selector index
         #self.map_data.event_n = None
+        self.current_map_n = None
+        self.current_bank_n = None
+        self.event_n = None
 
         self.script_editor_command = ''
         self.isxse = False
@@ -200,7 +203,7 @@ class Window(QtWidgets.QMainWindow):
         if self.reload_lock:
             return
         self.save_event_to_memory()
-        self.load_map_qindex(self.current_index)
+        self.load_map(self.current_bank_n, self.current_map_n)
         index = ["person", "warp",
                  "trigger", "signpost"].index(self.selected_event_type)
         self.selected_event = self.map_data.events[index][self.map_data.event_n]
@@ -488,17 +491,25 @@ class Window(QtWidgets.QMainWindow):
         self.ui.num_of_signposts.setText(str(events_header['n_of_signposts']))
 
     def load_map_qindex(self, qindex):
-        self.current_index = qindex
         bank_n = qindex.parent().row()
         if bank_n == -1:
             return
         map_n = qindex.row()
+        self.current_bank_n = bank_n
+        self.current_map_n = map_n
         self.load_map(bank_n, map_n)
 
     def load_map(self, bank_n, map_n):
         """ Called when a map is selected, a warp is clicked or the map has
             to be reloaded. """
+        if bank_n >= len(self.game.banks):
+            return
         self.loading_started = time.time()
+
+        self.ui.treeView.expand(self.tree_model.index(bank_n, 0))
+        self.ui.treeView.setCurrentIndex(self.tree_model.index(map_n, 0,
+            self.tree_model.index(bank_n, 0)))
+
         self.ui.statusbar.showMessage("Loading map...")
         if self.loaded_map:
             self.save_map()
@@ -849,8 +860,10 @@ class Window(QtWidgets.QMainWindow):
         events = self.map_data.events[event_type_i]
         try:
             event = events[int(spin.value())]
+            self.event_n = int(spin.value())
         except IndexError:
             event = events[0]
+            self.event_n = 0
         event_x, event_y = event["x"], event["y"]
         debug("selected event tile:", event)
         self.draw_events(self.map_data.events)

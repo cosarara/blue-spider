@@ -430,15 +430,19 @@ def get_tileset_imgdata(rom_contents, tileset_header):
     else:
         rows = len(data)*2//(8*8)//tiles_per_line
     w = tiles_per_line*8
+    #h = 0x100
+    #if get_rom_code(rom_contents) == b'BPRE':
+    #    h = 0x140
     h = rows*8
     return build_imgdata(data, (w, h), 16), w, h
 
-#def get_tileset_img(rom_contents, tileset_header, pal):
-#    data, w, h = get_tileset_imgdata(rom_contents, tileset_header, pal)
-#    im = Image.new("RGB", (w, h))
-#    im.putdata(data)
-#    return im
-#
+def get_tileset_img(rom_contents, tileset_header):
+    ''' Not called from the code, for debugging purposes and future use '''
+    data, w, h = get_tileset_imgdata(rom_contents, tileset_header)
+    data = color([grayscale_pal], data)[0]
+    im = Image.new("RGB", (w, h))
+    im.putdata(data)
+    return im
 
 def get_block_data(rom_contents, tileset_header, game='RS'):
     block_data_ptr = get_rom_addr(tileset_header['block_data_ptr'])
@@ -743,13 +747,8 @@ def load_tilesets(rc, game, t1_header, t2_header, pals):
     big_img = Image.new("RGB", (w, h1+h2))
     pos1 = (0, 0, w, h1)
     pos2 = (0, h1, w, h1+h2)
-    try:
-        # We gain 2 seconds in a slow machine using the fast version
-        from .fast import color
-    except ImportError:
-        #print("Using slow color function")
-        color = color_
-    col1data, col2data = color(pals, t1data, t2data)
+    col1data = color(pals, t1data)
+    col2data = color(pals, t2data)
 
     for i in range(len(pals)):
         colored1 = col1data[i]
@@ -763,11 +762,8 @@ def load_tilesets(rc, game, t1_header, t2_header, pals):
 
     return imgs
 
-def color_(pals, t1data, t2data):
-    # Fallback for fast.color
-    col1data = [[c[i] for i in t1data] for c in pals]
-    col2data = [[c[i] for i in t2data] for c in pals]
-    return col1data, col2data
+def color(pals, tsdata):
+    return [[c[i] for i in tsdata] for c in pals]
 
 def add_banks(rom_memory, banks_ptr, old_len, new_len):
     # The bank table is just a link of offsets terminated by (u32) 0x2
