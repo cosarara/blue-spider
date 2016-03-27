@@ -507,7 +507,12 @@ class Window(QtWidgets.QMainWindow):
         debug(bank_n, map_n)
         previous_map_data = self.map_data
         self.map_data = mapdata.MapData()
-        self.map_data.load(self.game, bank_n, map_n)
+        try:
+            self.map_data.load(self.game, bank_n, map_n)
+        except Exception as e: # TODO: type of exception
+            QtWidgets.QMessageBox.critical(self, "ERROR loading map!", str(e))
+            self.map_data = previous_map_data
+            return
 
         self.load_level_scripts()
         try:

@@ -58,8 +58,11 @@ get_addr = lambda x: int.from_bytes(x, "little") #& 0xFFFFFF
 def get_rom_addr(x):
     if x >= 0x8000000:
         x -= 0x8000000
-    #if x < 0:
-    #    raise Exception("Address < 0 (%s)" % x)
+    return x
+
+def rom_addr_to_gba(x):
+    if x <= 0x8000000:
+        x += 0x8000000
     return x
 
 def check_rom_addr(a):
@@ -215,15 +218,16 @@ def parse_connection_data(rom_contents, connections_header):
         connections.append(connection_data)
     return connections
 
-def parse_tileset_header(rom_contents, tileset_header_ptr, game='RS'):
-    struct_rs = structures.tileset_header_rs
-    struct_fr = structures.tileset_header_fr
-    if game == 'RS' or game == 'EM':
-        struct = struct_rs
-    elif game == 'FR':
-        struct = struct_fr
+def get_tileset_header_struct(gamename):
+    if gamename == 'RS' or gamename == 'EM':
+        return structures.tileset_header_rs
+    elif gamename == 'FR':
+        return structures.tileset_header_fr
     else:
         raise Exception("game not supported")
+
+def parse_tileset_header(rom_contents, tileset_header_ptr, gamename='RS'):
+    struct = get_tileset_header_struct(gamename)
     return parse_data_structure(rom_contents, struct, tileset_header_ptr)
 
 def parse_events_header(rom_contents, events_header_ptr):
@@ -518,7 +522,7 @@ def build_block_imgs_(blocks_mem, imgs, palettes):
 try:
     from .fast import build_block_imgs
 except ImportError:
-    print("Using slow build_block_imgs function")
+    #print("Using slow build_block_imgs function")
     build_block_imgs = build_block_imgs_
 
 def get_imgs(path=["data", "mov_perms"], num=0x40, usepackagedata=True):
@@ -743,7 +747,7 @@ def load_tilesets(rc, game, t1_header, t2_header, pals):
         # We gain 2 seconds in a slow machine using the fast version
         from .fast import color
     except ImportError:
-        print("Using slow color function")
+        #print("Using slow color function")
         color = color_
     col1data, col2data = color(pals, t1data, t2data)
 
@@ -784,15 +788,169 @@ def add_banks(rom_memory, banks_ptr, old_len, new_len):
     rom_memory[old_ptr:old_ptr+old_size] = b'\xFF'*old_size
     return new_ptr
 
-def export_script(game, map_data):
+def apply_replacement(replacements, value):
+    rvalue = get_rom_addr(value)
+    if replacements is not None and rvalue in replacements:
+        return replacements[rvalue]
+    else:
+        return hex(value)
+
+def export_data_structure_pks(struct, data, org=True, replacements=None):
+    ''' replacements must be a dict mapping addresses to
+    labels which shall replace them in the script '''
+    if org is True:
+        text = "#org {}\n".format(apply_replacement(replacements, data["self"]))
+    elif org is False:
+        text = ""
+    else:
+        text = org
+    for name, size, pos in struct:
+        if name in data and name != "self":
+            text += {"u8": "#byte",
+                     "u16": "#hword",
+                     "ptr": "#word",
+                     "u32": "#word"}[size]
+            if size == "ptr":
+                value = apply_replacement(replacements, data[name])
+            else:
+                value = hex(data[name])
+
+            text += " {} '{}\n".format(value, name)
+    return text
+
+def export_events_pks(game, events, events_header, replacements=None):
+    text = ""
+    person_events, warp_events, trigger_events, signpost_events = events
+    types = (
+        (structures.person_event, "person_events_ptr", person_events, 24),
+        (structures.warp_event, "warp_events_ptr", warp_events, 8),
+        (structures.trigger_event, "trigger_events_ptr", trigger_events, 16),
+        (structures.signpost_event, "signpost_events_ptr", signpost_events, 12)
+    )
+    for struct, start_ptr_key, events, event_size in types:
+        ptr = get_rom_addr(events_header[start_ptr_key])
+        text += "'{}\n".format(start_ptr_key.replace("_ptr", ""))
+        text += "#org {}\n".format(apply_replacement(replacements, ptr))
+        for n, event in enumerate(events):
+            text += "'{}\n".format(n+1)
+            struct_ = struct
+            if struct == structures.signpost_event:
+                if event["type"] < 5:
+                    struct_ = struct + (("script_ptr", "ptr", 8),)
+                else:
+                    struct_ = struct + (
+                        ("item_number", "u16", 8),
+                        ("hidden_item_id", "u8", 10),
+                        ("amount", "u8", 11),
+                    )
+            text += export_data_structure_pks(
+                struct_, event, org=False, replacements=replacements)
+        text += '\n'
+    return text
+
+def export_lscript_table_pks(game, ptr, org=True, replacements=None):
+    text = ""
+    struct = structures.lscript_entry
+    for i in range(20): # safety
+        lscript_h = parse_data_structure(game.rom_contents, struct, ptr)
+        text += export_data_structure_pks(struct, lscript_h, org, replacements)
+        if (lscript_h["type"] == 0):
+            break
+        ptr += structure_utils.size_of(struct)
+    else:
+        raise Exception("Too many level scripts (>=20), something is wrong")
+    return text
+
+def export_banks_script(game, org=True, label=False):
+    text = ""
+    if org is True:
+        banks_base_off = read_rom_addr_at(game.rom_contents, game.rom_data['MapHeaders'])
+        text = "#org {}\n".format(hex(banks_base_off))
+    elif org is not False:
+        text = "#org {}\n".format(org)
+
+    for bank_n, bank in enumerate(game.banks):
+        if label:
+            text += "#word @bank_{}\n".format(bank_n)
+        else:
+            text += "#word {}\n".format(hex(rom_addr_to_gba(bank)))
+
+    return text
+
+def export_maps_script(game, bank_n, org=True, label=False):
+    text = ""
+    bank = game.banks[bank_n]
+    if org is True:
+        text = "#org {}\n".format(hex(bank))
+    elif org is not False:
+        text = "#org {}\n".format(org)
+    map_hs = get_map_headers(game.rom_contents, bank_n, game.banks)
+    for map_n, map_h in enumerate(map_hs):
+        if label:
+            text += "#word @map_{}_{}\n".format(bank_n, map_n)
+        else:
+            text += "#word {}\n".format(hex(rom_addr_to_gba(map_h)))
+
+    return text
+
+def export_script(game, map_data, name_prefix="", label=True):
+    replacements = {
+        map_data.header['self']: '@map_header',
+        map_data.data_header['self']: '@map_data_header',
+        map_data.events_header['self']: '@events_header',
+        map_data.t1_header['self']: '@t1_header',
+        map_data.t2_header['self']: '@t2_header',
+        get_rom_addr(map_data.events_header['person_events_ptr']): '@person_events',
+        get_rom_addr(map_data.events_header['warp_events_ptr']): '@warp_events',
+        get_rom_addr(map_data.events_header['trigger_events_ptr']): '@trigger_events',
+        get_rom_addr(map_data.events_header['signpost_events_ptr']): '@signpost_events',
+        get_rom_addr(map_data.header['level_script_ptr']): '@level_scripts',
+    }
+    if name_prefix:
+        for r in replacements:
+            replacements[r] = name_prefix+replacements[r].replace("@", "")
+
+    if not label:
+        replacements = {}
+
+    export = export_data_structure_pks
     text = """'map exported from red alien
-'bank: {bank}
-'map: {map}
-#org {header_ptr}
-#word {map_data_ptr}
-""".format(bank=map_data.bank_n,
-           map=map_data.map_n,
-           header=map_data.header["self"],
-           map_data_ptr=map_data.header["map_data_ptr"])
+'bank n.: {bank_n}
+'map n.: {map_n}
+
+'map header
+{map_header}
+'map data header
+{map_data}
+'t1 header
+{t1}
+'t2 header
+{t2}
+'events header
+{events_header}
+'events
+{events}
+'level scripts
+{lscripts}
+""".format(bank_n=map_data.bank_n,
+           map_n=map_data.map_n,
+           map_header=export(structures.map_header,
+                             map_data.header, True, replacements),
+           map_data=export(structures.map_data,
+                           map_data.data_header,
+                           True,
+                           replacements),
+           events_header=export(structures.events_header,
+                                map_data.events_header,
+                                True,
+                                replacements),
+           events=export_events_pks(game, map_data.events, map_data.events_header,
+                                    replacements),
+           lscripts=export_lscript_table_pks(game, map_data.header["level_script_ptr"],
+                                             True, replacements),
+           t1=export(get_tileset_header_struct(game.name), map_data.t1_header,
+                     True, replacements),
+           t2=export(get_tileset_header_struct(game.name), map_data.t2_header,
+                     True, replacements))
     return text
 
