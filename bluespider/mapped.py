@@ -784,3 +784,15 @@ def add_banks(rom_memory, banks_ptr, old_len, new_len):
     rom_memory[old_ptr:old_ptr+old_size] = b'\xFF'*old_size
     return new_ptr
 
+def export_script(game, map_data):
+    text = """'map exported from red alien
+'bank: {bank}
+'map: {map}
+#org {header_ptr}
+#word {map_data_ptr}
+""".format(bank=map_data.bank_n,
+           map=map_data.map_n,
+           header=map_data.header["self"],
+           map_data_ptr=map_data.header["map_data_ptr"])
+    return text
+

@@ -141,7 +141,14 @@ class Window(QtWidgets.QMainWindow):
         #self.game = None
         #self.game.rom_code = None
         #self.game.rom_data = None
-        self.mov_perms_imgs = None
+        base = ''
+        usepackagedata = True
+        if getattr(sys, 'frozen', False):
+            base = os.path.join(os.path.dirname(sys.executable), "bluespider")
+            usepackagedata = False
+        self.mov_perms_imgs = mapped.get_imgs([base, "data", "mov_perms"],
+                                              0x40, usepackagedata)
+
 
         self.loaded_map = False
 
@@ -276,10 +283,11 @@ class Window(QtWidgets.QMainWindow):
             self.tree_model.item(bank_num).appendRow(
                 QtGui.QStandardItem("%s - %s" % (i, label)))
 
-    def get_tilesets(self, t1_header, t2_header, t1_imgs=None):
+    def get_tilesets(self, t1_header, t2_header, t1_imgs=None,
+                     previous_map_data=None):
         do_not_load_1 = False
-        if self.map_data.t1_header == t1_header:
-            if self.map_data.t2_header == t2_header and t1_imgs:
+        if previous_map_data and previous_map_data.t1_header == t1_header:
+            if previous_map_data.t2_header == t2_header and t1_imgs:
                 return t1_imgs
 
             num_of_blocks = 640
@@ -473,15 +481,11 @@ class Window(QtWidgets.QMainWindow):
         self.event_pixmap_qobject.clicked.connect(self.event_clicked)
 
     def load_events(self):
-        map_header = self.map_data.header
-        events_header = mapped.parse_events_header(self.game.rom_contents,
-                                                   map_header['event_data_ptr'])
-        self.map_data.events_header = events_header
+        events_header = self.map_data.events_header
         self.ui.num_of_warps.setText(str(events_header['n_of_warps']))
         self.ui.num_of_people.setText(str(events_header['n_of_people']))
         self.ui.num_of_triggers.setText(str(events_header['n_of_triggers']))
         self.ui.num_of_signposts.setText(str(events_header['n_of_signposts']))
-        self.map_data.events = mapped.parse_events(self.game.rom_contents, events_header)
 
     def load_map_qindex(self, qindex):
         self.current_index = qindex
@@ -500,61 +504,24 @@ class Window(QtWidgets.QMainWindow):
             self.save_map()
             self.save_events()
 
-        self.map_data.bank_n = bank_n
-        self.map_data.map_n = map_n
         debug(bank_n, map_n)
+        previous_map_data = self.map_data
+        self.map_data = mapdata.MapData()
+        self.map_data.load(self.game, bank_n, map_n)
 
-        maps = mapped.get_map_headers(self.game.rom_contents, bank_n, self.game.banks)
-        map_h_ptr = mapped.get_rom_addr(maps[map_n])
-        map_header = mapped.parse_map_header(self.game.rom_contents, map_h_ptr)
-        self.map_data.header = map_header
         self.load_level_scripts()
-        map_data_header = mapped.parse_map_data(
-            self.game.rom_contents, map_header['map_data_ptr'],
-            self.game.name)
-        self.map_data.data_header = map_data_header
-
-        tileset_header = mapped.parse_tileset_header(
-            self.game.rom_contents,
-            map_data_header['global_tileset_ptr'],
-            self.game.name)
-        tileset2_header = mapped.parse_tileset_header(
-            self.game.rom_contents,
-            map_data_header['local_tileset_ptr'],
-            self.game.name)
         try:
-            self.t1_imgs = self.get_tilesets(tileset_header, tileset2_header,
-                                             self.t1_imgs)
+            self.t1_imgs = self.get_tilesets(self.map_data.t1_header,
+                                             self.map_data.t2_header,
+                                             self.t1_imgs,
+                                             previous_map_data)
         except:
             self.ui.statusbar.showMessage("Error loading tilesets")
             raise
 
-        self.map_data.t1_header = tileset_header
-        self.map_data.t2_header = tileset2_header
-
-        base = ''
-        usepackagedata = True
-        if getattr(sys, 'frozen', False):
-            base = os.path.join(os.path.dirname(sys.executable), "bluespider")
-            usepackagedata = False
-        self.mov_perms_imgs = mapped.get_imgs([base, "data", "mov_perms"],
-                                              0x40, usepackagedata)
-
         self.load_events()
 
-        # Every tile is 2 bytes
-        map_size = map_data_header['w'] * map_data_header['h'] * 2
-        tilemap_ptr = map_data_header['tilemap_ptr']
-        tilemap_ptr = mapped.get_rom_addr(tilemap_ptr)
-        self.map_data.tilemap_ptr = tilemap_ptr
-        map_mem = self.game.rom_contents[tilemap_ptr:tilemap_ptr+map_size]
-        if map_data_header['h'] + map_data_header['w'] > 20000:
-            self.ui.statusbar.showMessage("Map bugged (too big)")
-            raise Exception("Bad map: h & w way too big")
-        self.map = mapped.parse_map_mem(map_mem, map_data_header['h'],
-                                        map_data_header['w'])
-
-        self.print_map(self.map)
+        self.print_map(self.map_data.tilemap)
         self.print_palette()
         self.draw_events(self.map_data.events)
         self.event_spinbox_changed()
@@ -681,16 +648,16 @@ class Window(QtWidgets.QMainWindow):
         tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(
             event, self.mapPixMap)
         debug("clicked tile:", hex(tile_num))
-        self.map[tile_y][tile_x][0] = self.selected_tile
-        self.print_map(self.map)
+        self.map_data.tilemap[tile_y][tile_x][0] = self.selected_tile
+        self.print_map(self.map_data.tilemap)
         self.draw_events(self.map_data.events)
 
     def mov_clicked(self, event):
         tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(
             event, self.movPixMap)
         debug("clicked tile:", hex(tile_num))
-        self.map[tile_y][tile_x][1] = self.selected_mov_tile
-        self.print_map(self.map)
+        self.map_data.tilemap[tile_y][tile_x][1] = self.selected_mov_tile
+        self.print_map(self.map_data.tilemap)
         self.draw_events(self.map_data.events)
 
     def event_clicked(self, qtevent):
@@ -734,24 +701,39 @@ class Window(QtWidgets.QMainWindow):
 
     def save_map(self):
         self.save_header()
-        new_map_mem = mapped.map_to_mem(self.map)
+        new_map_mem = mapped.map_to_mem(self.map_data.tilemap)
         pos = self.map_data.tilemap_ptr
         size = len(new_map_mem)
         self.game.rom_contents[pos:pos+size] = new_map_mem
 
     def export_map(self):
-        fn, _ = QtWidgets.QFileDialog.getSaveFileName(self, 'Save map file',
-                                                      QtCore.QDir.homePath(),
-                                                      "Pokemon Map (*.pkmap);;"
-                                                      "All files (*)")
+        if not self.game or not self.map_data:
+            self.ui.statusbar.showMessage("Can't export without loaded map")
+            return
+        fn, ftype = QtWidgets.QFileDialog.getSaveFileName(
+            self, 'Save map file', QtCore.QDir.homePath(),
+            "Pokemon Map (*.pkmap);;"
+            "Script (*.pks);;"
+            "All files (*)")
         self.ui.statusbar.showMessage("Exporting...")
         if not fn:
+            self.ui.statusbar.clearMessage()
             return
-        mapmem = self.game.rom_contents[self.map_data.tilemap_ptr:]
-        w, h = self.map_data.data_header["w"], self.map_data.data_header["h"]
-        text_map = map_printer.map_to_text(mapmem, w, h)
-        with open(fn, "wb") as file:
-            file.write(text_map.encode("utf8"))
+
+        extension = os.path.splitext(fn)[1]
+        if "pkmap" in ftype or extension == "pkmap":
+            mapmem = self.game.rom_contents[self.map_data.tilemap_ptr:]
+            w, h = self.map_data.data_header["w"], self.map_data.data_header["h"]
+            text_map = map_printer.map_to_text(mapmem, w, h)
+            with open(fn, "wb") as file:
+                file.write(text_map.encode("utf8"))
+        elif "pks" in ftype or extension == "pks":
+            with open(fn, "wb") as file:
+                file.write(mapped.export_script(self.game, self.map_data))
+        else:
+            self.ui.statusbar.showMessage("Unkown file type {}, not saved".format(
+                extension))
+            return
 
         self.ui.statusbar.showMessage("Saved {}".format(fn))
 
@@ -1020,6 +1002,7 @@ class Window(QtWidgets.QMainWindow):
         event.accept()
 
     def load_level_scripts(self):
+        """ I don't even... me from the past, did something good happen that day? """
         struct = structures.lscript_entry
         struct2 = structures.lscript_type_2
         r = lambda p: mapped.parse_data_structure(self.game.rom_contents, struct, p)

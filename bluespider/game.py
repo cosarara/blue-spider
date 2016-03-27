@@ -6,7 +6,7 @@ To organize all info about the game/ROM file in one place
 from . import mapped
 
 class Game:
-    def __init__(self):
+    def __init__(self, fn=None):
         self.rom_contents = None
         self.original_rom_contents = None
         self.rom_file_name = None
@@ -17,9 +17,10 @@ class Game:
         self.banks = None
         self.sprites = None
 
-    def load_rom(self, fn):
-        self.banks = []
+        if fn is not None:
+            self.load_rom(fn)
 
+    def load_rom(self, fn):
         with open(fn, "rb") as rom_file:
             self.rom_contents = rom_file.read()
         self.original_rom_contents = bytes(self.rom_contents)
@@ -37,4 +38,5 @@ class Game:
             raise Exception("ROM code not found")
 
         self.sprites = mapped.get_ow_sprites(self.rom_contents, self.rom_data)
+        self.banks = mapped.get_banks(self.rom_contents, self.rom_data)
 
