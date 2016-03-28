@@ -873,17 +873,18 @@ def export_banks_script(game, org=True, label=False):
 
     return text
 
-def export_maps_script(game, bank_n, org=True, label=False):
+def export_maps_script(game, bank_n, org=True, label=False, map_hs=None):
     text = ""
     bank = game.banks[bank_n]
     if org is True:
         text = "#org {}\n".format(hex(bank))
     elif org is not False:
         text = "#org {}\n".format(org)
-    map_hs = get_map_headers(game.rom_contents, bank_n, game.banks)
+    if map_hs is None:
+        map_hs = get_map_headers(game.rom_contents, bank_n, game.banks)
     for map_n, map_h in enumerate(map_hs):
         if label:
-            text += "#word @map_{}_{}\n".format(bank_n, map_n)
+            text += "#word @map_{}_{}_map_header\n".format(bank_n, map_n)
         else:
             text += "#word {}\n".format(hex(rom_addr_to_gba(map_h)))
 
