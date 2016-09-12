@@ -39,7 +39,7 @@ data_files = [
 data_files_cxfreeze = ['bluespider/data/', 'README.txt', 'imageformats']
 build_exe_options = {"packages": ["pkg_resources"],
                      "include_files": data_files_cxfreeze,
-                     "includes": "PyQt4.QtCore",
+                     "includes": "PyQt5.QtCore",
                      "icon": "utils/bluespider.ico"}
 
 try:
@@ -63,7 +63,7 @@ setup(name='BlueSpider',
       package_data={'bluespider': data_files},
       py_modules = ['appdirs'],
       scripts=['bluespider-qt', 'bluespider-cli'],
-      requires=['sip', 'PyQt4', 'PIL'],
+      requires=['sip', 'PyQt5', 'PIL'],
       options={"build_exe": build_exe_options},
       executables=[
           Executable("bluespider-qt", base=base),
