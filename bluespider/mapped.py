@@ -459,21 +459,20 @@ def get_block_data(rom_contents, tileset_header, game='RS'):
     mem = rom_contents[block_data_ptr:block_data_ptr+length]
     return mem
 
-def decode_block_part(part, layer_mem, palettes, imgs):
-    TILES_PER_LINE = 16
-
+def decode_block_part(part, layer_mem, palettes, cropped_imgs):
     offset = part*2
     byte1 = layer_mem[offset]
     byte2 = layer_mem[offset+1]
     tile_num = byte1 | ((byte2 & 0b11) << 8)
-    x = (tile_num % TILES_PER_LINE) * 8
-    y = (tile_num // TILES_PER_LINE) * 8
 
     palette_num = byte2 >> 4
     if palette_num >= 13: # XXX
         palette_num = 0
     palette = GRAYSCALE or palettes[palette_num]
-    part_img = imgs[palette_num].crop((x, y, x+8, y+8))
+
+    if tile_num >= len(cropped_imgs[0]):
+        tile_num = 0
+    part_img = cropped_imgs[palette_num][tile_num].copy()
     flips = (byte2 & 0xC) >> 2
     if flips & 1:
         part_img = part_img.transpose(Image.FLIP_LEFT_RIGHT)
@@ -481,7 +480,7 @@ def decode_block_part(part, layer_mem, palettes, imgs):
         part_img = part_img.transpose(Image.FLIP_TOP_BOTTOM)
     return part_img, palette
 
-def build_block_imgs_(blocks_mem, imgs, palettes):
+def build_block_imgs_(blocks_mem, cropped_imgs, palettes):
     ''' Build images from the block information and tilesets.
      Every block is 16 bytes, and holds down and up parts for a tile,
      composed of 4 subtiles
@@ -510,7 +509,7 @@ def build_block_imgs_(blocks_mem, imgs, palettes):
         for layer in range(2):
             layer_mem = block_mem[layer*8:layer*8+8]
             for part in range(4):
-                part_img, pal = decode_block_part(part, layer_mem, palettes, imgs)
+                part_img, pal = decode_block_part(part, layer_mem, palettes, cropped_imgs)
                 x, y = POSITIONS[part]
                 # Transparency
                 #mask = Image.eval(part_img, lambda a: 255 if a else 0)
@@ -614,10 +613,10 @@ def fits(num, size):
     elif size == "u8":
         return num <= 0xFF
 
-def find_free_space(rom_memory, size, start_pos=None):
+def find_free_space(rom_memory, size, start_pos=None, blank_byte=b'\xFF'):
     if start_pos is None:
         start_pos = 0x6B0000
-    new_offset = rom_memory[start_pos:].index(b'\xFF'*size) + start_pos
+    new_offset = rom_memory[start_pos:].index(blank_byte*size) + start_pos
     return new_offset
 
 singular_name = {
@@ -760,7 +759,17 @@ def load_tilesets(rc, game, t1_header, t2_header, pals):
         colored_img.paste(img2, pos2)
         imgs.append(colored_img)
 
-    return imgs
+    cropped_imgs = []
+    w_tiles = w // 8
+    h_tiles = (h1 + h2) // 8
+    for img in imgs:
+        cropped_img = []
+        for i in range(h_tiles):
+            for j in range(w_tiles):
+                cropped_img.append(img.crop((j * 8, i * 8, (j + 1) * 8, (i + 1) * 8)))
+        cropped_imgs.append(cropped_img)
+
+    return imgs, cropped_imgs
 
 def color(pals, tsdata):
     return [[c[i] for i in tsdata] for c in pals]

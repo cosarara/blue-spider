@@ -78,6 +78,9 @@ class Window(QtWidgets.QMainWindow):
         self.ui.sprite_scene = QtWidgets.QGraphicsScene()
         self.ui.sprite_scene.setSceneRect(QtCore.QRectF(0, 0, 16, 32))
         self.ui.spriteImg.setScene(self.ui.sprite_scene)
+        self.ui.edPalette.setScene(self.ui.palette_scene)
+        self.ui.tileset_scene = QtWidgets.QGraphicsScene()
+        self.ui.tileset.setScene(self.ui.tileset_scene)
 
         self.game = game.Game()
         self.map_data = mapdata.MapData()
@@ -290,26 +293,25 @@ class Window(QtWidgets.QMainWindow):
                      previous_map_data=None):
         do_not_load_1 = False
         if previous_map_data and previous_map_data.t1_header == t1_header:
-            if previous_map_data.t2_header == t2_header and t1_imgs:
-                return t1_imgs
-
-            num_of_blocks = 640
-            if self.game.name == 'RS' or self.game.name == 'EM':
-                num_of_blocks = 512
-            self.blocks_imgs = self.blocks_imgs[:num_of_blocks]
-            do_not_load_1 = True
+            if previous_map_data.t2_header != t2_header and t1_imgs:
+                num_of_blocks = 640
+                if self.game.name == 'RS' or self.game.name == 'EM':
+                    num_of_blocks = 512
+                self.blocks_imgs = self.blocks_imgs[:num_of_blocks]
+                do_not_load_1 = True
+            else:
+                return
 
         else:
             self.blocks_imgs = []
-            t1_imgs = None
 
         pals1_ptr = mapped.get_rom_addr(t1_header["palettes_ptr"])
         pals2_ptr = mapped.get_rom_addr(t2_header["palettes_ptr"])
         pals = mapped.get_pals(self.game.rom_contents, self.game.name,
                                pals1_ptr, pals2_ptr)
         # Half of the time this function runs is spent here
-        imgs = mapped.load_tilesets(self.game.rom_contents, self.game.name,
-                                    t1_header, t2_header, pals)
+        self.t1_imgs, self.t1_cropped_imgs = mapped.load_tilesets(self.game.rom_contents, self.game.name,
+                                                                  t1_header, t2_header, pals)
         if do_not_load_1:
             to_load = (t2_header,)
         else:
@@ -318,10 +320,8 @@ class Window(QtWidgets.QMainWindow):
             block_data_mem = mapped.get_block_data(self.game.rom_contents,
                                                    tileset_header, self.game.name)
             # Half of the time this function runs is spent here
-            blocks_imgs = mapped.build_block_imgs(block_data_mem, imgs, pals)
+            blocks_imgs = mapped.build_block_imgs(block_data_mem, self.t1_cropped_imgs, pals)
             self.blocks_imgs += blocks_imgs
-
-        return imgs
 
 
     def draw_palette(self):
@@ -413,22 +413,26 @@ class Window(QtWidgets.QMainWindow):
         self.map_img_qt = ImageQt.ImageQt(map_img)
         self.mov_img_qt = ImageQt.ImageQt(mov_img)
 
-    def print_map(self, map, quick=False):
+    def print_map(self, map, quick=False, delete_old=True):
         if not quick:
             self.draw_map(map)
         self.mapPixMap = QtGui.QPixmap.fromImage(self.map_img_qt)
         self.movPixMap = QtGui.QPixmap.fromImage(self.mov_img_qt)
-        self.ui.map_scene.clear()
-        self.ui.mov_scene.clear()
-        self.map_pixmap_qobject = qmapview.QMapPixmap(self.mapPixMap)
-        self.mov_pixmap_qobject = qmapview.QMapPixmap(self.movPixMap)
-        self.ui.map_scene.addItem(self.map_pixmap_qobject)
-        self.ui.mov_scene.addItem(self.mov_pixmap_qobject)
+        if delete_old:
+            self.ui.map_scene.clear()
+            self.ui.mov_scene.clear()
+            self.map_pixmap_qobject = qmapview.QMapPixmap(self.mapPixMap)
+            self.mov_pixmap_qobject = qmapview.QMapPixmap(self.movPixMap)
+            self.ui.map_scene.addItem(self.map_pixmap_qobject)
+            self.ui.mov_scene.addItem(self.mov_pixmap_qobject)
+            self.map_pixmap_qobject.clicked.connect(self.map_clicked)
+            self.map_pixmap_qobject.click_dragged.connect(self.map_clicked)
+            self.mov_pixmap_qobject.clicked.connect(self.mov_clicked)
+        else:
+            self.map_pixmap_qobject.set_pixmap(self.mapPixMap)
+            self.mov_pixmap_qobject.set_pixmap(self.movPixMap)
         self.ui.map_scene.update()
         self.ui.mov_scene.update()
-
-        self.map_pixmap_qobject.clicked.connect(self.map_clicked)
-        self.mov_pixmap_qobject.clicked.connect(self.mov_clicked)
 
         if self.hovered_tile is not None:
             square_painter = QtGui.QPainter(self.tilesetPixMap)
@@ -439,6 +443,13 @@ class Window(QtWidgets.QMainWindow):
             y = (p//w)*16
             square_painter.drawRect(x, y, 16, 16)
             square_painter.end()
+
+    def print_tileset(self, palette_number=1):
+        self.tileset_editorPixMap = QtGui.QPixmap.fromImage(self.t1_qimgs[palette_number - 1])
+        self.ui.tileset_scene.clear()
+        self.tileset_pixmap_qobject = qmapview.QMapPixmap(self.tileset_editorPixMap)
+        self.ui.tileset_scene.addItem(self.tileset_pixmap_qobject)
+        self.ui.tileset_scene.update()
 
     def draw_events(self, events=None):
         if events is None:
@@ -527,10 +538,12 @@ class Window(QtWidgets.QMainWindow):
 
         self.load_level_scripts()
         try:
-            self.t1_imgs = self.get_tilesets(self.map_data.t1_header,
-                                             self.map_data.t2_header,
-                                             self.t1_imgs,
-                                             previous_map_data)
+            self.get_tilesets(self.map_data.t1_header, self.map_data.t2_header,
+                              self.t1_imgs, previous_map_data)
+            self.t1_qimgs = []
+            for img in self.t1_imgs:
+                self.t1_qimgs.append(ImageQt.ImageQt(img))
+            self.print_tileset()
         except:
             self.ui.statusbar.showMessage("Error loading tilesets")
             raise
@@ -547,7 +560,6 @@ class Window(QtWidgets.QMainWindow):
 
         self.ui.statusbar.showMessage("Map loaded in {} seconds".format(
             time.time() - self.loading_started))
-
 
     def get_tile_num_from_mouseclick(self, event, pixmap):
         pos = event.pos()
@@ -660,13 +672,44 @@ class Window(QtWidgets.QMainWindow):
                             self.map_data.events)
         mapped.write_events_header(self.game.rom_contents, self.map_data.events_header)
 
+    def select_tile(self, tile_num):
+        self.selected_tile = tile_num
+        self.print_palette(quick=True)
+
     def map_clicked(self, event):
         tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(
             event, self.mapPixMap)
         debug("clicked tile:", hex(tile_num))
-        self.map_data.tilemap[tile_y][tile_x][0] = self.selected_tile
-        self.print_map(self.map_data.tilemap)
-        self.draw_events(self.map_data.events)
+
+        button = event.button()
+        if button == QtCore.Qt.NoButton and hasattr(event, 'origin_button'):
+            button = event.origin_button
+        original_tile = self.map_data.tilemap[tile_y][tile_x][0]
+        # Left click
+        if button == QtCore.Qt.LeftButton and original_tile != self.selected_tile:
+            self.map_data.tilemap[tile_y][tile_x][0] = self.selected_tile
+            self.print_map(self.map_data.tilemap, delete_old=False)
+            self.draw_events(self.map_data.events)
+        # Right click
+        elif button == QtCore.Qt.RightButton:
+            self.select_tile(self.map_data.tilemap[tile_y][tile_x][0])
+        # Mouse wheel click
+        elif button == QtCore.Qt.MiddleButton and original_tile != self.selected_tile:
+            to_paint_tiles = [(tile_y, tile_x)]
+            while len(to_paint_tiles):
+                current_tile_y, current_tile_x = to_paint_tiles[0]
+                del to_paint_tiles[0]
+                self.map_data.tilemap[current_tile_y][current_tile_x][0] = self.selected_tile
+                for next_to_tile_y in (current_tile_y - 1, current_tile_y + 1):
+                    if 0 <= next_to_tile_y < len(self.map_data.tilemap) and \
+                                    self.map_data.tilemap[next_to_tile_y][current_tile_x][0] == original_tile:
+                            to_paint_tiles.append((next_to_tile_y, current_tile_x))
+                for next_to_tile_x in (current_tile_x - 1, current_tile_x + 1):
+                    if 0 <= next_to_tile_x < len(self.map_data.tilemap[0]) and \
+                                    self.map_data.tilemap[current_tile_y][next_to_tile_x][0] == original_tile:
+                        to_paint_tiles.append((current_tile_y, next_to_tile_x))
+            self.print_map(self.map_data.tilemap, delete_old=False)
+            self.draw_events(self.map_data.events)
 
     def mov_clicked(self, event):
         tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(
@@ -706,8 +749,7 @@ class Window(QtWidgets.QMainWindow):
         tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(
             event, self.tilesetPixMap)
         debug("selected tile:", hex(tile_num))
-        self.selected_tile = tile_num
-        self.print_palette(quick=True)
+        self.select_tile(tile_num)
 
     def perms_palette_clicked(self, event):
         tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(
@@ -926,6 +968,8 @@ class Window(QtWidgets.QMainWindow):
                                                       'Choose script editor executable',
                                                       QtCore.QDir.homePath(),
                                                       "All files (*)")
+        if not fn:
+            return
         q = "Is it XSE?"
         isxse = QtWidgets.QMessageBox.question(self, q, q,
                                                QtWidgets.QMessageBox.Yes,
@@ -1003,12 +1047,12 @@ class Window(QtWidgets.QMainWindow):
             settings_file.write(str(settings))
 
     def add_new_banks(self):
+        oldnum = len(self.game.banks)
         num, ok = QtWidgets.QInputDialog.getInt(self, 'How many?', # Title
                                                 "How many?", # Label
-                                                1, 1, 255) # Default, min, max
+                                                1, 1, (256 - oldnum)) # Default, min, max
         if not ok:
             return
-        oldnum = len(self.game.banks)
         ptr = mapped.add_banks(self.game.rom_contents, self.game.rom_data["MapHeaders"],
                                oldnum, oldnum+num)
         mapped.write_rom_ptr_at(self.game.rom_contents,

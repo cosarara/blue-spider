@@ -189,7 +189,7 @@
              <x>0</x>
              <y>0</y>
              <width>270</width>
-             <height>821</height>
+             <height>851</height>
             </rect>
            </property>
            <property name="maximumSize">
@@ -1817,8 +1817,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>363</width>
-             <height>613</height>
+             <width>875</width>
+             <height>647</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -2136,7 +2136,7 @@
       </widget>
       <widget class="QWidget" name="PalTab">
        <property name="enabled">
-        <bool>false</bool>
+        <bool>true</bool>
        </property>
        <attribute name="title">
         <string>Tilemap Palette</string>
@@ -2144,6 +2144,9 @@
        <layout class="QGridLayout" name="gridLayout_7">
         <item row="0" column="1">
          <widget class="QGroupBox" name="groupBox_3">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
           <property name="title">
            <string>Properties</string>
           </property>
@@ -2232,6 +2235,9 @@
                </property>
                <item>
                 <widget class="QGraphicsView" name="tile1">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                    <horstretch>0</horstretch>
@@ -2281,6 +2287,9 @@
            </item>
            <item>
             <widget class="QGroupBox" name="groupBox_4">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
              <property name="title">
               <string>Tileset</string>
              </property>
@@ -2305,6 +2314,9 @@
                 </item>
                 <item>
                  <widget class="QComboBox" name="comboBox">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
                   <item>
                    <property name="text">
                     <string>0</string>
@@ -2404,6 +2416,9 @@
         </item>
         <item row="0" column="0">
          <widget class="QGraphicsView" name="edPalette">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
             <horstretch>0</horstretch>
@@ -2436,7 +2451,7 @@
      <x>0</x>
      <y>0</y>
      <width>1109</width>
-     <height>21</height>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">

@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'mapped.ui'
 #
-# Created: Mon Mar  2 16:15:08 2015
-#      by: PyQt5 UI code generator 5.4
+# Created: Sat Dec 31 19:59:59 2016
+#      by: PyQt5 UI code generator 5.2.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -114,7 +114,7 @@ class Ui_MainWindow(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
         self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 270, 821))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 270, 851))
         self.scrollAreaWidgetContents.setMaximumSize(QtCore.QSize(270, 16777215))
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents)
@@ -800,7 +800,7 @@ class Ui_MainWindow(object):
         self.scrollArea_2.setWidgetResizable(True)
         self.scrollArea_2.setObjectName("scrollArea_2")
         self.scrollAreaWidgetContents_2 = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents_2.setGeometry(QtCore.QRect(0, 0, 363, 613))
+        self.scrollAreaWidgetContents_2.setGeometry(QtCore.QRect(0, 0, 875, 647))
         self.scrollAreaWidgetContents_2.setObjectName("scrollAreaWidgetContents_2")
         self.verticalLayout_4 = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents_2)
         self.verticalLayout_4.setObjectName("verticalLayout_4")
@@ -967,11 +967,12 @@ class Ui_MainWindow(object):
         self.gridLayout_9.addLayout(self.verticalLayout_3, 0, 0, 1, 1)
         self.tabWidget.addTab(self.tab, "")
         self.PalTab = QtWidgets.QWidget()
-        self.PalTab.setEnabled(False)
+        self.PalTab.setEnabled(True)
         self.PalTab.setObjectName("PalTab")
         self.gridLayout_7 = QtWidgets.QGridLayout(self.PalTab)
         self.gridLayout_7.setObjectName("gridLayout_7")
         self.groupBox_3 = QtWidgets.QGroupBox(self.PalTab)
+        self.groupBox_3.setEnabled(True)
         self.groupBox_3.setObjectName("groupBox_3")
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout(self.groupBox_3)
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
@@ -1023,6 +1024,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_4.setSizeConstraint(QtWidgets.QLayout.SetMinimumSize)
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
         self.tile1 = QtWidgets.QGraphicsView(self.groupBox_3)
+        self.tile1.setEnabled(True)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -1045,6 +1047,7 @@ class Ui_MainWindow(object):
         self.gridLayout_8.addItem(spacerItem4, 8, 1, 1, 1)
         self.horizontalLayout_2.addLayout(self.gridLayout_8)
         self.groupBox_4 = QtWidgets.QGroupBox(self.groupBox_3)
+        self.groupBox_4.setEnabled(True)
         self.groupBox_4.setObjectName("groupBox_4")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.groupBox_4)
         self.verticalLayout.setObjectName("verticalLayout")
@@ -1060,6 +1063,7 @@ class Ui_MainWindow(object):
         self.label_43.setObjectName("label_43")
         self.horizontalLayout.addWidget(self.label_43)
         self.comboBox = QtWidgets.QComboBox(self.groupBox_4)
+        self.comboBox.setEnabled(True)
         self.comboBox.setObjectName("comboBox")
         self.comboBox.addItem("")
         self.comboBox.addItem("")
@@ -1089,6 +1093,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout_2.addWidget(self.groupBox_4)
         self.gridLayout_7.addWidget(self.groupBox_3, 0, 1, 1, 1)
         self.edPalette = QtWidgets.QGraphicsView(self.PalTab)
+        self.edPalette.setEnabled(True)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -1102,7 +1107,7 @@ class Ui_MainWindow(object):
         self.gridLayout.addWidget(self.tabWidget, 0, 1, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1109, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1109, 25))
         self.menubar.setObjectName("menubar")
         self.menuFile = QtWidgets.QMenu(self.menubar)
         self.menuFile.setObjectName("menuFile")
