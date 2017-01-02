@@ -5,79 +5,10 @@ from . import mapped
 from PIL import Image
 
 
-def decode_block_part(part, layer_mem, palettes, cropped_imgs):
-    offset = part*2
-    byte1 = layer_mem[offset]
-    byte2 = layer_mem[offset+1]
-    tile_num = byte1 | ((byte2 & 0b11) << 8)
-
-    palette_num = byte2 >> 4
-    if palette_num >= 13: # XXX
-        palette_num = 0
-    palette = mapped.GRAYSCALE or palettes[palette_num]
-
-    if tile_num >= len(cropped_imgs[0]):
-        tile_num = 0
-    part_img = cropped_imgs[palette_num][tile_num].copy()
-    flips = (byte2 & 0xC) >> 2
-    if flips & 1:
-        part_img = part_img.transpose(Image.FLIP_LEFT_RIGHT)
-    if flips & 2:
-        part_img = part_img.transpose(Image.FLIP_TOP_BOTTOM)
-    return part_img, palette
-
-
-def build_block_imgs_(blocks_mem, cropped_imgs, palettes):
-    ''' Build images from the block information and tilesets.
-     Every block is 16 bytes, and holds down and up parts for a tile,
-     composed of 4 subtiles
-     every subtile is 2 bytes
-     1st byte and 2nd bytes last (two?) bit(s) is the index in the tile img
-     2nd byte's first 4 bits is the color palette index
-     2nd byte's final 4 bits is the flip information... and something else,
-     I guess
-         0b0100 = x flip
-     '''
-    # TODO: Optimize. A lot.
-    block_imgs = []
-    base_block_img = Image.new("RGB", (16, 16))
-    mask = Image.new("L", (8, 8))
-    POSITIONS = {
-        0: (0, 0),
-        1: (8, 0),
-        2: (0, 8),
-        3: (8, 8)
-    }
-    for block in range(len(blocks_mem)//16):
-        block_mem = blocks_mem[block*16:block*16+16]
-        # Copying is faster than creating
-        block_img = base_block_img.copy()
-        # Up/down
-        for layer in range(2):
-            layer_mem = block_mem[layer*8:layer*8+8]
-            for part in range(4):
-                part_img, pal = decode_block_part(part, layer_mem, palettes, cropped_imgs)
-                x, y = POSITIONS[part]
-                # Transparency
-                #mask = Image.eval(part_img, lambda a: 255 if a else 0)
-                if layer:
-                    mask.putdata([0 if i == pal[0] else 255 for i in part_img.getdata()])
-                    block_img.paste(part_img, (x, y, x+8, y+8))#, mask)
-                else:
-                    block_img.paste(part_img, (x, y, x+8, y+8))
-
-        block_imgs.append(block_img)
-    return block_imgs
-
-try:
-    from .fast import build_block_imgs
-except ImportError:
-    # print("Using slow build_block_imgs function")
-    build_block_imgs = build_block_imgs_
-
 """
 # To store the variables regarding the current loaded map
 """
+
 
 class MapData:
     def __init__(self):
@@ -172,31 +103,18 @@ class MapData:
             imgs.append(colored_img)
 
         cropped_imgs = []
-        # t1_imgs = []
-        # t2_imgs = []
         w_tiles = w // 8
-        # h_t1_tiles = h1 // 8
         h_tiles = (h1 + h2) // 8
         for img in imgs:
             cropped_img = []
-            # t1_tiles = []
-            # t2_tiles = []
             for i in range(h_tiles):
                 for j in range(w_tiles):
                     tile = img.crop((j * 8, i * 8, (j + 1) * 8, (i + 1) * 8))
-                    # if i < h_t1_tiles:
-                        # t1_tiles.append(tile)
-                    # else:
-                        # t2_tiles.append(tile)
                     cropped_img.append(tile)
             cropped_imgs.append(cropped_img)
-            # t1_imgs.append(t1_tiles)
-            # t2_imgs.append(t2_tiles)
 
         self.complete_tilesets = imgs
         self.cropped_tileset = cropped_imgs
-        # self.tileset1.set_tiles(t1_imgs)
-        # self.tileset2.set_tiles(t2_imgs)
 
     def load_tilesets(self, game, previous_map=None):
         do_not_load_1 = False
@@ -204,9 +122,14 @@ class MapData:
             num_of_blocks = (640, 512)[game.name in ('RS', 'EM')]
             if previous_map.tileset2.header != self.tileset2.header or \
                             num_of_blocks > len(previous_map.blocks.images):
+                self.blocks.set_block_data(previous_map.blocks.blocks[:num_of_blocks])
                 self.blocks.set_block_images(previous_map.blocks.images[:num_of_blocks])
                 do_not_load_1 = True
             else:
+                self.tileset1 = previous_map.tileset1
+                self.tileset2 = previous_map.tileset2
+                self.complete_tilesets = previous_map.complete_tilesets
+                self.cropped_tileset = previous_map.cropped_tileset
                 self.blocks = previous_map.blocks
                 return
 
@@ -226,6 +149,12 @@ class MapData:
             # Half of the time this function runs is spent here
             self.blocks.load(block_data_mem, pals, self.cropped_tileset)
 
+    def update_block(self, block_num, layer, tile, tile_num, pal, flip_x, flip_y):
+        self.blocks.blocks[block_num][layer][tile] = [tile_num, pal, flip_x, flip_y]
+
+    def get_block_layers(self, block_num):
+        return self.blocks.draw_block_layers(block_num, self.get_palettes(), self.cropped_tileset)
+
 
 class TilesetData:
     def __init__(self):
@@ -235,9 +164,6 @@ class TilesetData:
 
     def set_header(self, header):
         self.header = header
-
-    # def set_tiles(self, tiles):
-        # self.tiles = tiles
 
     def load_palettes(self, game):
         pals_ptr = mapped.get_rom_addr(self.header["palettes_ptr"])
@@ -270,96 +196,112 @@ class TilesetData:
         return mem
 
 
-def decode_block(data):
-    # [layer1, layer2]
-    block = []
-    for i in range(2):
-        # [tile1, tile2, tile3, tile4]
-        layer = []
-        layer_data = data[i * 8:(i + 1) * 8]
-        for j in range(4):
-            byte1 = layer_data[j * 2]
-            byte2 = layer_data[j * 2 + 1]
-            tile_num = byte1 | ((byte2 & 0b11) << 8)
-            tile_palette = byte2 >> 4
-            if tile_palette > 13:
-                tile_palette = 0
-            flips = (byte2 & 0xC) >> 2
-            flip_x = flips & 1
-            flip_y = flips & 2
+# Block loading utilities
+base_block_img = Image.new("RGB", (16, 16))
+mask = Image.new("L", (8, 8))
+POSITIONS = (
+    (0, 0),
+    (8, 0),
+    (0, 8),
+    (8, 8)
+)
 
-            # Each tile is:
-            layer.append([tile_num, tile_palette, flip_x, flip_y])
-        block.append(layer)
-    return block
 
 class BlocksData:
     def __init__(self):
         self.images = []
         self.images_wide = 16 * 8  # 8 tiles per row
+        self.blocks = []
 
     def set_block_images(self, images):
         self.images = images
 
+    def set_block_data(self, blocks):
+        self.blocks = blocks
+
+    def draw_block_layers(self, block_num, palettes, tiles):
+        block = self.blocks[block_num]
+        block_img = base_block_img.copy()
+        layers = []
+        # Up/down
+        for i in range(2):
+            layer = base_block_img.copy()
+            for j in range(4):
+                tile_num, pal, flip_x, flip_y = block[i][j]
+                try:
+                    part_img = tiles[pal][tile_num]
+                except IndexError:
+                    part_img = tiles[pal][0]
+                if flip_x:
+                    part_img = part_img.transpose(Image.FLIP_LEFT_RIGHT)
+                if flip_y:
+                    part_img = part_img.transpose(Image.FLIP_TOP_BOTTOM)
+                pal = palettes[pal]
+                x, y = POSITIONS[j]
+                if i:
+                    # Transparency
+                    mask.putdata([0 if i == pal[0] else 255 for i in part_img.getdata()])
+                    block_img.paste(part_img, (x, y, x + 8, y + 8), mask)
+                else:
+                    block_img.paste(part_img, (x, y, x + 8, y + 8))
+                layer.paste(part_img, (x, y, x + 8, y + 8))
+            layers.append(layer)
+        self.images[block_num] = block_img
+        return layers
+
     def load(self, blocks_data, palettes, tiles):
-        ''' Build images from the block information and tilesets.
-             Every block is 16 bytes, and holds down and up parts for a tile,
-             composed of 4 subtiles
-             every subtile is 2 bytes
-             1st byte and 2nd bytes last (two?) bit(s) is the index in the tile img
-             2nd byte's first 4 bits is the color palette index
-             2nd byte's final 4 bits is the flip information... and something else,
-             I guess
-                 0b0100 = x flip
-             '''
+        '''
+        Build images from the block information and tilesets.
+        Every block is 16 bytes, and holds down and up parts for a tile,
+        composed of 4 subtiles
+        every subtile is 2 bytes
+        1st byte and 2nd bytes last (two?) bit(s) is the index in the tile img
+        2nd byte's first 4 bits is the color palette index
+        2nd byte's final 4 bits is the flip information... and something else,
+        I guess
+            0b0100 = x flip
+        '''
         # TODO: Optimize. A lot.
-        block_imgs = []
-        base_block_img = Image.new("RGB", (16, 16))
-        mask = Image.new("L", (8, 8))
-        tiles_length = len(tiles[0])
-        POSITIONS = (
-            (0, 0),
-            (8, 0),
-            (0, 8),
-            (8, 8)
-        )
         for i in range(len(blocks_data) // 16):
-            block_data = blocks_data[i * 16:i * 16 + 16]
             # Copying is faster than creating
             block_img = base_block_img.copy()
-            block = decode_block(block_data)
+            block = Block(blocks_data[i * 16:i * 16 + 16])
             # Up/down
             for j in range(2):
                 for k in range(4):
                     tile_num, pal, flip_x, flip_y = block[j][k]
-                    if tile_num >= tiles_length:
-                        tile_num = 0
-                    part_img = tiles[pal][tile_num].copy()
+                    try:
+                        part_img = tiles[pal][tile_num]
+                    except IndexError:
+                        part_img = tiles[pal][0]
                     if flip_x:
                         part_img = part_img.transpose(Image.FLIP_LEFT_RIGHT)
                     if flip_y:
                         part_img = part_img.transpose(Image.FLIP_TOP_BOTTOM)
                     pal = palettes[pal]
                     x, y = POSITIONS[k]
-                    # Transparency
-                    # mask = Image.eval(part_img, lambda a: 255 if a else 0)
                     if j:
+                        # Transparency
+                        # mask = Image.eval(part_img, lambda a: 255 if a else 0)
                         mask.putdata([0 if i == pal[0] else 255 for i in part_img.getdata()])
                         block_img.paste(part_img, (x, y, x + 8, y + 8), mask)
                     else:
                         block_img.paste(part_img, (x, y, x + 8, y + 8))
-
-            block_imgs.append(block_img)
-        self.images += block_imgs
+            self.blocks.append(block)
+            self.images.append(block_img)
 
 
 class Block:
     def __init__(self, data):
+        self.behaviour1 = None
+        self.behaviour2 = None
+        self.byte1 = None
+        self.byte2 = None
         # [layer1, layer2]
-        self.data = []
+        layers = []
         for i in range(2):
             # [tile1, tile2, tile3, tile4]
-            tiles = []
+            layer = []
             layer_data = data[i * 8:(i + 1) * 8]
             for j in range(4):
                 byte1 = layer_data[j * 2]
@@ -371,30 +313,15 @@ class Block:
                 flips = (byte2 & 0xC) >> 2
                 flip_x = flips & 1
                 flip_y = flips & 2
-                tiles.append([tile_num, tile_palette, flip_x, flip_y])
 
+                # Each tile is:
+                layer.append([tile_num, tile_palette, flip_x, flip_y])
+            layers.append(layer)
+        self.layers = layers
+
+    def __getitem__(self, item):
+        return self.layers[item]
 
     def to_bytes(self):
         pass
 
-
-def decode_block_part(part, layer_mem, palettes, cropped_imgs):
-    offset = part*2
-    byte1 = layer_mem[offset]
-    byte2 = layer_mem[offset+1]
-    tile_num = byte1 | ((byte2 & 0b11) << 8)
-
-    palette_num = byte2 >> 4
-    if palette_num >= 13: # XXX
-        palette_num = 0
-    palette = mapped.GRAYSCALE or palettes[palette_num]
-
-    if tile_num >= len(cropped_imgs[0]):
-        tile_num = 0
-    part_img = cropped_imgs[palette_num][tile_num].copy()
-    flips = (byte2 & 0xC) >> 2
-    if flips & 1:
-        part_img = part_img.transpose(Image.FLIP_LEFT_RIGHT)
-    if flips & 2:
-        part_img = part_img.transpose(Image.FLIP_TOP_BOTTOM)
-    return part_img, palette

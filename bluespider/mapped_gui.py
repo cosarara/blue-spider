@@ -81,25 +81,35 @@ class Window(QtWidgets.QMainWindow):
         self.ui.edPalette.setScene(self.ui.palette_scene)
         self.ui.tileset_scene = QtWidgets.QGraphicsScene()
         self.ui.tileset.setScene(self.ui.tileset_scene)
+        self.ui.tile_preview_scene = QtWidgets.QGraphicsScene()
+        self.ui.tilePreview.setScene(self.ui.tile_preview_scene)
+        self.ui.layer1_scene = QtWidgets.QGraphicsScene()
+        self.ui.layer1.setScene(self.ui.layer1_scene)
+        self.ui.layer2_scene = QtWidgets.QGraphicsScene()
+        self.ui.layer2.setScene(self.ui.layer2_scene)
 
         self.game = game.Game()
         self.map_data = mapdata.MapData()
 
-        #self.map_data.t1_header = None
-        self.t1_imgs = None
-        self.t1_img_qt = None
-        #self.map_data.t2_header = None
+        self.blocks_img_qt = None
 
-        #self.map_data = None
         #self.map_data.events_header = None
         self.mapPixMap = None
         self.spritePixMap = None
         self.tilesetPixMap = None
         self.eventPixMap = None
         self.movPixMap = None
+        self.tileset_editorPixMap = None
+        self.tpreviewPixMap = None
+        self.layer1PixMap = None
+        self.layer2PixMap = None
         self.permsPalPixMap = None
         self.map_img_qt = None
         self.mov_img_qt = None
+        self.tileset_ed_img_qt = None
+        self.tpreview_img_qt = None
+        self.layer1_img_qt = None
+        self.layer2_img_qt = None
         self.event_img_qt = None
         #self.map_data.tilemap_ptr = None
         #self.map_data.map_n = None
@@ -131,11 +141,20 @@ class Window(QtWidgets.QMainWindow):
 
         self.ui.addLevelScriptButton.clicked.connect(self.add_level_script)
 
+        self.ui.xFlipBox.clicked.connect(self.print_preview_tile)
+        self.ui.yFlipBox.clicked.connect(self.print_preview_tile)
+        self.ui.paletteSelectorCombo.currentIndexChanged.connect(
+            self.selected_palette_changed
+        )
+
+
         self.selected_tile = 0
+        self.selected_small_tile = 0
         self.hovered_tile = None
         self.selected_mov_tile = 0
         self.selected_event = None
         self.selected_event_type = None
+        self.selected_pal = 0
         #self.game.rom_file_name = None
         # RS or FR
         #self.game = None
@@ -215,7 +234,6 @@ class Window(QtWidgets.QMainWindow):
         self.save_event_to_memory()
         self.update_event_editor()
 
-
     def load_rom(self, fn=None):
         """ If no filename is given, it'll prompt the user with a nice dialog """
         if fn is None:
@@ -286,6 +304,12 @@ class Window(QtWidgets.QMainWindow):
             self.tree_model.item(bank_num).appendRow(
                 QtGui.QStandardItem("%s - %s" % (i, label)))
 
+    def paint_square(self, pixmap, x, y, h, w, color=QtCore.Qt.red):
+        square_painter = QtGui.QPainter(pixmap)
+        square_painter.setPen(color)
+        square_painter.drawRect(x, y, h, w)
+        square_painter.end()
+
     def draw_palette(self):
         """ Draws the tile palette (not the colors but the selectable tiles) """
         blocks_imgs = self.map_data.blocks.images
@@ -317,7 +341,7 @@ class Window(QtWidgets.QMainWindow):
                 perms_img.paste(perms_imgs[i], pos)
                 i += 1
 
-        self.t1_img_qt = ImageQt.ImageQt(blocks_img)
+        self.blocks_img_qt = ImageQt.ImageQt(blocks_img)
         self.perms_pal_img_qt = ImageQt.ImageQt(perms_img)
 
         # Palette is not draw yet at this point, draw palette has to be called too
@@ -325,7 +349,7 @@ class Window(QtWidgets.QMainWindow):
     def print_palette(self, quick=False):
         if not quick:
             self.draw_palette()
-        self.tilesetPixMap = QtGui.QPixmap.fromImage(self.t1_img_qt)
+        self.tilesetPixMap = QtGui.QPixmap.fromImage(self.blocks_img_qt)
         self.permsPalPixMap = QtGui.QPixmap.fromImage(self.perms_pal_img_qt)
 
         self.ui.palette_scene.clear()
@@ -341,14 +365,11 @@ class Window(QtWidgets.QMainWindow):
         self.perms_palette_pixmap_qobject.clicked.connect(
             self.perms_palette_clicked)
 
-        square_painter = QtGui.QPainter(self.tilesetPixMap)
-        square_painter.setPen(QtCore.Qt.red)
         p = self.selected_tile
         w = self.map_data.blocks.images_wide // 16
         x = (p%w)*16
         y = (p//w)*16
-        square_painter.drawRect(x, y, 16, 16)
-        square_painter.end()
+        self.paint_square(self.tilesetPixMap, x, y, 16, 16)
 
     def draw_map(self, map):
         w = len(map[0])
@@ -397,21 +418,78 @@ class Window(QtWidgets.QMainWindow):
         self.ui.mov_scene.update()
 
         if self.hovered_tile is not None:
-            square_painter = QtGui.QPainter(self.tilesetPixMap)
-            square_painter.setPen(QtCore.Qt.red)
             p = self.selected_tile
             w = self.map.blocks.img_w // 16
             x = (p%w)*16
             y = (p//w)*16
-            square_painter.drawRect(x, y, 16, 16)
-            square_painter.end()
+            self.paint_square(self.mapPixMap, x, y, 16, 16, QtCore.Qt.white)
 
-    def print_tileset(self, palette_number=1):
-        self.tileset_editorPixMap = QtGui.QPixmap.fromImage(self.t1_qimgs[palette_number - 1])
-        self.ui.tileset_scene.clear()
-        self.tileset_pixmap_qobject = qmapview.QMapPixmap(self.tileset_editorPixMap)
-        self.ui.tileset_scene.addItem(self.tileset_pixmap_qobject)
+    def print_tileset(self, delete_old=True):
+        img = self.map_data.complete_tilesets[self.selected_pal]
+        img_w, img_h = img.size
+        self.tileset_ed_img_qt = ImageQt.ImageQt(img.resize((img_w * 2, img_h * 2)))
+        self.tileset_editorPixMap = QtGui.QPixmap.fromImage(self.tileset_ed_img_qt)
+
+        if delete_old:
+            self.ui.tileset_scene.clear()
+            self.tileset_pixmap_qobject = qmapview.QMapPixmap(self.tileset_editorPixMap)
+            self.ui.tileset_scene.addItem(self.tileset_pixmap_qobject)
+            self.tileset_pixmap_qobject.clicked.connect(self.tileset_clicked)
+        else:
+            self.tileset_pixmap_qobject.set_pixmap(self.tileset_editorPixMap)
         self.ui.tileset_scene.update()
+
+        p = self.selected_small_tile
+        w = 16
+        x = (p % w) * 16
+        y = (p // w) * 16
+        self.paint_square(self.tileset_editorPixMap, x, y, 16, 16)
+
+    def print_preview_tile(self, delete_old=True):
+        img = self.map_data.cropped_tileset[self.selected_pal][self.selected_small_tile]
+        if self.ui.xFlipBox.isChecked():
+            img = img.transpose(Image.FLIP_LEFT_RIGHT)
+        if self.ui.yFlipBox.isChecked():
+            img = img.transpose(Image.FLIP_TOP_BOTTOM)
+        w, h = img.size
+        img = img.resize((w * 2, h * 2))
+        self.tpreview_img_qt = ImageQt.ImageQt(img)
+        self.tpreviewPixMap = QtGui.QPixmap.fromImage(self.tpreview_img_qt)
+        if delete_old:
+            self.ui.tile_preview_scene.clear()
+            self.tpreview_pixmap_qobject = qmapview.QMapPixmap(self.tpreviewPixMap)
+            self.ui.tile_preview_scene.addItem(self.tpreview_pixmap_qobject)
+        else:
+            self.tpreview_pixmap_qobject.set_pixmap(self.tpreviewPixMap)
+        self.ui.tile_preview_scene.update()
+
+    def print_block_layers(self, layer=-1, delete_old=True):
+        layer_imgs = self.map_data.get_block_layers(self.selected_tile)
+        if layer in (0, -1):
+            self.layer1_img_qt = ImageQt.ImageQt(layer_imgs[0].resize((32, 32)))
+            self.layer1PixMap = QtGui.QPixmap.fromImage(self.layer1_img_qt)
+            if delete_old:
+                self.ui.layer1_scene.clear()
+                self.layer1_pixmap_qobject = qmapview.QMapPixmap(self.layer1PixMap)
+                self.ui.layer1_scene.addItem(self.layer1_pixmap_qobject)
+
+                self.layer1_pixmap_qobject.clicked.connect(self.layer1_clicked)
+            else:
+                self.layer1_pixmap_qobject.set_pixmap(self.layer1PixMap)
+            self.ui.layer1_scene.update()
+
+        if layer in (1, -1):
+            self.layer2_img_qt = ImageQt.ImageQt(layer_imgs[1].resize((32, 32)))
+            self.layer2PixMap = QtGui.QPixmap.fromImage(self.layer2_img_qt)
+            if delete_old:
+                self.ui.layer2_scene.clear()
+                self.layer2_pixmap_qobject = qmapview.QMapPixmap(self.layer2PixMap)
+                self.ui.layer2_scene.addItem(self.layer2_pixmap_qobject)
+
+                self.layer2_pixmap_qobject.clicked.connect(self.layer2_clicked)
+            else:
+                self.layer2_pixmap_qobject.set_pixmap(self.layer2PixMap)
+            self.ui.layer2_scene.update()
 
     def draw_events(self, events=None):
         if events is None:
@@ -500,15 +578,13 @@ class Window(QtWidgets.QMainWindow):
 
         self.load_level_scripts()
         try:
-            #self.get_tilesets(self.map_data.tileset1.header, self.map_data.tileset2.header,
-            #                  self.t1_imgs, previous_map_data)
             self.map_data.load_tilesets(self.game, previous_map_data)
-            if self.map_data.complete_tilesets:
-                self.t1_qimgs = []
-                for img in self.map_data.complete_tilesets:
-                    self.t1_qimgs.append(ImageQt.ImageQt(img))
-                self.print_tileset()
-        except:
+            self.print_tileset()
+            if self.selected_small_tile >= len(self.map_data.cropped_tileset[0]):
+                self.selected_small_tile = 0
+            self.print_preview_tile()
+            self.print_block_layers()
+        except Exception:
             self.ui.statusbar.showMessage("Error loading tilesets")
             raise
 
@@ -639,6 +715,7 @@ class Window(QtWidgets.QMainWindow):
     def select_tile(self, tile_num, map_type):
         if map_type == 0:
             self.selected_tile = tile_num
+            self.print_block_layers()
         elif map_type == 1:
             self.selected_mov_tile = tile_num
 
@@ -724,6 +801,45 @@ class Window(QtWidgets.QMainWindow):
             event, self.tilesetPixMap)
         debug("selected tile:", hex(tile_num))
         self.select_tile(tile_num, 0)
+
+    def tileset_clicked(self, event):
+        tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(
+            event, self.tileset_editorPixMap)
+        self.selected_small_tile = tile_num
+        self.print_tileset(delete_old=False)
+        self.print_preview_tile(delete_old=False)
+
+    def base_layer_clicked(self, event, layer):
+        tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(
+            event, self.layer1PixMap)
+
+        button = event.button()
+        if button == QtCore.Qt.LeftButton:
+            self.map_data.update_block(self.selected_tile, layer, tile_num, self.selected_small_tile,
+                                       self.selected_pal, self.ui.xFlipBox.isChecked(),
+                                       self.ui.yFlipBox.isChecked())
+            self.print_block_layers(delete_old=False)
+            self.print_palette()
+            self.print_map(self.map_data.tilemap)
+        elif button == QtCore.Qt.RightButton:
+            new_tile_num, new_pal, x_flip, y_flip = self.map_data.blocks.blocks[self.selected_tile][layer][tile_num]
+            self.selected_small_tile = new_tile_num
+
+            self.ui.xFlipBox.setChecked(x_flip)
+            self.ui.yFlipBox.setChecked(y_flip)
+
+            if self.selected_pal != new_pal:
+                self.selected_pal = new_pal
+                self.ui.paletteSelectorCombo.setCurrentIndex(new_pal)
+            else:
+                self.print_tileset()
+                self.print_preview_tile()
+
+    def layer1_clicked(self, event):
+        self.base_layer_clicked(event, 0)
+
+    def layer2_clicked(self, event):
+        self.base_layer_clicked(event, 1)
 
     def perms_palette_clicked(self, event):
         tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(
@@ -906,6 +1022,11 @@ class Window(QtWidgets.QMainWindow):
             spin.setEnabled(True)
             spin.setMaximum(max_event)
         self.event_spinbox_changed(True)
+
+    def selected_palette_changed(self):
+        self.selected_pal = self.ui.paletteSelectorCombo.currentIndex()
+        self.print_tileset()
+        self.print_preview_tile()
 
     def go_to_warp(self, _, bank=None, map=None):
         if bank is None:
