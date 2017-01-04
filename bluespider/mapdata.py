@@ -42,7 +42,7 @@ class MapData:
         self.map_n = map_n
         maps = mapped.get_map_headers(game.rom_contents, bank_n, game.banks)
         map_h_ptr = mapped.get_rom_addr(maps[map_n])
-        map_header = mapped.parse_map_header(game.rom_contents, map_h_ptr)
+        map_header = mapped.parse_map_header(game, map_h_ptr)
         self.header = map_header
 
         self.data_header = mapped.parse_map_data(
@@ -122,6 +122,7 @@ class MapData:
             num_of_blocks = (640, 512)[game.name in ('RS', 'EM')]
             if previous_map.tileset2.header != self.tileset2.header or \
                             num_of_blocks > len(previous_map.blocks.images):
+                self.tileset1 = previous_map.tileset1
                 self.blocks.set_block_data(previous_map.blocks.blocks[:num_of_blocks])
                 self.blocks.set_block_images(previous_map.blocks.images[:num_of_blocks])
                 do_not_load_1 = True
@@ -144,23 +145,65 @@ class MapData:
         else:
             to_load = (self.tileset1, self.tileset2)
         pals = self.get_palettes()
+        behback_data_lenght = (4, 2)[game.name in ('EM', 'RS')]
         for tileset_n in to_load:
-            block_data_mem = tileset_n.get_block_data(game.rom_contents, game.name)
+            block_img_data, block_behback_data = tileset_n.get_block_data(game.rom_contents, game.name)
             # Half of the time this function runs is spent here
-            self.blocks.load(block_data_mem, pals, self.cropped_tileset)
+            self.blocks.load(block_img_data, pals, self.cropped_tileset, block_behback_data,
+                             behback_data_lenght)
 
-    def update_block(self, block_num, layer, tile, tile_num, pal, flip_x, flip_y):
+    def update_block_img(self, block_num, layer, tile, tile_num, pal, flip_x, flip_y):
+        tileset_num = self.tileset1.block_amount <= block_num
         self.blocks.blocks[block_num][layer][tile] = [tile_num, pal, flip_x, flip_y]
+        if not self.blocks.were_modified(tileset_num):
+            self.blocks.set_tileset_modified_state(tileset_num, True)
+
+    def update_block_behback(self, block_num, *behback_bytes):
+        tileset_num = self.tileset1.block_amount <= block_num
+        # behbacks order: behaviour1, background1, behaviour2, background2
+        block = self.blocks.blocks[block_num]
+        ints = []
+        for b in behback_bytes:
+            try:
+                x = int(b, base=16)
+                if x > 0xff:
+                    raise Exception('"{}" is not a valid value.\nIt should be '
+                                    'smaller than "0xff"'.format(hex(x)))
+                ints.append(x)
+            except (TypeError, ValueError):
+                raise Exception('"{}" is not a valid hex number.'.format(b))
+
+        if len(ints) == 4:
+            block.behaviour2 = ints[2]
+            block.background2 = ints[3]
+        block.behaviour1 = ints[0]
+        block.background1 = ints[1]
+
+        if not self.blocks.were_modified(tileset_num):
+            self.blocks.set_tileset_modified_state(tileset_num, True)
+
 
     def get_block_layers(self, block_num):
         return self.blocks.draw_block_layers(block_num, self.get_palettes(), self.cropped_tileset)
+
+    def save_blocks(self, rom_contents):
+        t1_block_amount = self.tileset1.block_amount
+        if self.blocks.were_modified(0):
+            img_data, behback_data = self.blocks.to_bytes(end_block=t1_block_amount)
+            self.tileset1.save_blocks_data(rom_contents, img_data, behback_data)
+            self.blocks.set_tileset_modified_state(0, False)
+        if self.blocks.were_modified(1):
+            img_data, behback_data = self.blocks.to_bytes(start_block=t1_block_amount)
+            self.tileset2.save_blocks_data(rom_contents, img_data, behback_data)
+            self.blocks.set_tileset_modified_state(1, False)
 
 
 class TilesetData:
     def __init__(self):
         self.header = None
         self.palettes = None
-        # self.tiles = None
+        self.block_amount = None
+        self.behback_data_size = None
 
     def set_header(self, header):
         self.header = header
@@ -182,6 +225,7 @@ class TilesetData:
 
     def get_block_data(self, rom_contents, game):
         block_data_ptr = mapped.get_rom_addr(self.header['block_data_ptr'])
+        behaviour_data_ptr = mapped.get_rom_addr(self.header['behaviour_data_ptr'])
         t_type = self.header['tileset_type']
         if t_type == 0:
             if game == 'RS' or game == 'EM':
@@ -189,29 +233,56 @@ class TilesetData:
             else:
                 num_of_blocks = 640
         else:
-            behavior_data_ptr = mapped.get_rom_addr(self.header['behavior_data_ptr'])
-            num_of_blocks = (behavior_data_ptr - block_data_ptr) // 16
+            num_of_blocks = (behaviour_data_ptr - block_data_ptr) // 16
         length = num_of_blocks * 16
-        mem = rom_contents[block_data_ptr:block_data_ptr + length]
-        return mem
+        img_data = rom_contents[block_data_ptr:block_data_ptr + length]
+        self.behback_data_size = (4, 2)[game in ('RS', 'EM')]
+        behaviour_data = rom_contents[behaviour_data_ptr:behaviour_data_ptr + length * self.behback_data_size]
 
+        self.block_amount = num_of_blocks
 
-# Block loading utilities
-base_block_img = Image.new("RGB", (16, 16))
-mask = Image.new("L", (8, 8))
-POSITIONS = (
-    (0, 0),
-    (8, 0),
-    (0, 8),
-    (8, 8)
-)
+        return img_data, behaviour_data
+
+    def save_blocks_data(self, rom_contents, img_data, behback_data):
+        img_data_ptr = mapped.get_rom_addr(self.header['block_data_ptr'])
+        behback_data_ptr = mapped.get_rom_addr(self.header['behaviour_data_ptr'])
+        mapped.write_n_bytes(rom_contents, img_data_ptr, self.block_amount * 16, img_data)
+        mapped.write_n_bytes(rom_contents, behback_data_ptr, self.block_amount * self.behback_data_size,
+                             behback_data)
 
 
 class BlocksData:
+    # Block loading utilities
+    base_block_img = Image.new("RGB", (16, 16))
+    mask = Image.new("L", (8, 8))
+    POSITIONS = (
+        (0, 0),
+        (8, 0),
+        (0, 8),
+        (8, 8)
+    )
+
     def __init__(self):
         self.images = []
         self.images_wide = 16 * 8  # 8 tiles per row
         self.blocks = []
+
+        self.t1_modified = False
+        self.t2_modified = False
+
+    def set_tileset_modified_state(self, tileset, bool):
+        if tileset:
+            self.t2_modified = bool
+        else:
+            self.t1_modified = bool
+
+    def were_modified(self, tileset):
+        if tileset == 0:
+            return self.t1_modified
+        elif tileset == 1:
+            return self.t2_modified
+        else:
+            return self.t1_modified or self.t2_modified
 
     def set_block_images(self, images):
         self.images = images
@@ -221,11 +292,11 @@ class BlocksData:
 
     def draw_block_layers(self, block_num, palettes, tiles):
         block = self.blocks[block_num]
-        block_img = base_block_img.copy()
+        block_img = BlocksData.base_block_img.copy()
         layers = []
         # Up/down
         for i in range(2):
-            layer = base_block_img.copy()
+            layer = BlocksData.base_block_img.copy()
             for j in range(4):
                 tile_num, pal, flip_x, flip_y = block[i][j]
                 try:
@@ -237,11 +308,11 @@ class BlocksData:
                 if flip_y:
                     part_img = part_img.transpose(Image.FLIP_TOP_BOTTOM)
                 pal = palettes[pal]
-                x, y = POSITIONS[j]
+                x, y = BlocksData.POSITIONS[j]
                 if i:
                     # Transparency
-                    mask.putdata([0 if i == pal[0] else 255 for i in part_img.getdata()])
-                    block_img.paste(part_img, (x, y, x + 8, y + 8), mask)
+                    BlocksData.mask.putdata([0 if i == pal[0] else 255 for i in part_img.getdata()])
+                    block_img.paste(part_img, (x, y, x + 8, y + 8), BlocksData.mask)
                 else:
                     block_img.paste(part_img, (x, y, x + 8, y + 8))
                 layer.paste(part_img, (x, y, x + 8, y + 8))
@@ -249,7 +320,7 @@ class BlocksData:
         self.images[block_num] = block_img
         return layers
 
-    def load(self, blocks_data, palettes, tiles):
+    def load(self, img_data, palettes, tiles, behback_data, beback_lenght):
         '''
         Build images from the block information and tilesets.
         Every block is 16 bytes, and holds down and up parts for a tile,
@@ -262,10 +333,10 @@ class BlocksData:
             0b0100 = x flip
         '''
         # TODO: Optimize. A lot.
-        for i in range(len(blocks_data) // 16):
+        for i in range(len(img_data) // 16):
             # Copying is faster than creating
-            block_img = base_block_img.copy()
-            block = Block(blocks_data[i * 16:i * 16 + 16])
+            block_img = BlocksData.base_block_img.copy()
+            block = Block(img_data[i * 16:i * 16 + 16], *behback_data[i * beback_lenght:(i + 1) * beback_lenght])
             # Up/down
             for j in range(2):
                 for k in range(4):
@@ -279,30 +350,44 @@ class BlocksData:
                     if flip_y:
                         part_img = part_img.transpose(Image.FLIP_TOP_BOTTOM)
                     pal = palettes[pal]
-                    x, y = POSITIONS[k]
+                    x, y = BlocksData.POSITIONS[k]
                     if j:
                         # Transparency
                         # mask = Image.eval(part_img, lambda a: 255 if a else 0)
-                        mask.putdata([0 if i == pal[0] else 255 for i in part_img.getdata()])
-                        block_img.paste(part_img, (x, y, x + 8, y + 8), mask)
+                        BlocksData.mask.putdata([0 if i == pal[0] else 255 for i in part_img.getdata()])
+                        block_img.paste(part_img, (x, y, x + 8, y + 8), BlocksData.mask)
                     else:
                         block_img.paste(part_img, (x, y, x + 8, y + 8))
             self.blocks.append(block)
             self.images.append(block_img)
 
+    def to_bytes(self, start_block=0, end_block=None):
+        if end_block is None:
+            end_block = len(self.blocks)
+        img_data = behback_data = b''
+        for i in range(start_block, end_block):
+            if i == 1:
+                1
+            block_img, block_beback = self.blocks[i].to_bytes()
+            img_data += block_img
+            behback_data += block_beback
+        return img_data, behback_data
+
 
 class Block:
-    def __init__(self, data):
-        self.behaviour1 = None
-        self.behaviour2 = None
-        self.byte1 = None
-        self.byte2 = None
+    def __init__(self, img_data, beh1, beh2, back2=None, back1=None):
+        if back1 is None:
+            beh2, back1 = back1, beh2
+        self.behaviour1 = beh1
+        self.behaviour2 = beh2
+        self.background1 = back1
+        self.background2 = back2
         # [layer1, layer2]
         layers = []
         for i in range(2):
             # [tile1, tile2, tile3, tile4]
             layer = []
-            layer_data = data[i * 8:(i + 1) * 8]
+            layer_data = img_data[i * 8:(i + 1) * 8]
             for j in range(4):
                 byte1 = layer_data[j * 2]
                 byte2 = layer_data[j * 2 + 1]
@@ -310,9 +395,9 @@ class Block:
                 tile_palette = byte2 >> 4
                 if tile_palette > 13:
                     tile_palette = 0
-                flips = (byte2 & 0xC) >> 2
+                flips = (byte2 >> 2) & 0b11
                 flip_x = flips & 1
-                flip_y = flips & 2
+                flip_y = flips >> 1
 
                 # Each tile is:
                 layer.append([tile_num, tile_palette, flip_x, flip_y])
@@ -323,5 +408,25 @@ class Block:
         return self.layers[item]
 
     def to_bytes(self):
-        pass
+        if self.behaviour2 is None:
+            behback_data = bytes((self.behaviour1, self.background1))
+        else:
+            behback_data = bytes((self.behaviour1, self.behaviour2,
+                                  self.background2, self.background1))
+
+        img_data = b''
+        for layer in self.layers:
+            for tile in layer:
+                # The first byte are the least significant 8 bits from the tile num
+                byte1 = tile[0] & 0xff
+
+                # The remaining 2 bits go to byte 2
+                # Then 2 bits for the flips
+                # And the most significant 4 bits are for the palette
+                byte2 = (tile[0] >> 8) | (tile[2] << 2) | (tile[3] << 3) | (tile[1] << 4)
+                img_data += bytes((byte1, byte2))
+
+        return [img_data, behback_data]
+
+
 

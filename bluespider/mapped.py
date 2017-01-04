@@ -93,8 +93,11 @@ read_u8_at = lambda rom, addr: to_int(read_n_bytes(rom, addr, 1))
 
 
 def write_n_bytes(rom, addr, n, data):
+    if addr <= 0x4824d0 <= (addr + n):
+        raise Exception('offset: {}\nn: {}'.format(hex(addr), n))
     if len(data) != n:
-        raise Exception("data is not the same size as n!")
+        raise Exception("Data is not the same size as n!\nData is {0} "
+                        "bytes and n is {1}".format(len(data), n))
     rom[addr:addr+n] = data
 
 write_u32_at = (lambda rom, addr, num:
@@ -210,9 +213,16 @@ def write_data_structure(rom_contents, struct, data, offset=None):
             get_write_function(size)(rom_contents, offset+pos, data[name])
 
 
-def parse_map_header(rom_contents, map_h):
-    struct = structures.map_header
-    return parse_data_structure(rom_contents, struct, map_h)
+# def parse_map_header(rom_contents, map_h):
+#     struct = structures.map_header
+#     return parse_data_structure(rom_contents, struct, map_h)
+
+def parse_map_header(game, map_h):
+    if game.name in ('RS', 'EM'):
+        header_structure = structures.map_header_rs
+    else:
+        header_structure = structures.map_header_fr
+    return parse_data_structure(game.rom_contents, header_structure, map_h)
 
 
 def parse_map_data(rom_contents, map_data_ptr, game='RS'):
@@ -261,8 +271,16 @@ def write_events_header(rom_contents, data):
     return write_data_structure(rom_contents, struct, data)
 
 
-write_map_header = lambda rom_contents, data: write_data_structure(
-    rom_contents, structures.map_header, data)
+#write_map_header = lambda rom_contents, data: write_data_structure(
+#    rom_contents, structures.map_header, data)
+
+def write_map_header(game, data):
+    if game.name in ('RS', 'EM'):
+        header_structure = structures.map_header_rs
+    else:
+        header_structure = structures.map_header_fr
+    return write_data_structure(game.rom_contents, header_structure, data)
+
 
 write_map_data_header = lambda rom_contents, data: write_data_structure(
     rom_contents, structures.map_data, data)
@@ -536,9 +554,9 @@ def parse_map_mem(mem, h, w):
             tbytes = mem[i*2:i*2+2]
             #char = tbytes[0] + tbytes[1]
             tile_num = tbytes[0] | (tbytes[1] & 0b11) << 8
-            behavior = (tbytes[1] & 0b11111100) >> 2
+            behaviour = (tbytes[1] & 0b11111100) >> 2
             #print(row, tile, h, w)
-            map[row][tile] = [tile_num, behavior]
+            map[row][tile] = [tile_num, behaviour]
             i += 1
 
     return map
@@ -549,12 +567,12 @@ def map_to_mem(map):
     i = 0
     for row in map:
         for tile in row:
-            [tile_num, behavior] = tile
+            [tile_num, behaviour] = tile
             byte_1 = 0
             byte_2 = 0
             byte_1 = tile_num & 0xFF
             byte_2 = (tile_num & 0b1100000000) >> 8
-            byte_2 |= behavior << 2
+            byte_2 |= behaviour << 2
             # Each tile is 16 bit, 9 bits for tile num. and 7 for attributes
             mem[i*2:i*2+2] = (byte_1, byte_2)
             i += 1
@@ -823,6 +841,10 @@ def export_maps_script(game, bank_n, org=True, label=False, map_hs=None):
 
 
 def export_script(game, map_data, name_prefix="", label=True):
+    if game.name in ('RS', 'EM'):
+        header_structure = structures.map_header_rs
+    else:
+        header_structure = structures.map_header_fr
     replacements = {
         map_data.header['self']: '@map_header',
         map_data.data_header['self']: '@map_data_header',
@@ -863,7 +885,8 @@ def export_script(game, map_data, name_prefix="", label=True):
 {lscripts}
 """.format(bank_n=map_data.bank_n,
            map_n=map_data.map_n,
-           map_header=export(structures.map_header,
+           #map_header=export(structures.map_header,
+           map_header=export(header_structure,
                              map_data.header, True, replacements),
            map_data=export(structures.map_data,
                            map_data.data_header,
