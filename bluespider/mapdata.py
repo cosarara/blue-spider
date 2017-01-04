@@ -366,8 +366,6 @@ class BlocksData:
             end_block = len(self.blocks)
         img_data = behback_data = b''
         for i in range(start_block, end_block):
-            if i == 1:
-                1
             block_img, block_beback = self.blocks[i].to_bytes()
             img_data += block_img
             behback_data += block_beback

@@ -93,8 +93,6 @@ read_u8_at = lambda rom, addr: to_int(read_n_bytes(rom, addr, 1))
 
 
 def write_n_bytes(rom, addr, n, data):
-    if addr <= 0x4824d0 <= (addr + n):
-        raise Exception('offset: {}\nn: {}'.format(hex(addr), n))
     if len(data) != n:
         raise Exception("Data is not the same size as n!\nData is {0} "
                         "bytes and n is {1}".format(len(data), n))
