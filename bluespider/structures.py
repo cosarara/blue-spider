@@ -3,7 +3,7 @@
 from .structure_utils import u8, u16, u32, s32, ptr
 from .structure_utils import calculate_offsets as c
 
-map_header = c(
+map_header_base = (
     ("map_data_ptr", ptr),
     ("event_data_ptr", ptr),
     ("level_script_ptr", ptr),
@@ -14,10 +14,20 @@ map_header = c(
     ("is_a_cave", u8),
     ("weather", u8),
     ("map_type", u8),
+)
+
+map_header_rs = c(*(map_header_base + (
     ("null", u16), # Unknown at 24-25
     ("show_label", u8),
     ("battle_type", u8),
-)
+)))
+
+map_header_fr = c(*(map_header_base + (
+    ("null", u8),
+    ("show_label", u8),
+    ("null2", u8),
+    ("battle_type", u8),
+)))
 
 map_data = c(
     ("w", u32),
@@ -54,13 +64,13 @@ tileset_header_base = (
 )
 
 tileset_header_rs = c(*(tileset_header_base + (
-    ("behavior_data_ptr", ptr),
+    ("behaviour_data_ptr", ptr),
     ("animation_data_ptr", ptr),
 )))
 
 tileset_header_fr = c(*(tileset_header_base + (
     ("animation_data_ptr", ptr),
-    ("behavior_data_ptr", ptr),
+    ("behaviour_data_ptr", ptr),
 )))
 
 events_header = c(

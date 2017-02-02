@@ -41,6 +41,7 @@ grayscale_pal = [(i, i, i) for i in range(0, 255, 16)]
 grayscale_pal2 = [(i, i, i) for i in range(255, 0, -16)]
 GRAYSCALE = False
 
+
 def hexbytes(s):
     a = binascii.hexlify(s).decode()
     b = ''
@@ -55,15 +56,18 @@ to_int = lambda x: int.from_bytes(x, "little")
 to_signed = lambda x: int.from_bytes(x, "little", signed=True)
 get_addr = lambda x: int.from_bytes(x, "little") #& 0xFFFFFF
 
+
 def get_rom_addr(x):
     if x >= 0x8000000:
         x -= 0x8000000
     return x
 
+
 def rom_addr_to_gba(x):
     if x <= 0x8000000:
         x += 0x8000000
     return x
+
 
 def check_rom_addr(a):
     if a & 0x8000000 == 0x8000000 or a & 0x9000000 == 0x9000000:
@@ -71,11 +75,13 @@ def check_rom_addr(a):
     else:
         return -1
 
+
 def read_n_bytes(rom, addr, n):
     addr = get_rom_addr(addr)
     if addr == -1:
         raise Exception("you are trying to read -1")
     return rom[addr:addr+n]
+
 
 read_u32_at = lambda rom, addr: to_int(read_n_bytes(rom, addr, 4))
 read_s32_at = lambda rom, addr: to_signed(read_n_bytes(rom, addr, 4))
@@ -85,9 +91,11 @@ read_rom_addr_at = lambda rom, addr: get_rom_addr(
 read_u16_at = lambda rom, addr: to_int(read_n_bytes(rom, addr, 2))
 read_u8_at = lambda rom, addr: to_int(read_n_bytes(rom, addr, 1))
 
+
 def write_n_bytes(rom, addr, n, data):
     if len(data) != n:
-        raise Exception("data is not the same size as n!")
+        raise Exception("Data is not the same size as n!\nData is {0} "
+                        "bytes and n is {1}".format(len(data), n))
     rom[addr:addr+n] = data
 
 write_u32_at = (lambda rom, addr, num:
@@ -99,6 +107,7 @@ write_u16_at = (lambda rom, addr, num:
                 write_n_bytes(rom, addr, 2, num.to_bytes(2, "little")))
 write_u8_at = (lambda rom, addr, num:
                write_n_bytes(rom, addr, 1, num.to_bytes(1, "little")))
+
 
 def get_rom_data(rom_code):
     if rom_code == b'AXVE':
@@ -114,8 +123,10 @@ def get_rom_data(rom_code):
         raise Exception("ROM code not found")
     return rom_data, game
 
+
 def get_rom_code(rom_contents):
     return rom_contents[0xAC:0xAC+4]
+
 
 def get_banks(rom_contents, rom_data=axve, echo=False):
     if echo:
@@ -136,6 +147,7 @@ def get_banks(rom_contents, rom_data=axve, echo=False):
         banks.append(a)
         i += 1
     return banks
+
 
 def get_map_headers(rom_contents, n, banks, echo=False):
     if echo:
@@ -161,6 +173,7 @@ def get_map_headers(rom_contents, n, banks, echo=False):
         i += 1
     return maps
 
+
 get_read_function = lambda size: {
     "u8": read_u8_at,
     "u16": read_u16_at,
@@ -176,6 +189,7 @@ get_write_function = lambda size: {
     "u32": write_u32_at
 }[size]
 
+
 def parse_data_structure(rom_contents, struct, offset):
     data = {}
     for item in struct:
@@ -186,6 +200,7 @@ def parse_data_structure(rom_contents, struct, offset):
     data["self"] = get_rom_addr(offset)
     return data
 
+
 def write_data_structure(rom_contents, struct, data, offset=None):
     if not offset:
         offset = data["self"]
@@ -195,17 +210,28 @@ def write_data_structure(rom_contents, struct, data, offset=None):
         if name in data and name not in ("self",):
             get_write_function(size)(rom_contents, offset+pos, data[name])
 
-def parse_map_header(rom_contents, map_h):
-    struct = structures.map_header
-    return parse_data_structure(rom_contents, struct, map_h)
+
+# def parse_map_header(rom_contents, map_h):
+#     struct = structures.map_header
+#     return parse_data_structure(rom_contents, struct, map_h)
+
+def parse_map_header(game, map_h):
+    if game.name in ('RS', 'EM'):
+        header_structure = structures.map_header_rs
+    else:
+        header_structure = structures.map_header_fr
+    return parse_data_structure(game.rom_contents, header_structure, map_h)
+
 
 def parse_map_data(rom_contents, map_data_ptr, game='RS'):
     struct = structures.map_data
     return parse_data_structure(rom_contents, struct, map_data_ptr)
 
+
 def parse_connections_header(rom_contents, connections_header_ptr):
     struct = structures.connections_header
     return parse_data_structure(rom_contents, struct, connections_header_ptr)
+
 
 def parse_connection_data(rom_contents, connections_header):
     connections = []
@@ -218,6 +244,7 @@ def parse_connection_data(rom_contents, connections_header):
         connections.append(connection_data)
     return connections
 
+
 def get_tileset_header_struct(gamename):
     if gamename == 'RS' or gamename == 'EM':
         return structures.tileset_header_rs
@@ -226,9 +253,11 @@ def get_tileset_header_struct(gamename):
     else:
         raise Exception("game not supported")
 
+
 def parse_tileset_header(rom_contents, tileset_header_ptr, gamename='RS'):
     struct = get_tileset_header_struct(gamename)
     return parse_data_structure(rom_contents, struct, tileset_header_ptr)
+
 
 def parse_events_header(rom_contents, events_header_ptr):
     struct = structures.events_header
@@ -237,15 +266,26 @@ def parse_events_header(rom_contents, events_header_ptr):
         return parse_data_structure(b'\x00'*20, struct, events_header_ptr)
     return parse_data_structure(rom_contents, struct, events_header_ptr)
 
+
 def write_events_header(rom_contents, data):
     struct = structures.events_header
     return write_data_structure(rom_contents, struct, data)
 
-write_map_header = lambda rom_contents, data: write_data_structure(
-    rom_contents, structures.map_header, data)
+
+#write_map_header = lambda rom_contents, data: write_data_structure(
+#    rom_contents, structures.map_header, data)
+
+def write_map_header(game, data):
+    if game.name in ('RS', 'EM'):
+        header_structure = structures.map_header_rs
+    else:
+        header_structure = structures.map_header_fr
+    return write_data_structure(game.rom_contents, header_structure, data)
+
 
 write_map_data_header = lambda rom_contents, data: write_data_structure(
     rom_contents, structures.map_data, data)
+
 
 def parse_events(rom_contents, events_header):
     person_events = []
@@ -272,6 +312,7 @@ def parse_events(rom_contents, events_header):
             list.append(event_data)
     return person_events, warp_events, trigger_events, signpost_events
 
+
 def write_events(rom_contents, events_header, events):
     person_events, warp_events, trigger_events, signpost_events = events
     parsing_functions = (
@@ -286,6 +327,7 @@ def write_events(rom_contents, events_header, events):
             ptr += event_size * n
             fun(rom_contents, event, ptr)
 
+
 def write_event(rom_contents, event, type, offset=None):
     writing_functions = {
         "person" : write_person_event,
@@ -295,29 +337,36 @@ def write_event(rom_contents, event, type, offset=None):
     }
     writing_functions[type](rom_contents, event, offset)
 
+
 def parse_person_event(rom_contents, ptr):
     struct = structures.person_event
     return parse_data_structure(rom_contents, struct, ptr)
+
 
 def write_person_event(rom_contents, event, offset=None):
     struct = structures.person_event
     write_data_structure(rom_contents, struct, event, offset)
 
+
 def parse_warp_event(rom_contents, ptr):
     struct = structures.warp_event
     return parse_data_structure(rom_contents, struct, ptr)
+
 
 def write_warp_event(rom_contents, event, offset=None):
     struct = structures.warp_event
     write_data_structure(rom_contents, struct, event, offset)
 
+
 def parse_trigger_event(rom_contents, ptr):
     struct = structures.trigger_event
     return parse_data_structure(rom_contents, struct, ptr)
 
+
 def write_trigger_event(rom_contents, event, offset=None):
     struct = structures.trigger_event
     write_data_structure(rom_contents, struct, event, offset)
+
 
 def parse_signpost_event(rom_contents, ptr):
     struct = structures.signpost_event
@@ -344,6 +393,7 @@ def parse_signpost_event(rom_contents, ptr):
         event_header["script_ptr"] = 0
     return event_header
 
+
 def write_signpost_event(rom_contents, event, offset=None):
     struct = list(structures.signpost_event)
     if event['type'] < 5:
@@ -356,6 +406,7 @@ def write_signpost_event(rom_contents, event, offset=None):
         )
     write_data_structure(rom_contents, struct, event, offset)
 
+
 def get_pal_colors(rom_contents, pals_ptr, num=0):
     mem = rom_contents[pals_ptr+32*num:pals_ptr+32*(1+num)]
     colors = []
@@ -367,6 +418,7 @@ def get_pal_colors(rom_contents, pals_ptr, num=0):
         b = ((color & 0b111110000000000) >> 10) * 8
         colors.append((r, g, b))
     return colors
+
 
 def build_imgdata_pal(data, size, palette, w):
     ''' With pal '''
@@ -388,6 +440,7 @@ def build_imgdata_pal(data, size, palette, w):
         imdata[x+y*imw+1] = color2
     return imdata
 
+
 def build_imgdata(data, size, w):
     ''' With no pal '''
     tiles_per_line = w
@@ -404,16 +457,20 @@ def build_imgdata(data, size, w):
         imdata[x+y*imw+1] = color2
     return imdata
 
+
 def build_img(data, im, palette, w):
     imdata = build_imgdata_pal(data, im.size, palette, w)
     im.putdata(imdata)
     return im
 
+
 def build_tileset_img(data, im, palette):
     return build_img(data, im, palette, 16)
 
+
 def build_sprite_img(data, im, palette=grayscale_pal2):
     return build_img(data, im, palette, 2)
+
 
 def get_tileset_imgdata(rom_contents, tileset_header):
     tileset_img_ptr = tileset_header["tileset_image_ptr"]
@@ -439,6 +496,7 @@ def get_tileset_imgdata(rom_contents, tileset_header):
     h = rows*8
     return build_imgdata(data, (w, h), 16), w, h
 
+
 def get_tileset_img(rom_contents, tileset_header):
     ''' Not called from the code, for debugging purposes and future use '''
     data, w, h = get_tileset_imgdata(rom_contents, tileset_header)
@@ -447,90 +505,6 @@ def get_tileset_img(rom_contents, tileset_header):
     im.putdata(data)
     return im
 
-def get_block_data(rom_contents, tileset_header, game='RS'):
-    block_data_ptr = get_rom_addr(tileset_header['block_data_ptr'])
-    t_type = tileset_header['tileset_type']
-    if t_type == 0:
-        if game == 'RS' or game == 'EM':
-            num_of_blocks = 512
-        else:
-            num_of_blocks = 640
-    else:
-        behavior_data_ptr = get_rom_addr(tileset_header['behavior_data_ptr'])
-        num_of_blocks = (behavior_data_ptr - block_data_ptr) // 16
-    length = num_of_blocks*16
-    mem = rom_contents[block_data_ptr:block_data_ptr+length]
-    return mem
-
-def decode_block_part(part, layer_mem, palettes, imgs):
-    TILES_PER_LINE = 16
-
-    offset = part*2
-    byte1 = layer_mem[offset]
-    byte2 = layer_mem[offset+1]
-    tile_num = byte1 | ((byte2 & 0b11) << 8)
-    x = (tile_num % TILES_PER_LINE) * 8
-    y = (tile_num // TILES_PER_LINE) * 8
-
-    palette_num = byte2 >> 4
-    if palette_num >= 13: # XXX
-        palette_num = 0
-    palette = GRAYSCALE or palettes[palette_num]
-    part_img = imgs[palette_num].crop((x, y, x+8, y+8))
-    flips = (byte2 & 0xC) >> 2
-    if flips & 1:
-        part_img = part_img.transpose(Image.FLIP_LEFT_RIGHT)
-    if flips & 2:
-        part_img = part_img.transpose(Image.FLIP_TOP_BOTTOM)
-    return part_img, palette
-
-def build_block_imgs_(blocks_mem, imgs, palettes):
-    ''' Build images from the block information and tilesets.
-     Every block is 16 bytes, and holds down and up parts for a tile,
-     composed of 4 subtiles
-     every subtile is 2 bytes
-     1st byte and 2nd bytes last (two?) bit(s) is the index in the tile img
-     2nd byte's first 4 bits is the color palette index
-     2nd byte's final 4 bits is the flip information... and something else,
-     I guess
-         0b0100 = x flip
-     '''
-    # TODO: Optimize. A lot.
-    block_imgs = []
-    base_block_img = Image.new("RGB", (16, 16))
-    mask = Image.new("L", (8, 8))
-    POSITIONS = {
-        0: (0, 0),
-        1: (8, 0),
-        2: (0, 8),
-        3: (8, 8)
-    }
-    for block in range(len(blocks_mem)//16):
-        block_mem = blocks_mem[block*16:block*16+16]
-        # Copying is faster than creating
-        block_img = base_block_img.copy()
-        # Up/down
-        for layer in range(2):
-            layer_mem = block_mem[layer*8:layer*8+8]
-            for part in range(4):
-                part_img, pal = decode_block_part(part, layer_mem, palettes, imgs)
-                x, y = POSITIONS[part]
-                # Transparency
-                #mask = Image.eval(part_img, lambda a: 255 if a else 0)
-                if layer:
-                    mask.putdata([0 if i == pal[0] else 255 for i in part_img.getdata()])
-                    block_img.paste(part_img, (x, y, x+8, y+8), mask)
-                else:
-                    block_img.paste(part_img, (x, y, x+8, y+8))
-
-        block_imgs.append(block_img)
-    return block_imgs
-
-try:
-    from .fast import build_block_imgs
-except ImportError:
-    #print("Using slow build_block_imgs function")
-    build_block_imgs = build_block_imgs_
 
 def get_imgs(path=["data", "mov_perms"], num=0x40, usepackagedata=True):
     ''' load png images to show in GUI '''
@@ -581,9 +555,9 @@ def parse_map_mem(mem, h, w):
             tbytes = mem[i*2:i*2+2]
             #char = tbytes[0] + tbytes[1]
             tile_num = tbytes[0] | (tbytes[1] & 0b11) << 8
-            behavior = (tbytes[1] & 0b11111100) >> 2
+            behaviour = (tbytes[1] & 0b11111100) >> 2
             #print(row, tile, h, w)
-            map[row][tile] = [tile_num, behavior]
+            map[row][tile] = [tile_num, behaviour]
             i += 1
 
     return map
@@ -594,12 +568,12 @@ def map_to_mem(map):
     i = 0
     for row in map:
         for tile in row:
-            [tile_num, behavior] = tile
+            [tile_num, behaviour] = tile
             byte_1 = 0
             byte_2 = 0
             byte_1 = tile_num & 0xFF
             byte_2 = (tile_num & 0b1100000000) >> 8
-            byte_2 |= behavior << 2
+            byte_2 |= behaviour << 2
             # Each tile is 16 bit, 9 bits for tile num. and 7 for attributes
             mem[i*2:i*2+2] = (byte_1, byte_2)
             i += 1
@@ -617,20 +591,19 @@ def fits(num, size):
     elif size == "u8":
         return num <= 0xFF
 
-
 is_word_aligned = lambda x: x & 3 == 0
 word_align = lambda x: (x & 0xFFFFFFFC) + 4 if not is_word_aligned(x) else x
 
 is_dword_aligned = lambda x: x & 7 == 0
 dword_align = lambda x: (x & 0xFFFFFFF8) + 8 if not is_dword_aligned(x) else x
 
-def find_free_space(rom_memory, size, start_pos=None):
+def find_free_space(rom_memory, size, start_pos=None, blank_byte=b'\xFF'):
     """ D-Word aligned, for safety """
     if start_pos is None:
         start_pos = 0x6B0000
     if not is_dword_aligned(start_pos):
         start_pos = dword_align(start_pos)
-    new_offset = rom_memory[start_pos:].index(b'\xFF'*size) + start_pos
+    new_offset = rom_memory[start_pos:].index(blank_byte*size) + start_pos
     if not is_dword_aligned(new_offset):
         new_offset = find_free_space(rom_memory, size, dword_align(new_offset))
     return new_offset
@@ -641,6 +614,7 @@ singular_name = {
     "triggers": "trigger",
     "signposts": "signpost",
 }
+
 
 def get_event_data_for_type(type):
     return {
@@ -682,6 +656,7 @@ def add_event(rom_memory, events_header, type):
     events_header[ptr_key] = new_offset + 0x8000000
     events_header[num_key] += 1
 
+
 def rem_event(rom_memory, events_header, type):
     num_key, ptr_key = get_event_data_for_type(type)
     base_size = structure_utils.size_of(structures.events[type])
@@ -692,6 +667,7 @@ def rem_event(rom_memory, events_header, type):
     old_size = base_size * num_of_events
     rom_memory[offset+old_size:offset+old_size+base_size] = b'\xFF'*base_size
     events_header[num_key] -= 1
+
 
 def get_map_labels(rom_memory, game, type):
     labels = []
@@ -721,6 +697,7 @@ def get_sprite_palette_ptr(rom_memory, pal_num, game):
         i += 1
     raise Exception("Security break")
 
+
 def get_ow_sprites(rom_memory, game):
     # get_pal_colors SpritePalettes
     sprites_table_ptr = get_rom_addr(game['Sprites'])
@@ -744,49 +721,10 @@ def get_ow_sprites(rom_memory, game):
         sprite_imgs.append(im)
     return sprite_imgs
 
-def get_pals(rc, game, pals1_ptr, pals2_ptr):
-    pals = []
-    if game == 'RS' or game == 'EM':
-        num_of_pals1 = 6
-        num_of_pals2 = 7
-    else:
-        num_of_pals1 = 7
-        num_of_pals2 = 6
-    for pal_n in range(num_of_pals1):
-        palette = get_pal_colors(rc, pals1_ptr, pal_n)
-        pals.append(palette)
-    for pal_n in range(num_of_pals2):
-        palette = get_pal_colors(rc, pals2_ptr,
-                                 pal_n+num_of_pals1)
-        pals.append(palette)
-    return pals
-
-def load_tilesets(rc, game, t1_header, t2_header, pals):
-    imgs = []
-    t1data, w, h1 = get_tileset_imgdata(rc, t1_header)
-    t2data, _, h2 = get_tileset_imgdata(rc, t2_header)
-    img1 = Image.new("RGB", (w, h1))
-    img2 = Image.new("RGB", (w, h2))
-    big_img = Image.new("RGB", (w, h1+h2))
-    pos1 = (0, 0, w, h1)
-    pos2 = (0, h1, w, h1+h2)
-    col1data = color(pals, t1data)
-    col2data = color(pals, t2data)
-
-    for i in range(len(pals)):
-        colored1 = col1data[i]
-        colored2 = col2data[i]
-        img1.putdata(colored1)
-        img2.putdata(colored2)
-        colored_img = big_img.copy()
-        colored_img.paste(img1, pos1)
-        colored_img.paste(img2, pos2)
-        imgs.append(colored_img)
-
-    return imgs
 
 def color(pals, tsdata):
     return [[c[i] for i in tsdata] for c in pals]
+
 
 def add_banks(rom_memory, banks_ptr, old_len, new_len):
     # The bank table is just a link of offsets terminated by (u32) 0x2
@@ -807,12 +745,14 @@ def add_banks(rom_memory, banks_ptr, old_len, new_len):
     rom_memory[old_ptr:old_ptr+old_size] = b'\xFF'*old_size
     return new_ptr
 
+
 def apply_replacement(replacements, value):
     rvalue = get_rom_addr(value)
     if replacements is not None and rvalue in replacements:
         return replacements[rvalue]
     else:
         return hex(value)
+
 
 def export_data_structure_pks(struct, data, org=True, replacements=None):
     ''' replacements must be a dict mapping addresses to
@@ -836,6 +776,7 @@ def export_data_structure_pks(struct, data, org=True, replacements=None):
 
             text += " {} '{}\n".format(value, name)
     return text
+
 
 def export_events_pks(game, events, events_header, replacements=None):
     text = ""
@@ -867,6 +808,7 @@ def export_events_pks(game, events, events_header, replacements=None):
         text += '\n'
     return text
 
+
 def export_lscript_table_pks(game, ptr, org=True, replacements=None):
     text = ""
     struct = structures.lscript_entry
@@ -879,6 +821,7 @@ def export_lscript_table_pks(game, ptr, org=True, replacements=None):
     else:
         raise Exception("Too many level scripts (>=20), something is wrong")
     return text
+
 
 def export_banks_script(game, org=True, label=False):
     text = ""
@@ -895,6 +838,7 @@ def export_banks_script(game, org=True, label=False):
             text += "#word {}\n".format(hex(rom_addr_to_gba(bank)))
 
     return text
+
 
 def export_maps_script(game, bank_n, org=True, label=False, map_hs=None):
     text = ""
@@ -913,7 +857,12 @@ def export_maps_script(game, bank_n, org=True, label=False, map_hs=None):
 
     return text
 
+
 def export_script(game, map_data, name_prefix="", label=True):
+    if game.name in ('RS', 'EM'):
+        header_structure = structures.map_header_rs
+    else:
+        header_structure = structures.map_header_fr
     replacements = {
         map_data.header['self']: '@map_header',
         map_data.data_header['self']: '@map_data_header',
@@ -954,7 +903,8 @@ def export_script(game, map_data, name_prefix="", label=True):
 {lscripts}
 """.format(bank_n=map_data.bank_n,
            map_n=map_data.map_n,
-           map_header=export(structures.map_header,
+           #map_header=export(structures.map_header,
+           map_header=export(header_structure,
                              map_data.header, True, replacements),
            map_data=export(structures.map_data,
                            map_data.data_header,

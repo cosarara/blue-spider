@@ -61,6 +61,9 @@
     </item>
     <item row="0" column="1">
      <widget class="QTabWidget" name="tabWidget">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
         <horstretch>4</horstretch>
@@ -152,6 +155,9 @@
        </layout>
       </widget>
       <widget class="QWidget" name="eventsTab">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
        <attribute name="title">
         <string>Events</string>
        </attribute>
@@ -189,7 +195,7 @@
              <x>0</x>
              <y>0</y>
              <width>270</width>
-             <height>821</height>
+             <height>851</height>
             </rect>
            </property>
            <property name="maximumSize">
@@ -1600,7 +1606,7 @@
                <item row="5" column="5">
                 <widget class="QPushButton" name="addTriggerButton">
                  <property name="enabled">
-                  <bool>true</bool>
+                  <bool>false</bool>
                  </property>
                  <property name="maximumSize">
                   <size>
@@ -1651,7 +1657,7 @@
                <item row="6" column="5">
                 <widget class="QPushButton" name="addSignpostButton">
                  <property name="enabled">
-                  <bool>true</bool>
+                  <bool>false</bool>
                  </property>
                  <property name="maximumSize">
                   <size>
@@ -1667,7 +1673,7 @@
                <item row="2" column="5">
                 <widget class="QPushButton" name="addPersonButton">
                  <property name="enabled">
-                  <bool>true</bool>
+                  <bool>false</bool>
                  </property>
                  <property name="maximumSize">
                   <size>
@@ -1683,7 +1689,7 @@
                <item row="2" column="4">
                 <widget class="QPushButton" name="remPersonButton">
                  <property name="enabled">
-                  <bool>true</bool>
+                  <bool>false</bool>
                  </property>
                  <property name="maximumSize">
                   <size>
@@ -1699,7 +1705,7 @@
                <item row="5" column="4">
                 <widget class="QPushButton" name="remTriggerButton">
                  <property name="enabled">
-                  <bool>true</bool>
+                  <bool>false</bool>
                  </property>
                  <property name="maximumSize">
                   <size>
@@ -1715,7 +1721,7 @@
                <item row="6" column="4">
                 <widget class="QPushButton" name="remSignpostButton">
                  <property name="enabled">
-                  <bool>true</bool>
+                  <bool>false</bool>
                  </property>
                  <property name="maximumSize">
                   <size>
@@ -1764,7 +1770,7 @@
                <item row="3" column="4">
                 <widget class="QPushButton" name="remWarpButton">
                  <property name="enabled">
-                  <bool>true</bool>
+                  <bool>false</bool>
                  </property>
                  <property name="maximumSize">
                   <size>
@@ -1780,7 +1786,7 @@
                <item row="3" column="5">
                 <widget class="QPushButton" name="addWarpButton">
                  <property name="enabled">
-                  <bool>true</bool>
+                  <bool>false</bool>
                  </property>
                  <property name="maximumSize">
                   <size>
@@ -1803,6 +1809,9 @@
        </layout>
       </widget>
       <widget class="QWidget" name="HeaderTab">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
        <attribute name="title">
         <string>Header</string>
        </attribute>
@@ -1817,8 +1826,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>363</width>
-             <height>613</height>
+             <width>875</width>
+             <height>659</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -1828,6 +1837,9 @@
                <string>Map Header</string>
               </property>
               <layout class="QGridLayout" name="gridLayout_12">
+               <item row="0" column="1">
+                <widget class="QLineEdit" name="m_data_ptr"/>
+               </item>
                <item row="2" column="1">
                 <widget class="QLineEdit" name="e_data_ptr"/>
                </item>
@@ -1854,9 +1866,6 @@
                <item row="6" column="1">
                 <widget class="QLineEdit" name="label_index"/>
                </item>
-               <item row="0" column="1">
-                <widget class="QLineEdit" name="m_data_ptr"/>
-               </item>
                <item row="12" column="0">
                 <widget class="QLabel" name="label_40">
                  <property name="text">
@@ -1864,21 +1873,14 @@
                  </property>
                 </widget>
                </item>
-               <item row="11" column="1">
-                <widget class="QCheckBox" name="is_cave">
-                 <property name="text">
-                  <string/>
-                 </property>
-                </widget>
-               </item>
                <item row="1" column="1">
                 <widget class="QLineEdit" name="m_ptr_index"/>
                </item>
-               <item row="4" column="1">
-                <widget class="QLineEdit" name="con_data_ptr"/>
-               </item>
                <item row="5" column="1">
                 <widget class="QLineEdit" name="song_index"/>
+               </item>
+               <item row="4" column="1">
+                <widget class="QLineEdit" name="con_data_ptr"/>
                </item>
                <item row="4" column="0">
                 <widget class="QLabel" name="label_103">
@@ -1914,6 +1916,13 @@
                <item row="14" column="1">
                 <widget class="QLineEdit" name="battle_type"/>
                </item>
+               <item row="2" column="0">
+                <widget class="QLabel" name="label_38">
+                 <property name="text">
+                  <string>Event Data Address</string>
+                 </property>
+                </widget>
+               </item>
                <item row="5" column="0">
                 <widget class="QLabel" name="label_104">
                  <property name="text">
@@ -1933,20 +1942,6 @@
                   </size>
                  </property>
                 </spacer>
-               </item>
-               <item row="7" column="1">
-                <widget class="QCheckBox" name="show_label">
-                 <property name="text">
-                  <string/>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="0">
-                <widget class="QLabel" name="label_38">
-                 <property name="text">
-                  <string>Event Data Address</string>
-                 </property>
-                </widget>
                </item>
                <item row="0" column="0">
                 <widget class="QLabel" name="label_36">
@@ -1968,6 +1963,12 @@
                   <string>Map Type Number</string>
                  </property>
                 </widget>
+               </item>
+               <item row="7" column="1">
+                <widget class="QLineEdit" name="show_label_byte"/>
+               </item>
+               <item row="11" column="1">
+                <widget class="QLineEdit" name="is_cave_byte"/>
                </item>
               </layout>
              </widget>
@@ -2136,7 +2137,7 @@
       </widget>
       <widget class="QWidget" name="PalTab">
        <property name="enabled">
-        <bool>false</bool>
+        <bool>true</bool>
        </property>
        <attribute name="title">
         <string>Tilemap Palette</string>
@@ -2144,17 +2145,37 @@
        <layout class="QGridLayout" name="gridLayout_7">
         <item row="0" column="1">
          <widget class="QGroupBox" name="groupBox_3">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
           <property name="title">
            <string>Properties</string>
           </property>
           <layout class="QHBoxLayout" name="horizontalLayout_2">
            <item>
             <layout class="QGridLayout" name="gridLayout_8">
+             <item row="9" column="0">
+              <widget class="QLabel" name="label_51">
+               <property name="text">
+                <string>Tileset 1 image</string>
+               </property>
+              </widget>
+             </item>
+             <item row="8" column="0">
+              <widget class="QPushButton" name="saveBlocksButton">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
+               <property name="text">
+                <string>Save Blocks</string>
+               </property>
+              </widget>
+             </item>
              <item row="2" column="1">
-              <widget class="QLineEdit" name="lineEdit_3"/>
+              <widget class="QLineEdit" name="background1"/>
              </item>
              <item row="0" column="1">
-              <widget class="QLineEdit" name="lineEdit"/>
+              <widget class="QLineEdit" name="behaviour1"/>
              </item>
              <item row="4" column="0">
               <widget class="QLabel" name="label_48">
@@ -2178,7 +2199,7 @@
               </widget>
              </item>
              <item row="4" column="1">
-              <widget class="QCheckBox" name="checkBox">
+              <widget class="QCheckBox" name="xFlipBox">
                <property name="text">
                 <string/>
                </property>
@@ -2187,15 +2208,18 @@
              <item row="1" column="0">
               <widget class="QLabel" name="label_44">
                <property name="text">
-                <string>Behavior 2</string>
+                <string>Behaviour 2</string>
                </property>
               </widget>
              </item>
              <item row="1" column="1">
-              <widget class="QLineEdit" name="lineEdit_2"/>
+              <widget class="QLineEdit" name="behaviour2"/>
+             </item>
+             <item row="3" column="1">
+              <widget class="QLineEdit" name="background2"/>
              </item>
              <item row="5" column="1">
-              <widget class="QCheckBox" name="checkBox_2">
+              <widget class="QCheckBox" name="yFlipBox">
                <property name="text">
                 <string/>
                </property>
@@ -2208,13 +2232,10 @@
                </property>
               </widget>
              </item>
-             <item row="3" column="1">
-              <widget class="QLineEdit" name="lineEdit_4"/>
-             </item>
              <item row="0" column="0">
               <widget class="QLabel" name="label_46">
                <property name="text">
-                <string>Behavior</string>
+                <string>Behaviour</string>
                </property>
               </widget>
              </item>
@@ -2223,6 +2244,28 @@
                <property name="sizeConstraint">
                 <enum>QLayout::SetMinimumSize</enum>
                </property>
+               <item>
+                <widget class="QGraphicsView" name="tilePreview">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>16</width>
+                   <height>16</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>32</width>
+                   <height>32</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
               </layout>
              </item>
              <item row="7" column="1">
@@ -2231,7 +2274,10 @@
                 <enum>QLayout::SetMinimumSize</enum>
                </property>
                <item>
-                <widget class="QGraphicsView" name="tile1">
+                <widget class="QGraphicsView" name="layer1">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                    <horstretch>0</horstretch>
@@ -2247,7 +2293,7 @@
                 </widget>
                </item>
                <item>
-                <widget class="QGraphicsView" name="tile2">
+                <widget class="QGraphicsView" name="layer2">
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                    <horstretch>0</horstretch>
@@ -2264,7 +2310,7 @@
                </item>
               </layout>
              </item>
-             <item row="8" column="1">
+             <item row="11" column="1">
               <spacer name="verticalSpacer_2">
                <property name="orientation">
                 <enum>Qt::Vertical</enum>
@@ -2277,12 +2323,42 @@
                </property>
               </spacer>
              </item>
+             <item row="10" column="0">
+              <widget class="QLabel" name="label_52">
+               <property name="text">
+                <string>Tileset 2 image</string>
+               </property>
+              </widget>
+             </item>
+             <item row="9" column="1">
+              <widget class="QLineEdit" name="t1_img_ptr">
+               <property name="readOnly">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="10" column="1">
+              <widget class="QLineEdit" name="t2_img_ptr">
+               <property name="readOnly">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
             </layout>
            </item>
            <item>
             <widget class="QGroupBox" name="groupBox_4">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
+             <property name="layoutDirection">
+              <enum>Qt::LeftToRight</enum>
+             </property>
              <property name="title">
               <string>Tileset</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout">
               <item>
@@ -2304,7 +2380,10 @@
                  </widget>
                 </item>
                 <item>
-                 <widget class="QComboBox" name="comboBox">
+                 <widget class="QComboBox" name="paletteSelectorCombo">
+                  <property name="enabled">
+                   <bool>true</bool>
+                  </property>
                   <item>
                    <property name="text">
                     <string>0</string>
@@ -2377,7 +2456,7 @@
               <item>
                <widget class="QGraphicsView" name="tileset">
                 <property name="sizePolicy">
-                 <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
@@ -2390,9 +2469,12 @@
                 </property>
                 <property name="maximumSize">
                  <size>
-                  <width>200</width>
+                  <width>288</width>
                   <height>16777215</height>
                  </size>
+                </property>
+                <property name="layoutDirection">
+                 <enum>Qt::LeftToRight</enum>
                 </property>
                </widget>
               </item>
@@ -2404,6 +2486,9 @@
         </item>
         <item row="0" column="0">
          <widget class="QGraphicsView" name="edPalette">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
             <horstretch>0</horstretch>
@@ -2436,7 +2521,7 @@
      <x>0</x>
      <y>0</y>
      <width>1109</width>
-     <height>21</height>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -2570,9 +2655,7 @@
   <tabstop>con_data_ptr</tabstop>
   <tabstop>song_index</tabstop>
   <tabstop>label_index</tabstop>
-  <tabstop>show_label</tabstop>
   <tabstop>map_type</tabstop>
-  <tabstop>is_cave</tabstop>
   <tabstop>weather_type</tabstop>
   <tabstop>battle_type</tabstop>
   <tabstop>map_w</tabstop>
@@ -2582,21 +2665,21 @@
   <tabstop>t2_ptr</tabstop>
   <tabstop>border_info_ptr</tabstop>
   <tabstop>addLevelScriptButton</tabstop>
-  <tabstop>lineEdit</tabstop>
-  <tabstop>lineEdit_2</tabstop>
-  <tabstop>lineEdit_3</tabstop>
-  <tabstop>lineEdit_4</tabstop>
-  <tabstop>checkBox</tabstop>
-  <tabstop>checkBox_2</tabstop>
-  <tabstop>comboBox</tabstop>
+  <tabstop>behaviour1</tabstop>
+  <tabstop>behaviour2</tabstop>
+  <tabstop>background1</tabstop>
+  <tabstop>background2</tabstop>
+  <tabstop>xFlipBox</tabstop>
+  <tabstop>yFlipBox</tabstop>
+  <tabstop>paletteSelectorCombo</tabstop>
   <tabstop>map</tabstop>
   <tabstop>scrollArea</tabstop>
   <tabstop>MovPermissionsPalette</tabstop>
   <tabstop>scrollArea_2</tabstop>
   <tabstop>movPermissionsMap</tabstop>
   <tabstop>eventMap</tabstop>
-  <tabstop>tile1</tabstop>
-  <tabstop>tile2</tabstop>
+  <tabstop>layer1</tabstop>
+  <tabstop>layer2</tabstop>
   <tabstop>palette</tabstop>
   <tabstop>tileset</tabstop>
   <tabstop>edPalette</tabstop>

@@ -16,8 +16,8 @@ combo_read = lambda x: (lambda: int(x()))
 
 text_element = lambda name, obj: (
     (
-        #hex_read(obj.text),
-        num_read(obj.text),
+        hex_read(obj.text),
+        #num_read(obj.text),
         hex_update(obj.setText),
         name
     )
@@ -25,8 +25,12 @@ text_element = lambda name, obj: (
 
 def make_header_connections(self):
     ui = self.ui
+    if self.game.name in ('RS', 'EM'):
+        self.map_header_type = structures.map_header_rs
+    else:
+        self.map_header_type = structures.map_header_fr
     conns = {
-        structures.map_header: (
+        self.map_header_type: (
             text_element("map_data_ptr", ui.m_data_ptr),
             text_element("event_data_ptr", ui.e_data_ptr),
             text_element("level_script_ptr", ui.ls_ptr),
@@ -34,18 +38,10 @@ def make_header_connections(self):
             text_element("song_index", ui.song_index),
             text_element("map_ptr_index", ui.m_ptr_index),
             text_element("label_index", ui.label_index),
-            (
-                bool_read(ui.is_cave.isChecked),
-                bool_update(ui.is_cave.setChecked),
-                "is_a_cave"
-            ),
+            text_element("is_a_cave", ui.is_cave_byte),
             text_element("weather", ui.weather_type),
             text_element("map_type", ui.map_type),
-            (
-                bool_read(ui.show_label.isChecked),
-                bool_update(ui.show_label.setChecked),
-                "show_label"
-            ),
+            text_element("show_label", ui.show_label_byte),
             text_element("battle_type", ui.battle_type),
             ),
         structures.map_data: (
@@ -58,14 +54,14 @@ def make_header_connections(self):
             )
         }
     def update():
-        for t, d in ((structures.map_header, self.map_data.header),
+        for t, d in ((self.map_header_type, self.map_data.header),
                      (structures.map_data, self.map_data.data_header)):
             for connection in conns[t]:
                 read_function, update_function, data_element = connection
                 update_function(d[data_element])
 
     def save_to_mem():
-        for t, d in ((structures.map_header, self.map_data.header),
+        for t, d in ((self.map_header_type, self.map_data.header),
                      (structures.map_data, self.map_data.data_header)):
             for connection in conns[t]:
                 read_function, update_function, data_element = connection
@@ -81,7 +77,7 @@ def make_header_connections(self):
                     num |= 0x8000000
                 d[data_element] = num
 
-        mapped.write_map_header(self.game.rom_contents, self.map_data.header)
+        mapped.write_map_header(self.game, self.map_data.header)
         mapped.write_map_data_header(self.game.rom_contents, self.map_data.data_header)
     return update, save_to_mem
 
