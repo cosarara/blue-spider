@@ -1,4 +1,7 @@
-Copyright Jaume Delclòs Coll (aka cosarara97) 2012 
+Copyright Jaume DelclÃ²s Coll (cosarara97) 2012-2017
+Gabriel Huber (Yepoleb) 2015
+kaisermg5 2017
+
 appdirs.py has its copyright notice (by ActiveState Software Inc.)
 and license (MIT) in the file itself.
 The rest of the code is mine and under the GPLv3 or later (read LICENSE).
@@ -6,7 +9,7 @@ The rest of the code is mine and under the GPLv3 or later (read LICENSE).
 Blue Spider Map editor
 ======================
 
-Blue Spider is a map editor for the GBA pokémon games.
+Blue Spider is a map editor for the GBA pokÃ©mon games.
 It supports only the USA versions of Ruby and Fire Red,
 although Emerald support is about to get working.
 
