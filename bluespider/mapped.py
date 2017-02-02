@@ -232,6 +232,9 @@ def parse_tileset_header(rom_contents, tileset_header_ptr, gamename='RS'):
 
 def parse_events_header(rom_contents, events_header_ptr):
     struct = structures.events_header
+    if events_header_ptr == 0:
+        # let's not read the garbage at the start of the ROM
+        return parse_data_structure(b'\x00'*20, struct, events_header_ptr)
     return parse_data_structure(rom_contents, struct, events_header_ptr)
 
 def write_events_header(rom_contents, data):
@@ -614,17 +617,22 @@ def fits(num, size):
     elif size == "u8":
         return num <= 0xFF
 
+
+is_word_aligned = lambda x: x & 3 == 0
+word_align = lambda x: (x & 0xFFFFFFFC) + 4 if not is_word_aligned(x) else x
+
+is_dword_aligned = lambda x: x & 7 == 0
+dword_align = lambda x: (x & 0xFFFFFFF8) + 8 if not is_dword_aligned(x) else x
+
 def find_free_space(rom_memory, size, start_pos=None):
-    """ Word aligned is much safer """
+    """ D-Word aligned, for safety """
     if start_pos is None:
         start_pos = 0x6B0000
-    is_word_aligned = lambda x: x & 7 == 0
-    word_align = lambda x: (x & 0xFFFFFFF8) + 8
-    if not is_word_aligned(start_pos):
-        start_pos = word_align(start_pos)
+    if not is_dword_aligned(start_pos):
+        start_pos = dword_align(start_pos)
     new_offset = rom_memory[start_pos:].index(b'\xFF'*size) + start_pos
-    if not is_word_aligned(new_offset):
-        new_offset = find_free_space(rom_memory, size, word_align(new_offset))
+    if not is_dword_aligned(new_offset):
+        new_offset = find_free_space(rom_memory, size, dword_align(new_offset))
     return new_offset
 
 singular_name = {
@@ -641,6 +649,12 @@ def get_event_data_for_type(type):
         "trigger": ("n_of_triggers", "trigger_events_ptr"),
         "signpost": ("n_of_signposts", "signpost_events_ptr"),
     }[type]
+
+def create_event_header(rom):
+    size = structure_utils.size_of(structures.events_header)
+    addr = find_free_space(rom, size)
+    rom[addr:addr+size] = b'\x00' * size
+    return addr
 
 def add_event(rom_memory, events_header, type):
     # Everything should be saved to rom_memory before calling this function,

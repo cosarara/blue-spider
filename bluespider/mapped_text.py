@@ -69,6 +69,7 @@ def main():
             p = print
             pp = pprint
             ph = lambda x: print(hex(x))
+            pdh = lambda x: print_dict_hex(x)
             phb = lambda x: print(hexbytes(x))
             rc = bytearray(rom_contents)
             p32b = print32bytes

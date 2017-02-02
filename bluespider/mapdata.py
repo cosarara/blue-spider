@@ -64,7 +64,8 @@ class MapData:
         self.tilemap = mapped.parse_map_mem(map_mem, self.data_header['h'],
                                             self.data_header['w'])
 
-        self.events_header = mapped.parse_events_header(game.rom_contents,
-                                                        self.header['event_data_ptr'])
+        self.events_header = mapped.parse_events_header(
+            game.rom_contents,
+            self.header['event_data_ptr'])
         self.events = mapped.parse_events(game.rom_contents, self.events_header)
 

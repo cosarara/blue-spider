@@ -485,6 +485,13 @@ class Window(QtWidgets.QMainWindow):
 
     def load_events(self):
         events_header = self.map_data.events_header
+        for addr in (events_header[n] for n in ('person_events_ptr',
+                                                'signpost_events_ptr',
+                                                'trigger_events_ptr',
+                                                'warp_events_ptr')):
+            if not mapped.is_word_aligned(addr):
+                QtWidgets.QMessageBox.critical(self, "bad header",
+                                               str("unaligned event header"))
         self.ui.num_of_warps.setText(str(events_header['n_of_warps']))
         self.ui.num_of_people.setText(str(events_header['n_of_people']))
         self.ui.num_of_triggers.setText(str(events_header['n_of_triggers']))
@@ -797,9 +804,17 @@ class Window(QtWidgets.QMainWindow):
             self.ui.signpost_stacked.setCurrentIndex(1)
 
     def add_event(self, type):
+        if self.map_data.events_header['self'] == 0:
+            addr = mapped.create_event_header(self.game.rom_contents)
+            self.map_data.events_header['self'] = addr
+            self.map_data.header['event_data_ptr'] = addr
+            self.update_header()
+            self.save_header()
+
         self.save_events()
         mapped.add_event(self.game.rom_contents, self.map_data.events_header, type)
-        mapped.write_events_header(self.game.rom_contents, self.map_data.events_header)
+        mapped.write_events_header(self.game.rom_contents,
+                                   self.map_data.events_header)
         self.load_events()
         self.draw_events(self.map_data.events)
         self.update_event_spinbox_max_value()

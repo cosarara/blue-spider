@@ -78,7 +78,7 @@ def make_header_connections(self):
                 if not mapped.fits(num, size):
                     raise Exception(data_element + " too big")
                 if size == "ptr" and num < 0x8000000 and num != 0:
-                    num &= 0x8000000
+                    num |= 0x8000000
                 d[data_element] = num
 
         mapped.write_map_header(self.game.rom_contents, self.map_data.header)
