@@ -116,6 +116,8 @@ class Window(QtWidgets.QMainWindow):
         #self.map_data.map_n = None
         self.map_img = None
 
+        self.scale = 2
+
         #self.game.sprites = []
         #self.map_data.events = [[], [], [], []]
 
@@ -481,14 +483,22 @@ class Window(QtWidgets.QMainWindow):
                                   self.mov_perms_imgs[behaviour])
 
         self.map_img = map_img
-        self.map_img_qt = ImageQt.ImageQt(map_img)
-        self.mov_img_qt = ImageQt.ImageQt(mov_img)
+        self.mov_img = mov_img
 
     def print_map(self, map, quick=False, delete_old=True):
         if not quick:
             self.draw_map(map)
+
+        map_img = self.map_img
+        self.scaled_map_img = map_img
+        if self.scale > 1:
+            w, h = map_img.size
+            self.scaled_map_img = map_img.resize((w*self.scale, h*self.scale))
+        self.map_img_qt = ImageQt.ImageQt(self.scaled_map_img)
+        self.mov_img_qt = ImageQt.ImageQt(self.mov_img)
         self.mapPixMap = QtGui.QPixmap.fromImage(self.map_img_qt)
         self.movPixMap = QtGui.QPixmap.fromImage(self.mov_img_qt)
+
         if delete_old:
             self.ui.map_scene.clear()
             self.ui.mov_scene.clear()
@@ -497,20 +507,23 @@ class Window(QtWidgets.QMainWindow):
             self.ui.map_scene.addItem(self.map_pixmap_qobject)
             self.ui.mov_scene.addItem(self.mov_pixmap_qobject)
             self.map_pixmap_qobject.clicked.connect(
-                lambda event: self.base_map_clicked(event, self.selected_tile, self.mapPixMap, 0)
-            )
+                lambda event: self.base_map_clicked(event, self.selected_tile,
+                                                    self.mapPixMap, 0))
             self.map_pixmap_qobject.click_dragged.connect(
-                lambda event: self.base_map_clicked(event, self.selected_tile, self.mapPixMap, 0)
-            )
+                lambda event: self.base_map_clicked(event, self.selected_tile,
+                                                    self.mapPixMap, 0))
             self.mov_pixmap_qobject.clicked.connect(
-                lambda event: self.base_map_clicked(event, self.selected_mov_tile, self.movPixMap, 1)
-            )
+                lambda event: self.base_map_clicked(event, self.selected_mov_tile,
+                                                    self.movPixMap, 1))
             self.mov_pixmap_qobject.click_dragged.connect(
-                lambda event: self.base_map_clicked(event, self.selected_mov_tile, self.movPixMap, 1)
-            )
+                lambda event: self.base_map_clicked(event, self.selected_mov_tile,
+                                                    self.movPixMap, 1))
+            self.map_pixmap_qobject.wheelEvent = self.map_scrolled
         else:
             self.map_pixmap_qobject.set_pixmap(self.mapPixMap)
             self.mov_pixmap_qobject.set_pixmap(self.movPixMap)
+        self.ui.map_scene.setSceneRect(self.ui.map_scene.itemsBoundingRect())
+        self.ui.mov_scene.setSceneRect(self.ui.mov_scene.itemsBoundingRect())
         self.ui.map_scene.update()
         self.ui.mov_scene.update()
 
@@ -520,6 +533,17 @@ class Window(QtWidgets.QMainWindow):
             x = (p%w)*16
             y = (p//w)*16
             self.paint_square(self.mapPixMap, x, y, 16, 16, QtCore.Qt.white)
+
+    def map_scrolled(self, event):
+        if event.modifiers() == QtCore.Qt.ControlModifier:
+            if event.delta() > 0 and self.scale < 8:
+                self.scale += 1
+                self.print_map(self.map_data.tilemap, delete_old=True)
+            elif event.delta() < 0 and self.scale > 1:
+                self.scale -= 1
+                self.print_map(self.map_data.tilemap, delete_old=True)
+        else:
+            event.ignore()
 
     def print_tileset(self, delete_old=True):
         img = self.map_data.complete_tilesets[self.selected_pal]
@@ -670,6 +694,7 @@ class Window(QtWidgets.QMainWindow):
         self.ui.event_scene.clear()
         self.event_pixmap_qobject = qmapview.QMapPixmap(self.eventPixMap)
         self.ui.event_scene.addItem(self.event_pixmap_qobject)
+        self.ui.event_scene.setSceneRect(self.ui.event_scene.itemsBoundingRect())
         self.ui.event_scene.update()
         self.event_pixmap_qobject.clicked.connect(self.event_clicked)
 
@@ -740,7 +765,7 @@ class Window(QtWidgets.QMainWindow):
                 hex(self.map_data.tileset1.header['tileset_image_ptr']))
             self.ui.t2_img_ptr.setText(
                 hex(self.map_data.tileset2.header['tileset_image_ptr']))
-        except Exception:
+        except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Error loading tilesets", str(e))
             self.ui.statusbar.showMessage("Error loading tilesets")
             #raise
@@ -768,13 +793,13 @@ class Window(QtWidgets.QMainWindow):
         self.ui.statusbar.showMessage("Map loaded in {} seconds".format(
             time.time() - self.loading_started))
 
-    def get_tile_num_from_mouseclick(self, event, pixmap):
+    def get_tile_num_from_mouseclick(self, event, pixmap, scale=1):
         pos = event.pos()
         x = int(pos.x())
         y = int(pos.y())
         w = pixmap.width()
         #h = pixmap.height()
-        tile_size = 16
+        tile_size = 16 * scale
         tiles_per_row = w // tile_size
         tile_x = x // tile_size
         tile_y = y // tile_size
@@ -896,7 +921,7 @@ class Window(QtWidgets.QMainWindow):
         #   0   Regular map
         #   1   Movemente permission map
         tile_num, tile_x, tile_y = self.get_tile_num_from_mouseclick(
-            event, pixmap)
+            event, pixmap, self.scale if map_type == 0 else 1)
         debug("clicked tile:", hex(tile_num))
 
         button = event.button()
