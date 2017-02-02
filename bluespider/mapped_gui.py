@@ -9,7 +9,6 @@ import os
 import sys
 import time
 import pkgutil
-import threading
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 try:

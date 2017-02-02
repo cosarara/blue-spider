@@ -156,7 +156,7 @@
       </widget>
       <widget class="QWidget" name="eventsTab">
        <property name="enabled">
-        <bool>false</bool>
+        <bool>true</bool>
        </property>
        <attribute name="title">
         <string>Events</string>
@@ -195,7 +195,7 @@
              <x>0</x>
              <y>0</y>
              <width>270</width>
-             <height>851</height>
+             <height>945</height>
             </rect>
            </property>
            <property name="maximumSize">
@@ -1606,7 +1606,7 @@
                <item row="5" column="5">
                 <widget class="QPushButton" name="addTriggerButton">
                  <property name="enabled">
-                  <bool>false</bool>
+                  <bool>true</bool>
                  </property>
                  <property name="maximumSize">
                   <size>
@@ -1657,7 +1657,7 @@
                <item row="6" column="5">
                 <widget class="QPushButton" name="addSignpostButton">
                  <property name="enabled">
-                  <bool>false</bool>
+                  <bool>true</bool>
                  </property>
                  <property name="maximumSize">
                   <size>
@@ -1673,7 +1673,7 @@
                <item row="2" column="5">
                 <widget class="QPushButton" name="addPersonButton">
                  <property name="enabled">
-                  <bool>false</bool>
+                  <bool>true</bool>
                  </property>
                  <property name="maximumSize">
                   <size>
@@ -1689,7 +1689,7 @@
                <item row="2" column="4">
                 <widget class="QPushButton" name="remPersonButton">
                  <property name="enabled">
-                  <bool>false</bool>
+                  <bool>true</bool>
                  </property>
                  <property name="maximumSize">
                   <size>
@@ -1705,7 +1705,7 @@
                <item row="5" column="4">
                 <widget class="QPushButton" name="remTriggerButton">
                  <property name="enabled">
-                  <bool>false</bool>
+                  <bool>true</bool>
                  </property>
                  <property name="maximumSize">
                   <size>
@@ -1721,7 +1721,7 @@
                <item row="6" column="4">
                 <widget class="QPushButton" name="remSignpostButton">
                  <property name="enabled">
-                  <bool>false</bool>
+                  <bool>true</bool>
                  </property>
                  <property name="maximumSize">
                   <size>
@@ -1770,7 +1770,7 @@
                <item row="3" column="4">
                 <widget class="QPushButton" name="remWarpButton">
                  <property name="enabled">
-                  <bool>false</bool>
+                  <bool>true</bool>
                  </property>
                  <property name="maximumSize">
                   <size>
@@ -1786,7 +1786,7 @@
                <item row="3" column="5">
                 <widget class="QPushButton" name="addWarpButton">
                  <property name="enabled">
-                  <bool>false</bool>
+                  <bool>true</bool>
                  </property>
                  <property name="maximumSize">
                   <size>
@@ -1826,8 +1826,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>875</width>
-             <height>659</height>
+             <width>877</width>
+             <height>731</height>
             </rect>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -2521,12 +2521,12 @@
      <x>0</x>
      <y>0</y>
      <width>1109</width>
-     <height>25</height>
+     <height>29</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
     <property name="title">
-     <string>File</string>
+     <string>Fi&amp;le</string>
     </property>
     <addaction name="actionLoad_ROM"/>
     <addaction name="actionSave"/>
@@ -2536,13 +2536,13 @@
    </widget>
    <widget class="QMenu" name="menuEdit">
     <property name="title">
-     <string>Edit</string>
+     <string>E&amp;dit</string>
     </property>
     <addaction name="actionChoose_script_editor"/>
    </widget>
    <widget class="QMenu" name="menuTools">
     <property name="title">
-     <string>Tools</string>
+     <string>&amp;Tools</string>
     </property>
     <addaction name="actionAdd_new_banks"/>
    </widget>
@@ -2553,37 +2553,37 @@
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionLoad_ROM">
    <property name="text">
-    <string>Load ROM</string>
+    <string>&amp;Load ROM</string>
    </property>
   </action>
   <action name="actionSave">
    <property name="text">
-    <string>Save</string>
+    <string>&amp;Save</string>
    </property>
   </action>
   <action name="actionChoose_script_editor">
    <property name="text">
-    <string>Select script editor</string>
+    <string>&amp;Select script editor</string>
    </property>
   </action>
   <action name="actionSave_As">
    <property name="text">
-    <string>Save As</string>
+    <string>Sa&amp;ve As</string>
    </property>
   </action>
   <action name="actionAdd_new_banks">
    <property name="text">
-    <string>Add new banks</string>
+    <string>&amp;Add new banks</string>
    </property>
   </action>
   <action name="actionExport_Map">
    <property name="text">
-    <string>Export Map</string>
+    <string>&amp;Export Map</string>
    </property>
   </action>
   <action name="actionImport_Map">
    <property name="text">
-    <string>Import Map</string>
+    <string>&amp;Import Map</string>
    </property>
   </action>
  </widget>
@@ -2673,7 +2673,6 @@
   <tabstop>yFlipBox</tabstop>
   <tabstop>paletteSelectorCombo</tabstop>
   <tabstop>map</tabstop>
-  <tabstop>scrollArea</tabstop>
   <tabstop>MovPermissionsPalette</tabstop>
   <tabstop>scrollArea_2</tabstop>
   <tabstop>movPermissionsMap</tabstop>
