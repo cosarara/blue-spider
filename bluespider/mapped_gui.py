@@ -206,7 +206,7 @@ class Window(QtWidgets.QMainWindow):
         self.load_map(self.current_bank_n, self.current_map_n)
         index = ["person", "warp",
                  "trigger", "signpost"].index(self.selected_event_type)
-        self.selected_event = self.map_data.events[index][self.map_data.event_n]
+        self.selected_event = self.map_data.events[index][self.event_n]
 
     def reload_person_img(self):
         """ Called when the sprite num. is changed in the GUI """
@@ -531,9 +531,11 @@ class Window(QtWidgets.QMainWindow):
                                              self.map_data.t2_header,
                                              self.t1_imgs,
                                              previous_map_data)
-        except:
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Error loading tilesets", str(e))
             self.ui.statusbar.showMessage("Error loading tilesets")
-            raise
+            #raise
+            return
 
         self.load_events()
 
@@ -819,6 +821,9 @@ class Window(QtWidgets.QMainWindow):
         # the last (bad) event in the ROM
         this_event = self.selected_event
         type = self.selected_event_type
+        if this_event is None or type is None:
+            print("FIXME: deleting event with no event selected")
+            return
 
         self.selected_event = None
         self.selected_event_type = None
@@ -918,6 +923,7 @@ class Window(QtWidgets.QMainWindow):
             args = [command, file_name, hex(offset)]
         else:
             args = [command, file_name+":"+hex(mapped.get_rom_addr(offset))[2:]]
+        print(args)
         import subprocess
         subprocess.Popen(args)
 

@@ -615,9 +615,16 @@ def fits(num, size):
         return num <= 0xFF
 
 def find_free_space(rom_memory, size, start_pos=None):
+    """ Word aligned is much safer """
     if start_pos is None:
         start_pos = 0x6B0000
+    is_word_aligned = lambda x: x & 7 == 0
+    word_align = lambda x: (x & 0xFFFFFFF8) + 8
+    if not is_word_aligned(start_pos):
+        start_pos = word_align(start_pos)
     new_offset = rom_memory[start_pos:].index(b'\xFF'*size) + start_pos
+    if not is_word_aligned(new_offset):
+        new_offset = find_free_space(rom_memory, size, word_align(new_offset))
     return new_offset
 
 singular_name = {
@@ -647,11 +654,11 @@ def add_event(rom_memory, events_header, type):
     base_size = structure_utils.size_of(structures.events[type])
     size = base_size * num_of_events
     events_memory = bytes(rom_memory[old_offset:old_offset+size])
-    print(events_memory)
     rom_memory[old_offset:old_offset+size] = b'\xFF'*size
     new_size = size + base_size
     try:
         new_offset = find_free_space(rom_memory, new_size)
+        print("new offset:", new_offset)
     except ValueError:
         rom_memory[:] = backup
         raise Exception("Your ROM is full!")
@@ -665,6 +672,8 @@ def rem_event(rom_memory, events_header, type):
     num_key, ptr_key = get_event_data_for_type(type)
     base_size = structure_utils.size_of(structures.events[type])
     offset = events_header[ptr_key]
+    if offset > 0x8000000:
+        offset -= 0x8000000
     num_of_events = events_header[num_key]
     old_size = base_size * num_of_events
     rom_memory[offset+old_size:offset+old_size+base_size] = b'\xFF'*base_size
