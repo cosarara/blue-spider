@@ -22,9 +22,9 @@ except:
 
 try:
     with os.popen("git describe --always | sed 's|-|.|g'") as psfile:
-        version = psfile.read().strip("\n")
+        version = "1.0.dev0+"+psfile.read().strip("\n")
 except:
-    version = "git"
+    version = "1.0.dev+git"
 
 base = None
 basecli = None
