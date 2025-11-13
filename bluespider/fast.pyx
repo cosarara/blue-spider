@@ -30,14 +30,7 @@ def build_imgdata(data, size, palette, w):
         imdata[x+y*imw+1] = color2
     return imdata
 
-try:
-    import Image
-    import ImageQt
-except:
-    try:
-        from PIL import Image, ImageQt
-    except:
-        print("Warning: Couldn't import PIL")
+from PIL import Image, ImageQt
 
 TILES_PER_LINE = 16
 positions = {

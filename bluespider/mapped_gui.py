@@ -11,11 +11,7 @@ import time
 import pkgutil
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-try:
-    import Image
-    import ImageQt
-except ImportError:
-    from PIL import Image, ImageQt
+from PIL import Image, ImageQt
 
 from .window import Ui_MainWindow
 from . import qmapview

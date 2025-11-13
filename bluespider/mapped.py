@@ -2,13 +2,7 @@
 
 import binascii
 import os
-try:
-    import Image
-except ImportError:
-    try:
-        from PIL import Image
-    except ImportError:
-        print("Warning: Couldn't import PIL")
+from PIL import Image
 
 from . import lz77
 from . import structures
