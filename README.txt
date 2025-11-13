@@ -18,6 +18,7 @@ Dependencies (only when running from source):
 	python3
 	PyQt5
 	PIL (or pillow)
+  appdirs
 
 Also, to get the "Open in emulator" button working you'll need
 the executable of [VBA-M-Scripted](https://gitorious.org/vba-m-scripted)
